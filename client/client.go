@@ -14,7 +14,7 @@ const (
 )
 
 type Client struct {
-	Ws   *websocket.Conn
+	ws   *websocket.Conn
 	Send chan []byte // Channel storing outcoming messages
 }
 
@@ -31,25 +31,25 @@ func New(w http.ResponseWriter, r *http.Request) (*Client, error) {
 
 	return &Client{
 		Send: make(chan []byte, maxMessageSize),
-		Ws:   ws,
+		ws:   ws,
 	}, nil
 }
 
 func (c *Client) ReadPump(broadcast chan string, unregister chan *Client) {
 	defer func() {
 		unregister <- c
-		c.Ws.Close()
+		c.ws.Close()
 	}()
 
-	c.Ws.SetReadLimit(maxMessageSize)
-	c.Ws.SetReadDeadline(time.Now().Add(pongWait))
-	c.Ws.SetPongHandler(func(string) error {
-		c.Ws.SetReadDeadline(time.Now().Add(pongWait))
+	c.ws.SetReadLimit(maxMessageSize)
+	c.ws.SetReadDeadline(time.Now().Add(pongWait))
+	c.ws.SetPongHandler(func(string) error {
+		c.ws.SetReadDeadline(time.Now().Add(pongWait))
 		return nil
 	})
 
 	for {
-		_, message, err := c.Ws.ReadMessage()
+		_, message, err := c.ws.ReadMessage()
 		if err != nil {
 			break
 		}
@@ -63,7 +63,7 @@ func (c *Client) WritePump() {
 
 	defer func() {
 		ticker.Stop()
-		c.Ws.Close()
+		c.ws.Close()
 	}()
 
 	for {
@@ -85,6 +85,6 @@ func (c *Client) WritePump() {
 }
 
 func (c *Client) write(mt int, message []byte) error {
-	c.Ws.SetWriteDeadline(time.Now().Add(writeWait))
-	return c.Ws.WriteMessage(mt, message)
+	c.ws.SetWriteDeadline(time.Now().Add(writeWait))
+	return c.ws.WriteMessage(mt, message)
 }
