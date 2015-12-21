@@ -1,12 +1,14 @@
 package hub
 
 import (
+	"encoding/json"
 	"github.com/svera/acquire"
 	"github.com/svera/acquire-server/client"
 	"github.com/svera/acquire/board"
 	"github.com/svera/acquire/corporation"
 	"github.com/svera/acquire/player"
 	"github.com/svera/acquire/tileset"
+	"strconv"
 )
 
 type Hub struct {
@@ -89,12 +91,13 @@ func (h *Hub) Run() {
 func (h *Hub) sendInitialHand(gm *acquire.Game) {
 	for index, c := range h.clients {
 		tiles := gm.Player(index).Tiles()
-		str := ""
-		for _, tile := range tiles {
-			str = str + tile.Letter()
+		coords := []string{}
+		for _, tl := range tiles {
+			coords = append(coords, tl.Letter()+strconv.Itoa(tl.Number()))
 		}
+		response, _ := json.Marshal(coords)
 		select {
-		case c.Send <- []byte(str):
+		case c.Send <- response:
 			break
 
 		// We can't reach the client
