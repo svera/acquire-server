@@ -17,7 +17,12 @@ $(function() {
 
     // Whenever we receive a message, update textarea
     conn.onmessage = function(e) {
-        console.log(e.data)
+        tiles = JSON.parse(e.data)
+        buttons = $(".tl")
+        $.each(tiles, function(index, t){
+            $(buttons[index]).attr("value", t)
+            $(buttons[index]).text(t)
+        });
         if (e.data != content.val()) {
             content.val(e.data);
         }
