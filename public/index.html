@@ -11,33 +11,53 @@
 </head>
 <body>
 	<div class="container">
-		<div class="btn-group" role="group" aria-label="..." data-toggle="buttons">
-            <label class="btn btn-default tl">
-                <input type="radio" name="tiles">
-                <span>&nbsp;&nbsp;</span>
-            </label>
-            <label class="btn btn-default tl">
-                <input type="radio" name="tiles">
-                <span>&nbsp;&nbsp;</span>
-            </label>
-            <label class="btn btn-default tl">
-                <input type="radio" name="tiles">
-                <span>&nbsp;&nbsp;</span>
-            </label>
-            <label class="btn btn-default tl">
-                <input type="radio" name="tiles">
-                <span>&nbsp;&nbsp;</span>
-            </label>
-            <label class="btn btn-default tl">
-                <input type="radio" name="tiles">
-                <span>&nbsp;&nbsp;</span>
-            </label>
-            <label class="btn btn-default tl">
-                <input type="radio" name="tiles">
-                <span>&nbsp;&nbsp;</span>
-            </label>
-		</div>
-        <input type="button" id="playButton" class="btn btn-primary" value="Play tile" />
+        <div class="row">
+            <form method="post" action="/create">
+                <div class="col-md-12">
+                    <label>
+                        Player name
+                            <input type="text" name="playerName" id="playerName" />
+                    </label>
+                    <input type="submit" class="btn btn-primary" value="Create new game" />
+                </div>
+            </form>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <h2>Available games</h2>
+                <ul>
+                </ul>
+            </div> 
+        </div>
+        <div class="row">
+    		<div class="btn-group" role="group" aria-label="..." data-toggle="buttons">
+                <label class="btn btn-default tl">
+                    <input type="radio" name="tiles">
+                    <span>&nbsp;&nbsp;</span>
+                </label>
+                <label class="btn btn-default tl">
+                    <input type="radio" name="tiles">
+                    <span>&nbsp;&nbsp;</span>
+                </label>
+                <label class="btn btn-default tl">
+                    <input type="radio" name="tiles">
+                    <span>&nbsp;&nbsp;</span>
+                </label>
+                <label class="btn btn-default tl">
+                    <input type="radio" name="tiles">
+                    <span>&nbsp;&nbsp;</span>
+                </label>
+                <label class="btn btn-default tl">
+                    <input type="radio" name="tiles">
+                    <span>&nbsp;&nbsp;</span>
+                </label>
+                <label class="btn btn-default tl">
+                    <input type="radio" name="tiles">
+                    <span>&nbsp;&nbsp;</span>
+                </label>
+    		</div>
+            <input type="button" id="playButton" class="btn btn-primary" value="Play tile" />
+        </div>
 	</div>
     <textarea spellcheck="false" class="doc" id="content" disabled="disabled" cols="80" rows="5">Waiting for other players...</textarea>
 </body>

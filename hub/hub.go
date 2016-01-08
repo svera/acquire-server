@@ -27,8 +27,8 @@ type Hub struct {
 	content string
 }
 
-func New() Hub {
-	return Hub{
+func New() *Hub {
+	return &Hub{
 		Broadcast:  make(chan string),
 		Register:   make(chan *client.Client),
 		Unregister: make(chan *client.Client),
