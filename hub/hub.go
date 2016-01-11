@@ -13,7 +13,7 @@ import (
 
 type Hub struct {
 	// Registered clients
-	clients []*client.Client
+	clients map[*client.Client]bool
 
 	// Inbound messages
 	Broadcast chan string
@@ -32,7 +32,7 @@ func New() *Hub {
 		Broadcast:  make(chan string),
 		Register:   make(chan *client.Client),
 		Unregister: make(chan *client.Client),
-		clients:    make([]*client.Client, 0),
+		clients:    make(map[*client.Client]bool),
 		content:    "",
 	}
 }
@@ -41,7 +41,7 @@ func (h *Hub) Run() {
 	for {
 		select {
 		case c := <-h.Register:
-			h.clients = append(h.clients, c)
+			h.clients[c] = true
 			if len(h.clients) == 3 {
 				corp1, _ := corporation.New("Corp a", 0)
 				corp2, _ := corporation.New("Corp b", 0)
@@ -68,14 +68,14 @@ func (h *Hub) Run() {
 			}
 			break
 
-		/*case index, c := <-h.Unregister:
-		_, ok := h.clients[index]
-		if ok {
-			delete(h.clients, index)
-			close(c.Send)
-		}
-		break
-		*/
+		case c := <-h.Unregister:
+			_, ok := h.clients[c]
+			if ok {
+				delete(h.clients, c)
+				close(c.Send)
+			}
+			break
+
 		case m := <-h.Broadcast:
 			h.content = m
 			h.broadcastMessage()
@@ -85,7 +85,9 @@ func (h *Hub) Run() {
 }
 
 func (h *Hub) sendInitialHand(gm *acquire.Game) {
-	for index, c := range h.clients {
+	index := 0
+	// TODO: Fix this so iteration order is always the same
+	for c := range h.clients {
 		tiles := gm.Player(index).Tiles()
 		coords := []string{}
 		for _, tl := range tiles {
@@ -99,13 +101,14 @@ func (h *Hub) sendInitialHand(gm *acquire.Game) {
 		// We can't reach the client
 		default:
 			close(c.Send)
-			//delete(h.clients, index)
+			delete(h.clients, c)
 		}
+		index++
 	}
 }
 
 func (h *Hub) broadcastMessage() {
-	for _, c := range h.clients {
+	for c := range h.clients {
 		select {
 		case c.Send <- []byte(h.content):
 			break
@@ -113,14 +116,14 @@ func (h *Hub) broadcastMessage() {
 		// We can't reach the client
 		default:
 			close(c.Send)
-			//delete(h.clients, index)
+			delete(h.clients, c)
 		}
 	}
 }
 
 func (h *Hub) players() []player.Interface {
 	var players []player.Interface
-	for _, c := range h.clients {
+	for c := range h.clients {
 		players = append(players, c.Pl)
 	}
 	return players
