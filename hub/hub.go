@@ -52,11 +52,7 @@ func (h *Hub) Run() {
 				corp7, _ := corporation.New("Corp g", 2)
 				gm, _ := acquire.New(
 					board.New(),
-					[]player.Interface{
-						player.New("Player 1"),
-						player.New("Player 2"),
-						player.New("Player 3"),
-					},
+					h.players(),
 					[7]corporation.Interface{
 						corp1,
 						corp2,
@@ -120,4 +116,12 @@ func (h *Hub) broadcastMessage() {
 			//delete(h.clients, index)
 		}
 	}
+}
+
+func (h *Hub) players() []player.Interface {
+	var players []player.Interface
+	for _, c := range h.clients {
+		players = append(players, c.Pl)
+	}
+	return players
 }

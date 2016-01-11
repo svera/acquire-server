@@ -4,7 +4,8 @@ $(function() {
     }
 
     var playButton = $("#playButton");
-    var conn = new WebSocket('ws://' + window.location.host + '/ws');
+    var url = [location.host, location.pathname].join('');
+    var conn = new WebSocket('ws://' + url + '/join');
 
     conn.onclose = function(e) {
         playButton.attr("disabled", true);
