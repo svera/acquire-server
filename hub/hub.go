@@ -13,7 +13,7 @@ import (
 
 type Hub struct {
 	// Registered clients
-	clients map[*client.Client]bool
+	clients []*client.Client
 
 	// Inbound messages
 	Broadcast chan string
@@ -32,7 +32,7 @@ func New() *Hub {
 		Broadcast:  make(chan string),
 		Register:   make(chan *client.Client),
 		Unregister: make(chan *client.Client),
-		clients:    make(map[*client.Client]bool),
+		clients:    []*client.Client{},
 		content:    "",
 	}
 }
@@ -41,7 +41,7 @@ func (h *Hub) Run() {
 	for {
 		select {
 		case c := <-h.Register:
-			h.clients[c] = true
+			h.clients = append(h.clients, c)
 			if len(h.clients) == 3 {
 				corp1, _ := corporation.New("Corp a", 0)
 				corp2, _ := corporation.New("Corp b", 0)
@@ -69,10 +69,11 @@ func (h *Hub) Run() {
 			break
 
 		case c := <-h.Unregister:
-			_, ok := h.clients[c]
-			if ok {
-				delete(h.clients, c)
-				close(c.Send)
+			for i, val := range h.clients {
+				if val == c {
+					h.removeClient(i)
+					close(c.Send)
+				}
 			}
 			break
 
@@ -85,10 +86,8 @@ func (h *Hub) Run() {
 }
 
 func (h *Hub) sendInitialHand(gm *acquire.Game) {
-	index := 0
-	// TODO: Fix this so iteration order is always the same
-	for c := range h.clients {
-		tiles := gm.Player(index).Tiles()
+	for i, c := range h.clients {
+		tiles := gm.Player(i).Tiles()
 		coords := []string{}
 		for _, tl := range tiles {
 			coords = append(coords, tl.Letter()+strconv.Itoa(tl.Number()))
@@ -101,14 +100,13 @@ func (h *Hub) sendInitialHand(gm *acquire.Game) {
 		// We can't reach the client
 		default:
 			close(c.Send)
-			delete(h.clients, c)
+			h.removeClient(i)
 		}
-		index++
 	}
 }
 
 func (h *Hub) broadcastMessage() {
-	for c := range h.clients {
+	for i, c := range h.clients {
 		select {
 		case c.Send <- []byte(h.content):
 			break
@@ -116,15 +114,19 @@ func (h *Hub) broadcastMessage() {
 		// We can't reach the client
 		default:
 			close(c.Send)
-			delete(h.clients, c)
+			h.removeClient(i)
 		}
 	}
 }
 
 func (h *Hub) players() []player.Interface {
 	var players []player.Interface
-	for c := range h.clients {
+	for _, c := range h.clients {
 		players = append(players, c.Pl)
 	}
 	return players
+}
+
+func (h *Hub) removeClient(i int) {
+	h.clients = append(h.clients[:i], h.clients[i+1:]...)
 }
