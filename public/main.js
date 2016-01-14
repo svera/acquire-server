@@ -26,7 +26,18 @@ $(function() {
 
     playButton.on("click", function() {
         tl = $('input[name=tiles]:checked')
-        conn.send(tl.val());
-        console.log(tl.val());
+        conn.send(
+            createPlayTileMessage(tl.val())
+        );
     });
+
+    createPlayTileMessage = function(tl) {
+        var message =  {
+            "typ": "ply",
+            "det": {
+                "til": tl
+            }
+        };
+        return JSON.stringify(message);
+    }
 });

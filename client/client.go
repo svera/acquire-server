@@ -38,7 +38,8 @@ func New(w http.ResponseWriter, r *http.Request, pl player.Interface) (*Client, 
 	}, nil
 }
 
-func (c *Client) ReadPump(broadcast chan string, unregister chan *Client) {
+// ReadPump reads input from the user and writes it to the passed channel
+func (c *Client) ReadPump(channel chan string, unregister chan *Client) {
 	defer func() {
 		unregister <- c
 		c.ws.Close()
@@ -57,10 +58,11 @@ func (c *Client) ReadPump(broadcast chan string, unregister chan *Client) {
 			break
 		}
 
-		broadcast <- string(message)
+		channel <- string(message)
 	}
 }
 
+// WritePump sends data to the user
 func (c *Client) WritePump() {
 	ticker := time.NewTicker(pingPeriod)
 

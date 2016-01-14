@@ -2,6 +2,7 @@ package hub
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/svera/acquire"
 	"github.com/svera/acquire-server/client"
 	"github.com/svera/acquire/board"
@@ -16,7 +17,7 @@ type Hub struct {
 	clients []*client.Client
 
 	// Inbound messages
-	Broadcast chan string
+	Messages chan string
 
 	// Register requests
 	Register chan *client.Client
@@ -29,7 +30,7 @@ type Hub struct {
 
 func New() *Hub {
 	return &Hub{
-		Broadcast:  make(chan string),
+		Messages:   make(chan string),
 		Register:   make(chan *client.Client),
 		Unregister: make(chan *client.Client),
 		clients:    []*client.Client{},
@@ -77,7 +78,8 @@ func (h *Hub) Run() {
 			}
 			break
 
-		case m := <-h.Broadcast:
+		case m := <-h.Messages:
+			fmt.Println(m)
 			h.content = m
 			h.broadcastMessage()
 			break
