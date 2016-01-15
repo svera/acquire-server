@@ -43,27 +43,7 @@ func (h *Hub) Run() {
 		case c := <-h.Register:
 			h.clients = append(h.clients, c)
 			if len(h.clients) == 3 {
-				corp1, _ := corporation.New("Corp a", 0)
-				corp2, _ := corporation.New("Corp b", 0)
-				corp3, _ := corporation.New("Corp c", 1)
-				corp4, _ := corporation.New("Corp d", 1)
-				corp5, _ := corporation.New("Corp e", 1)
-				corp6, _ := corporation.New("Corp f", 2)
-				corp7, _ := corporation.New("Corp g", 2)
-				h.game, _ = acquire.New(
-					board.New(),
-					h.players(),
-					[7]corporation.Interface{
-						corp1,
-						corp2,
-						corp3,
-						corp4,
-						corp5,
-						corp6,
-						corp7,
-					},
-					tileset.New(),
-				)
+				h.newGame()
 				h.sendInitialHand(h.game)
 			}
 			break
@@ -119,4 +99,28 @@ func (h *Hub) players() []player.Interface {
 
 func (h *Hub) removeClient(i int) {
 	h.clients = append(h.clients[:i], h.clients[i+1:]...)
+}
+
+func (h *Hub) newGame() {
+	corp1, _ := corporation.New("Corp a", 0)
+	corp2, _ := corporation.New("Corp b", 0)
+	corp3, _ := corporation.New("Corp c", 1)
+	corp4, _ := corporation.New("Corp d", 1)
+	corp5, _ := corporation.New("Corp e", 1)
+	corp6, _ := corporation.New("Corp f", 2)
+	corp7, _ := corporation.New("Corp g", 2)
+	h.game, _ = acquire.New(
+		board.New(),
+		h.players(),
+		[7]corporation.Interface{
+			corp1,
+			corp2,
+			corp3,
+			corp4,
+			corp5,
+			corp6,
+			corp7,
+		},
+		tileset.New(),
+	)
 }
