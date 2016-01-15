@@ -11,7 +11,7 @@ $(function() {
         playButton.attr("disabled", true);
     };
 
-    // Whenever we receive a message, update textarea
+    // Whenever we receive a message, update
     conn.onmessage = function(e) {
         tiles = JSON.parse(e.data)
         buttons = $(".tl")
@@ -19,9 +19,6 @@ $(function() {
             $(buttons[index]).find("input").attr("value", t)
             $(buttons[index]).find("span").text(t)
         });
-        if (e.data != content.val()) {
-            content.val(e.data);
-        }
     };
 
     playButton.on("click", function() {

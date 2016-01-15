@@ -38,7 +38,7 @@ func join(w http.ResponseWriter, r *http.Request) {
 	hubs[id].Register <- c
 
 	go c.WritePump()
-	c.ReadPump(hubs[id].Message, hubs[id].Unregister)
+	c.ReadPump(hubs[id].Messages, hubs[id].Unregister)
 }
 
 func room(w http.ResponseWriter, r *http.Request) {
