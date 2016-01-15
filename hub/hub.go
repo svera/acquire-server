@@ -62,7 +62,11 @@ func (h *Hub) Run() {
 				fmt.Println("Player not in turn")
 			} else {
 				fmt.Println("Player in turn")
+				if m.Content.Typ == "ply" {
+					fmt.Println("Tile played: " + m.Content.Det["til"])
+				}
 			}
+
 			//fmt.Println(m)
 			break
 		}

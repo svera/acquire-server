@@ -1,6 +1,7 @@
 package client
 
 import (
+	"encoding/json"
 	"github.com/gorilla/websocket"
 	"github.com/svera/acquire/player"
 	"net/http"
@@ -20,9 +21,14 @@ type Client struct {
 	Send chan []byte // Channel storing outcoming messages
 }
 
+type ClientMessageContent struct {
+	Typ string
+	Det map[string]string
+}
+
 type ClientMessage struct {
 	Author  *Client
-	Content []byte
+	Content ClientMessageContent
 }
 
 func New(w http.ResponseWriter, r *http.Request, pl player.Interface) (*Client, error) {
@@ -63,9 +69,12 @@ func (c *Client) ReadPump(channel chan *ClientMessage, unregister chan *Client) 
 			break
 		}
 
+		cnt := ClientMessageContent{}
+		json.Unmarshal(message, &cnt)
+
 		msg := &ClientMessage{
 			Author:  c,
-			Content: message,
+			Content: cnt,
 		}
 
 		channel <- msg
