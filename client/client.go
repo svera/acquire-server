@@ -20,6 +20,11 @@ type Client struct {
 	Send chan []byte // Channel storing outcoming messages
 }
 
+type ClientMessage struct {
+	Author  *Client
+	Content []byte
+}
+
 func New(w http.ResponseWriter, r *http.Request, pl player.Interface) (*Client, error) {
 	var upgrader = websocket.Upgrader{
 		ReadBufferSize:  maxMessageSize,
@@ -39,7 +44,7 @@ func New(w http.ResponseWriter, r *http.Request, pl player.Interface) (*Client, 
 }
 
 // ReadPump reads input from the user and writes it to the passed channel
-func (c *Client) ReadPump(channel chan string, unregister chan *Client) {
+func (c *Client) ReadPump(channel chan *ClientMessage, unregister chan *Client) {
 	defer func() {
 		unregister <- c
 		c.ws.Close()
@@ -58,7 +63,12 @@ func (c *Client) ReadPump(channel chan string, unregister chan *Client) {
 			break
 		}
 
-		channel <- string(message)
+		msg := &ClientMessage{
+			Author:  c,
+			Content: message,
+		}
+
+		channel <- msg
 	}
 }
 

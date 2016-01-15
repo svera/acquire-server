@@ -17,7 +17,7 @@ type Hub struct {
 	clients []*client.Client
 
 	// Inbound messages
-	Messages chan string
+	Messages chan *client.ClientMessage
 
 	// Register requests
 	Register chan *client.Client
@@ -25,16 +25,15 @@ type Hub struct {
 	// Unregister requests
 	Unregister chan *client.Client
 
-	content string
+	game *acquire.Game
 }
 
 func New() *Hub {
 	return &Hub{
-		Messages:   make(chan string),
+		Messages:   make(chan *client.ClientMessage),
 		Register:   make(chan *client.Client),
 		Unregister: make(chan *client.Client),
 		clients:    []*client.Client{},
-		content:    "",
 	}
 }
 
@@ -51,7 +50,7 @@ func (h *Hub) Run() {
 				corp5, _ := corporation.New("Corp e", 1)
 				corp6, _ := corporation.New("Corp f", 2)
 				corp7, _ := corporation.New("Corp g", 2)
-				gm, _ := acquire.New(
+				h.game, _ = acquire.New(
 					board.New(),
 					h.players(),
 					[7]corporation.Interface{
@@ -65,7 +64,7 @@ func (h *Hub) Run() {
 					},
 					tileset.New(),
 				)
-				h.sendInitialHand(gm)
+				h.sendInitialHand(h.game)
 			}
 			break
 
@@ -79,9 +78,12 @@ func (h *Hub) Run() {
 			break
 
 		case m := <-h.Messages:
-			fmt.Println(m)
-			h.content = m
-			h.broadcastMessage()
+			if m.Author.Pl != h.game.CurrentPlayer() {
+				fmt.Println("Player not in turn")
+			} else {
+				fmt.Println("Player in turn")
+			}
+			//fmt.Println(m)
 			break
 		}
 	}
@@ -97,20 +99,6 @@ func (h *Hub) sendInitialHand(gm *acquire.Game) {
 		response, _ := json.Marshal(coords)
 		select {
 		case c.Send <- response:
-			break
-
-		// We can't reach the client
-		default:
-			close(c.Send)
-			h.removeClient(i)
-		}
-	}
-}
-
-func (h *Hub) broadcastMessage() {
-	for i, c := range h.clients {
-		select {
-		case c.Send <- []byte(h.content):
 			break
 
 		// We can't reach the client
