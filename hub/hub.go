@@ -18,7 +18,7 @@ type Hub struct {
 	clients []*client.Client
 
 	// Inbound messages
-	Messages chan *client.ClientMessage
+	Messages chan *client.Message
 
 	// Register requests
 	Register chan *client.Client
@@ -31,7 +31,7 @@ type Hub struct {
 
 func New() *Hub {
 	return &Hub{
-		Messages:   make(chan *client.ClientMessage),
+		Messages:   make(chan *client.Message),
 		Register:   make(chan *client.Client),
 		Unregister: make(chan *client.Client),
 		clients:    []*client.Client{},
@@ -65,11 +65,13 @@ func (h *Hub) Run() {
 				fmt.Println("Player in turn")
 				if m.Content.Typ == "ply" {
 					tl := m.Content.Det["til"]
-					let := string(tl[1:len(tl)])
-					num, _ := strconv.Atoi(string(tl[0]))
-					fmt.Println(let)
-					fmt.Println(num)
-					h.game.PlayTile(tile.New(num, let, tile.Empty{}))
+					number, letter := tileCoordinates(tl)
+					if err := h.game.PlayTile(tile.New(number, letter, tile.Empty{})); err != nil {
+
+					} else {
+
+					}
+					
 					fmt.Println(h.game.StatusName())
 				}
 			}
@@ -78,6 +80,12 @@ func (h *Hub) Run() {
 			break
 		}
 	}
+}
+
+func tileCoordinates(tl string) (int, string) {
+	number, _ := strconv.Atoi(string(tl[0]))
+	letter := string(tl[1:len(tl)])
+	return number, letter
 }
 
 func (h *Hub) sendInitialHand(gm *acquire.Game) {
