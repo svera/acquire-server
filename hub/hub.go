@@ -64,9 +64,9 @@ func (h *Hub) Run() {
 			} else {
 				fmt.Println("Player in turn")
 				if m.Content.Typ == "ply" {
-					tl := m.Content.Det["til"]
-					number, letter := tileCoordinates(tl)
-					if err := h.game.PlayTile(tile.New(number, letter, tile.Empty{})); err != nil {
+					coords := m.Content.Det["til"]
+					tl := coordsToTile(coords)
+					if err := h.game.PlayTile(tl); err != nil {
 
 					} else {
 
@@ -82,10 +82,10 @@ func (h *Hub) Run() {
 	}
 }
 
-func tileCoordinates(tl string) (int, string) {
+func coordsToTile(tl string) tile.Interface {
 	number, _ := strconv.Atoi(string(tl[0]))
 	letter := string(tl[1:len(tl)])
-	return number, letter
+	return tile.New(number, letter, tile.Empty{})
 }
 
 func (h *Hub) sendInitialHand(gm *acquire.Game) {
