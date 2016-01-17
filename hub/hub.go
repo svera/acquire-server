@@ -8,6 +8,7 @@ import (
 	"github.com/svera/acquire/board"
 	"github.com/svera/acquire/corporation"
 	"github.com/svera/acquire/player"
+	"github.com/svera/acquire/tile"
 	"github.com/svera/acquire/tileset"
 	"strconv"
 )
@@ -63,7 +64,13 @@ func (h *Hub) Run() {
 			} else {
 				fmt.Println("Player in turn")
 				if m.Content.Typ == "ply" {
-					fmt.Println("Tile played: " + m.Content.Det["til"])
+					tl := m.Content.Det["til"]
+					let := string(tl[1:len(tl)])
+					num, _ := strconv.Atoi(string(tl[0]))
+					fmt.Println(let)
+					fmt.Println(num)
+					h.game.PlayTile(tile.New(num, let, tile.Empty{}))
+					fmt.Println(h.game.StatusName())
 				}
 			}
 
@@ -78,7 +85,7 @@ func (h *Hub) sendInitialHand(gm *acquire.Game) {
 		tiles := gm.Player(i).Tiles()
 		coords := []string{}
 		for _, tl := range tiles {
-			coords = append(coords, tl.Letter()+strconv.Itoa(tl.Number()))
+			coords = append(coords, strconv.Itoa(tl.Number())+tl.Letter())
 		}
 		response, _ := json.Marshal(coords)
 		select {
