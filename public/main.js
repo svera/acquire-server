@@ -16,16 +16,13 @@ $(function() {
         msg = JSON.parse(e.data)
         switch (msg.typ) {
             case "ini":
-                buttons = $(".tl")
-                $.each(msg.hnd, function(index, t){
-                    $(buttons[index]).find("input").attr("value", t)
-                    $(buttons[index]).find("span").text(t)
-                });
+                updateHand(msg.hnd)
                 break;
             case "upd":
                 console.log("update received")
                 console.log(msg)
                 updateBoard(msg.brd)
+                updateHand(msg.hnd)
         }
     };
 
@@ -53,4 +50,15 @@ $(function() {
             }
         });
     }
+
+    updateHand = function(hand) {
+        $("#hand").html("")
+        for (var i = 0; i < hand.length; i++) {
+            $("#hand").append(
+                '<label class="btn btn-default">'+
+                    '<input type="radio" name="tiles" value="'+ hand[i] +'">'+
+                    '<span>' + hand[i] +'</span>'+
+                '</label>');
+        }
+    }    
 });
