@@ -45,7 +45,7 @@ func (h *Hub) Run() {
 			h.clients = append(h.clients, c)
 			if len(h.clients) == 3 {
 				h.newGame()
-				h.sendInitialHand(h.game)
+				h.sendInitialHand()
 			}
 			break
 
@@ -69,10 +69,29 @@ func (h *Hub) Run() {
 					if err := h.game.PlayTile(tl); err != nil {
 
 					} else {
+						res := &Message{
+							Result: "ok",
+							Type:   "upd",
+							Board: map[string]string{
+								coords: tl.Owner().Type(),
+							},
+							Hand: h.tilesToSlice(h.game.CurrentPlayer()),
+						}
+						for i, c := range h.clients {
+							response, _ := json.Marshal(res)
+							select {
+							case c.Send <- response:
+								break
 
+							// We can't reach the client
+							default:
+								close(c.Send)
+								h.removeClient(i)
+							}
+						}
 					}
-					
-					fmt.Println(h.game.StatusName())
+
+					//fmt.Println(h.game.StatusName())
 				}
 			}
 
@@ -82,20 +101,34 @@ func (h *Hub) Run() {
 	}
 }
 
+func (h *Hub) tilesToSlice(pl player.Interface) []string {
+	var hnd []string
+	for _, tl := range pl.Tiles() {
+		hnd = append(hnd, strconv.Itoa(tl.Number())+tl.Letter())
+	}
+	return hnd
+}
+
 func coordsToTile(tl string) tile.Interface {
 	number, _ := strconv.Atoi(string(tl[0]))
 	letter := string(tl[1:len(tl)])
-	return tile.New(number, letter, tile.Empty{})
+	return tile.New(number, letter, tile.Unincorporated{})
 }
 
-func (h *Hub) sendInitialHand(gm *acquire.Game) {
+func (h *Hub) sendInitialHand() {
 	for i, c := range h.clients {
-		tiles := gm.Player(i).Tiles()
-		coords := []string{}
+		tiles := h.game.Player(i).Tiles()
+		hnd := []string{}
 		for _, tl := range tiles {
-			coords = append(coords, strconv.Itoa(tl.Number())+tl.Letter())
+			hnd = append(hnd, strconv.Itoa(tl.Number())+tl.Letter())
 		}
-		response, _ := json.Marshal(coords)
+		res := &Message{
+			Result: "ok",
+			Type:   "ini",
+			Board:  map[string]string{},
+			Hand:   h.tilesToSlice(c.Pl),
+		}
+		response, _ := json.Marshal(res)
 		select {
 		case c.Send <- response:
 			break

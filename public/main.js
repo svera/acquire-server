@@ -13,12 +13,20 @@ $(function() {
 
     // Whenever we receive a message, update
     conn.onmessage = function(e) {
-        tiles = JSON.parse(e.data)
-        buttons = $(".tl")
-        $.each(tiles, function(index, t){
-            $(buttons[index]).find("input").attr("value", t)
-            $(buttons[index]).find("span").text(t)
-        });
+        msg = JSON.parse(e.data)
+        switch (msg.typ) {
+            case "ini":
+                buttons = $(".tl")
+                $.each(msg.hnd, function(index, t){
+                    $(buttons[index]).find("input").attr("value", t)
+                    $(buttons[index]).find("span").text(t)
+                });
+                break;
+            case "upd":
+                console.log("update received")
+                console.log(msg)
+                updateBoard(msg.brd)
+        }
     };
 
     playButton.on("click", function() {
@@ -36,5 +44,13 @@ $(function() {
             }
         };
         return JSON.stringify(message);
+    }
+
+    updateBoard = function(tiles) {
+        Object.keys(tiles).forEach(function(key) {
+            if (tiles[key] == 'unincorporated') {
+                $('#'+key).addClass('unincorporated')
+            }
+        });
     }
 });

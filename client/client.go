@@ -60,14 +60,14 @@ func (c *Client) ReadPump(channel chan *Message, unregister chan *Client) {
 		}
 
 		cnt := MessageContent{}
-		json.Unmarshal(message, &cnt)
+		if err := json.Unmarshal(message, &cnt); err == nil {
+			msg := &Message{
+				Author:  c,
+				Content: cnt,
+			}
 
-		msg := &Message{
-			Author:  c,
-			Content: cnt,
+			channel <- msg
 		}
-
-		channel <- msg
 	}
 }
 
