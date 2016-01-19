@@ -2,7 +2,7 @@ package hub
 
 import (
 	"encoding/json"
-	"fmt"
+	//"fmt"
 	"github.com/svera/acquire"
 	"github.com/svera/acquire-server/client"
 	"github.com/svera/acquire/board"
@@ -74,12 +74,8 @@ func (h *Hub) Run() {
 					response, _ = json.Marshal(res)
 					h.sendMessage(m.Author, response)
 				} else {
-					commonMsg := CommonMessage{
-						Type:  "upd",
-						Board: h.boardOwnership(),
-					}
-					h.broadcastUpdate(commonMsg)
-					h.playerUpdate(m.Author, commonMsg)
+					h.broadcastUpdate()
+					h.playerUpdate(m.Author)
 				}
 			}
 
@@ -88,17 +84,21 @@ func (h *Hub) Run() {
 	}
 }
 
-func (h *Hub) broadcastUpdate(commonMsg CommonMessage) {
+func (h *Hub) broadcastUpdate() {
+	commonMsg := CommonMessage{
+		Type:  "upd",
+		Board: h.boardOwnership(),
+	}
 	response, _ := json.Marshal(commonMsg)
 	for _, c := range h.clients {
 		h.sendMessage(c, response)
 	}
 }
 
-func (h *Hub) playerUpdate(c *client.Client, commonMsg CommonMessage) {
+func (h *Hub) playerUpdate(c *client.Client) {
 	directMsg := &DirectMessage{
-		CommonMessage: commonMsg,
-		Hand:          h.tilesToSlice(h.game.CurrentPlayer()),
+		Type: "dir",
+		Hand: h.tilesToSlice(h.game.CurrentPlayer()),
 	}
 	response, _ := json.Marshal(directMsg)
 	h.sendMessage(c, response)
@@ -125,7 +125,7 @@ func (h *Hub) boardOwnership() map[string]string {
 			}
 		}
 	}
-	fmt.Printf("%v", cells)
+	//fmt.Printf("%v", cells)
 	return cells
 }
 
@@ -143,10 +143,7 @@ func (h *Hub) sendInitialHand() {
 			hnd = append(hnd, strconv.Itoa(tl.Number())+tl.Letter())
 		}
 		res := &DirectMessage{
-			CommonMessage: CommonMessage{
-				Type:  "ini",
-				Board: map[string]string{},
-			},
+			Type: "dir",
 			Hand: h.tilesToSlice(c.Pl),
 		}
 		response, _ := json.Marshal(res)

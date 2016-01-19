@@ -12,7 +12,7 @@ type CommonMessage struct {
 }
 
 type DirectMessage struct {
-	CommonMessage
+	Type   string         `json:"typ"`
 	Hand   []string       `json:"hnd"`
 	Shares map[string]int `json:"shr"`
 }

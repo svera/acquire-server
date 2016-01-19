@@ -15,13 +15,11 @@ $(function() {
     conn.onmessage = function(e) {
         msg = JSON.parse(e.data)
         switch (msg.typ) {
-            case "ini":
-                updateHand(msg.hnd)
-                break;
             case "upd":
                 console.log("update received")
                 console.log(msg)
                 updateBoard(msg.brd)
+            case "dir":
                 if (msg.hasOwnProperty("hnd")) {
                     updateHand(msg.hnd)
                 }
