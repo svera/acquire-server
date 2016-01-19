@@ -50,55 +50,58 @@ func (h *Hub) Run() {
 			break
 
 		case c := <-h.Unregister:
-			for i, val := range h.clients {
+			for _, val := range h.clients {
 				if val == c {
-					h.removeClient(i)
-					close(c.Send)
+					h.removeClient(c)
+					close(c.Incoming)
 				}
 			}
 			break
 
 		case m := <-h.Messages:
 			if m.Author.Pl != h.game.CurrentPlayer() {
-				fmt.Println("Player not in turn")
-			} else {
-				fmt.Println("Player in turn")
-				if m.Content.Typ == "ply" {
-					coords := m.Content.Det["til"]
-					tl := coordsToTile(coords)
-					if err := h.game.PlayTile(tl); err != nil {
-
-					} else {
-						res := &Message{
-							Result: "ok",
-							Type:   "upd",
-							Board: map[string]string{
-								coords: tl.Owner().Type(),
-							},
-							Hand: h.tilesToSlice(h.game.CurrentPlayer()),
-						}
-						for i, c := range h.clients {
-							response, _ := json.Marshal(res)
-							select {
-							case c.Send <- response:
-								break
-
-							// We can't reach the client
-							default:
-								close(c.Send)
-								h.removeClient(i)
-							}
-						}
+				break
+			}
+			if m.Content.Typ == "ply" {
+				coords := m.Content.Det["til"]
+				tl := coordsToTile(coords)
+				var response []byte
+				if err := h.game.PlayTile(tl); err != nil {
+					res := &ErrorMessage{
+						Type:    "err",
+						Content: err,
 					}
-
-					//fmt.Println(h.game.StatusName())
+					response, _ = json.Marshal(res)
+					h.sendMessage(m.Author, response)
+				} else {
+					commonMsg := CommonMessage{
+						Type:  "upd",
+						Board: h.boardOwnership(),
+					}
+					h.broadcastUpdate(commonMsg)
+					h.playerUpdate(m.Author, commonMsg)
 				}
 			}
 
-			//fmt.Println(m)
 			break
 		}
 	}
+}
+
+func (h *Hub) broadcastUpdate(commonMsg CommonMessage) {
+	response, _ := json.Marshal(commonMsg)
+	for _, c := range h.clients {
+		h.sendMessage(c, response)
+	}
+}
+
+func (h *Hub) playerUpdate(c *client.Client, commonMsg CommonMessage) {
+	directMsg := &DirectMessage{
+		CommonMessage: commonMsg,
+		Hand:          h.tilesToSlice(h.game.CurrentPlayer()),
+	}
+	response, _ := json.Marshal(directMsg)
+	h.sendMessage(c, response)
 }
 
 func (h *Hub) tilesToSlice(pl player.Interface) []string {
@@ -109,9 +112,26 @@ func (h *Hub) tilesToSlice(pl player.Interface) []string {
 	return hnd
 }
 
+func (h *Hub) boardOwnership() map[string]string {
+	cells := make(map[string]string)
+	var letters = [9]string{"A", "B", "C", "D", "E", "F", "G", "H", "I"}
+	for number := 1; number < 13; number++ {
+		for _, letter := range letters {
+			cell := h.game.Board().Cell(number, letter)
+			if cell.Owner().Type() == "corporation" {
+				cells[strconv.Itoa(number)+letter] = cell.Owner().(*corporation.Corporation).Name()
+			} else {
+				cells[strconv.Itoa(number)+letter] = cell.Owner().Type()
+			}
+		}
+	}
+	fmt.Printf("%v", cells)
+	return cells
+}
+
 func coordsToTile(tl string) tile.Interface {
-	number, _ := strconv.Atoi(string(tl[0]))
-	letter := string(tl[1:len(tl)])
+	number, _ := strconv.Atoi(tl[:len(tl)-1])
+	letter := string(tl[len(tl)-1 : len(tl)])
 	return tile.New(number, letter, tile.Unincorporated{})
 }
 
@@ -122,22 +142,27 @@ func (h *Hub) sendInitialHand() {
 		for _, tl := range tiles {
 			hnd = append(hnd, strconv.Itoa(tl.Number())+tl.Letter())
 		}
-		res := &Message{
-			Result: "ok",
-			Type:   "ini",
-			Board:  map[string]string{},
-			Hand:   h.tilesToSlice(c.Pl),
+		res := &DirectMessage{
+			CommonMessage: CommonMessage{
+				Type:  "ini",
+				Board: map[string]string{},
+			},
+			Hand: h.tilesToSlice(c.Pl),
 		}
 		response, _ := json.Marshal(res)
-		select {
-		case c.Send <- response:
-			break
+		h.sendMessage(c, response)
+	}
+}
 
-		// We can't reach the client
-		default:
-			close(c.Send)
-			h.removeClient(i)
-		}
+func (h *Hub) sendMessage(c *client.Client, message []byte) {
+	select {
+	case c.Incoming <- message:
+		break
+
+	// We can't reach the client
+	default:
+		close(c.Incoming)
+		h.removeClient(c)
 	}
 }
 
@@ -149,8 +174,13 @@ func (h *Hub) players() []player.Interface {
 	return players
 }
 
-func (h *Hub) removeClient(i int) {
-	h.clients = append(h.clients[:i], h.clients[i+1:]...)
+func (h *Hub) removeClient(c *client.Client) {
+	for i := range h.clients {
+		if h.clients[i] == c {
+			h.clients = append(h.clients[:i], h.clients[i+1:]...)
+			break
+		}
+	}
 }
 
 func (h *Hub) newGame() {

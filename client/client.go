@@ -16,9 +16,9 @@ const (
 )
 
 type Client struct {
-	Pl   player.Interface
-	ws   *websocket.Conn
-	Send chan []byte // Channel storing outcoming messages
+	Pl       player.Interface
+	ws       *websocket.Conn
+	Incoming chan []byte // Channel storing incoming messages
 }
 
 func New(w http.ResponseWriter, r *http.Request, pl player.Interface) (*Client, error) {
@@ -33,9 +33,9 @@ func New(w http.ResponseWriter, r *http.Request, pl player.Interface) (*Client, 
 	}
 
 	return &Client{
-		Pl:   pl,
-		Send: make(chan []byte, maxMessageSize),
-		ws:   ws,
+		Pl:       pl,
+		Incoming: make(chan []byte, maxMessageSize),
+		ws:       ws,
 	}, nil
 }
 
@@ -82,7 +82,7 @@ func (c *Client) WritePump() {
 
 	for {
 		select {
-		case message, ok := <-c.Send:
+		case message, ok := <-c.Incoming:
 			if !ok {
 				c.write(websocket.CloseMessage, []byte{})
 				return

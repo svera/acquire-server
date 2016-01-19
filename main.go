@@ -27,7 +27,7 @@ func join(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newPlayer := player.New(vars["playerName"])
+	newPlayer := player.New("")
 
 	c, err := client.New(w, r, newPlayer)
 	if err != nil {

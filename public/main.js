@@ -22,7 +22,9 @@ $(function() {
                 console.log("update received")
                 console.log(msg)
                 updateBoard(msg.brd)
-                updateHand(msg.hnd)
+                if (msg.hasOwnProperty("hnd")) {
+                    updateHand(msg.hnd)
+                }
         }
     };
 
