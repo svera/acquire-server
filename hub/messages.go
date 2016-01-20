@@ -6,9 +6,10 @@ type ErrorMessage struct {
 }
 
 type CommonMessage struct {
-	Type   string            `json:"typ"`
-	Board  map[string]string `json:"brd"`
-	Prices map[string]int    `json:"prc"`
+	Type    string            `json:"typ"`
+	Board   map[string]string `json:"brd"`
+	Prices  map[string]int    `json:"prc"`
+	Enabled bool              `json:"ebl"`
 }
 
 type DirectMessage struct {

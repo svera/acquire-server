@@ -19,6 +19,11 @@ $(function() {
                 console.log("update received")
                 console.log(msg)
                 updateBoard(msg.brd)
+                if (msg.ebl) {
+                    playButton.attr("disabled", false);
+                } else {
+                    playButton.attr("disabled", true);
+                }
             case "dir":
                 if (msg.hasOwnProperty("hnd")) {
                     updateHand(msg.hnd)

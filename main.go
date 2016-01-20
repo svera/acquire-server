@@ -70,7 +70,7 @@ func create(w http.ResponseWriter, r *http.Request) {
 
 	go hubs[id].Run()
 
-	http.Redirect(w, r, "/"+id+"?playerName="+r.FormValue("playerName"), 302)
+	http.Redirect(w, r, "/"+id, 302)
 }
 
 func index(w http.ResponseWriter, r *http.Request) {

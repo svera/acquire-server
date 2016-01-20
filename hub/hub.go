@@ -89,8 +89,13 @@ func (h *Hub) broadcastUpdate() {
 		Type:  "upd",
 		Board: h.boardOwnership(),
 	}
-	response, _ := json.Marshal(commonMsg)
 	for _, c := range h.clients {
+		if c.Pl == h.game.CurrentPlayer() {
+			commonMsg.Enabled = true
+		} else {
+			commonMsg.Enabled = false
+		}
+		response, _ := json.Marshal(commonMsg)
 		h.sendMessage(c, response)
 	}
 }
@@ -98,7 +103,7 @@ func (h *Hub) broadcastUpdate() {
 func (h *Hub) playerUpdate(c *client.Client) {
 	directMsg := &DirectMessage{
 		Type: "dir",
-		Hand: h.tilesToSlice(h.game.CurrentPlayer()),
+		Hand: h.tilesToSlice(c.Pl),
 	}
 	response, _ := json.Marshal(directMsg)
 	h.sendMessage(c, response)
