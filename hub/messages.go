@@ -2,7 +2,7 @@ package hub
 
 type ErrorMessage struct {
 	Type    string `json:"typ"`
-	Content error  `json:"cnt"`
+	Content string `json:"cnt"`
 }
 
 type CommonMessage struct {

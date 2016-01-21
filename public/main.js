@@ -15,6 +15,8 @@ $(function() {
     conn.onmessage = function(e) {
         msg = JSON.parse(e.data)
         switch (msg.typ) {
+            case "err":
+                console.log(msg.cnt)
             case "upd":
                 console.log("update received")
                 console.log(msg)

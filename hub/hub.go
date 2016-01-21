@@ -2,6 +2,7 @@ package hub
 
 import (
 	"encoding/json"
+	"errors"
 	//"fmt"
 	"github.com/svera/acquire"
 	"github.com/svera/acquire-server/client"
@@ -63,19 +64,27 @@ func (h *Hub) Run() {
 				break
 			}
 			if m.Content.Typ == "ply" {
-				coords := m.Content.Det["til"]
-				tl := coordsToTile(coords)
 				var response []byte
-				if err := h.game.PlayTile(tl); err != nil {
+				coords := m.Content.Det["til"]
+				if tl, err := coordsToTile(coords); err != nil {
 					res := &ErrorMessage{
 						Type:    "err",
-						Content: err,
+						Content: err.Error(),
 					}
 					response, _ = json.Marshal(res)
 					h.sendMessage(m.Author, response)
 				} else {
-					h.broadcastUpdate()
-					h.playerUpdate(m.Author)
+					if err := h.game.PlayTile(tl); err != nil {
+						res := &ErrorMessage{
+							Type:    "err",
+							Content: err.Error(),
+						}
+						response, _ = json.Marshal(res)
+						h.sendMessage(m.Author, response)
+					} else {
+						h.broadcastUpdate()
+						h.playerUpdate(m.Author)
+					}
 				}
 			}
 
@@ -134,10 +143,13 @@ func (h *Hub) boardOwnership() map[string]string {
 	return cells
 }
 
-func coordsToTile(tl string) tile.Interface {
+func coordsToTile(tl string) (tile.Interface, error) {
+	if len(tl) < 2 {
+		return &tile.Tile{}, errors.New("Not a valid tile")
+	}
 	number, _ := strconv.Atoi(tl[:len(tl)-1])
 	letter := string(tl[len(tl)-1 : len(tl)])
-	return tile.New(number, letter, tile.Unincorporated{})
+	return tile.New(number, letter, tile.Unincorporated{}), nil
 }
 
 func (h *Hub) sendInitialHand() {
