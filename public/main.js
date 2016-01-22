@@ -3,12 +3,13 @@ $(function() {
         return;
     }
 
-    var playButton = $("#playButton");
+    var playerControls = $("#player-controls");
     var url = [location.host, location.pathname].join('');
     var conn = new WebSocket('ws://' + url + '/join');
+    var playerActive = true;
 
     conn.onclose = function(e) {
-        playButton.attr("disabled", true);
+        $("#playButton").attr("disabled", true);
     };
 
     // Whenever we receive a message, update
@@ -22,9 +23,11 @@ $(function() {
                 console.log(msg)
                 updateBoard(msg.brd)
                 if (msg.ebl) {
-                    playButton.attr("disabled", false);
+                    $("#playButton").attr("disabled", false);
+                    playerActive = true;
                 } else {
-                    playButton.attr("disabled", true);
+                    $("#playButton").attr("disabled", true);
+                    playerActive = false;
                 }
             case "dir":
                 if (msg.hasOwnProperty("hnd")) {
@@ -33,7 +36,7 @@ $(function() {
         }
     };
 
-    playButton.on("click", function() {
+    playerControls.on("click", '#playButton', function() {
         tl = $('input[name=tiles]:checked')
         conn.send(
             createPlayTileMessage(tl.val())
@@ -59,13 +62,22 @@ $(function() {
     }
 
     updateHand = function(hand) {
-        $("#hand").html("")
+        $("#player-controls").html("")
+        var html = '<div class="btn-group" role="group" aria-label="..." data-toggle="buttons">'
+
         for (var i = 0; i < hand.length; i++) {
-            $("#hand").append(
-                '<label class="btn btn-default">'+
-                    '<input type="radio" name="tiles" value="'+ hand[i] +'">'+
-                    '<span>' + hand[i] +'</span>'+
-                '</label>');
+            html += '<label class="btn btn-default">'+
+                        '<input type="radio" name="tiles" value="'+ hand[i] +'">'+
+                        '<span>' + hand[i] +'</span>'+
+                    '</label>';
         }
-    }    
+        buttonState = !playerActive ? 'disabled="true"' : ''
+        html = html + '</div>'+
+                      '<input type="button" id="playButton" class="btn btn-primary" value="Play tile"' + buttonState +' />'
+        $("#player-controls").append(html)
+    }
+
+    chooseNewCorporation = function(corporations) {
+
+    }
 });
