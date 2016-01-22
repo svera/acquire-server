@@ -66,25 +66,22 @@ func (h *Hub) Run() {
 			if m.Content.Typ == "ply" {
 				var response []byte
 				coords := m.Content.Det["til"]
-				if tl, err := coordsToTile(coords); err != nil {
+				tl, err := coordsToTile(coords)
+				if err == nil {
+					err = h.game.PlayTile(tl)
+					if err == nil {
+						h.broadcastUpdate()
+						h.playerUpdate(m.Author)
+					}
+				}
+
+				if err != nil {
 					res := &ErrorMessage{
 						Type:    "err",
 						Content: err.Error(),
 					}
 					response, _ = json.Marshal(res)
 					h.sendMessage(m.Author, response)
-				} else {
-					if err := h.game.PlayTile(tl); err != nil {
-						res := &ErrorMessage{
-							Type:    "err",
-							Content: err.Error(),
-						}
-						response, _ = json.Marshal(res)
-						h.sendMessage(m.Author, response)
-					} else {
-						h.broadcastUpdate()
-						h.playerUpdate(m.Author)
-					}
 				}
 			}
 
@@ -111,8 +108,10 @@ func (h *Hub) broadcastUpdate() {
 
 func (h *Hub) playerUpdate(c *client.Client) {
 	directMsg := &DirectMessage{
-		Type: "dir",
-		Hand: h.tilesToSlice(c.Pl),
+		Type:          "dir",
+		Hand:          h.tilesToSlice(c.Pl),
+		State:         h.game.GameStateName(),
+		InactiveCorps: corpNames(h.game.InactiveCorporations()),
 	}
 	response, _ := json.Marshal(directMsg)
 	h.sendMessage(c, response)
@@ -124,6 +123,14 @@ func (h *Hub) tilesToSlice(pl player.Interface) []string {
 		hnd = append(hnd, strconv.Itoa(tl.Number())+tl.Letter())
 	}
 	return hnd
+}
+
+func corpNames(corps []corporation.Interface) []string {
+	names := []string{}
+	for _, corp := range corps {
+		names = append(names, corp.Name())
+	}
+	return names
 }
 
 func (h *Hub) boardOwnership() map[string]string {

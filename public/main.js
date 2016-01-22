@@ -33,6 +33,11 @@ $(function() {
                 if (msg.hasOwnProperty("hnd")) {
                     updateHand(msg.hnd)
                 }
+                if (msg.hasOwnProperty("ste")) {
+                    if (msg.ste == "FoundCorp") {
+                        chooseNewCorporation(msg.ina)
+                    }
+                }
         }
     };
 
@@ -48,6 +53,23 @@ $(function() {
             "typ": "ply",
             "det": {
                 "til": tl
+            }
+        };
+        return JSON.stringify(message);
+    }
+
+    playerControls.on("click", '#newCorpButton', function() {
+        tl = $('input[name=corps]:checked')
+        conn.send(
+            createNewCorpMessage(tl.val())
+        );
+    });
+
+    createNewCorpMessage = function(corp) {
+        var message =  {
+            "typ": "ncp",
+            "det": {
+                "cor": corp
             }
         };
         return JSON.stringify(message);
@@ -78,6 +100,19 @@ $(function() {
     }
 
     chooseNewCorporation = function(corporations) {
+        $("#player-controls").html("")
+        var html = '<div class="btn-group" role="group" aria-label="..." data-toggle="buttons">'+
+                        '<p>You have founded a new corporation! Please choose one:</p>'
 
+        for (var i = 0; i < corporations.length; i++) {
+            html += '<label class="btn btn-default">'+
+                        '<input type="radio" name="corps" value="'+ corporations[i] +'">'+
+                        '<span>' + corporations[i] +'</span>'+
+                    '</label>';
+        }
+        buttonState = !playerActive ? 'disabled="true"' : ''
+        html = html + '</div>'+
+                      '<input type="button" id="newCorpButton" class="btn btn-primary" value="Found corporation"' + buttonState +' />'
+        $("#player-controls").append(html)
     }
 });

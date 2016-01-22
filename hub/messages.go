@@ -13,7 +13,9 @@ type CommonMessage struct {
 }
 
 type DirectMessage struct {
-	Type   string         `json:"typ"`
-	Hand   []string       `json:"hnd"`
-	Shares map[string]int `json:"shr"`
+	Type          string         `json:"typ"`
+	Hand          []string       `json:"hnd"`
+	Shares        map[string]int `json:"shr"`
+	State         string         `json:"ste"`
+	InactiveCorps []string       `json:"ina"`
 }
