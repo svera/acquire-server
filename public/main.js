@@ -79,6 +79,9 @@ $(function() {
         Object.keys(tiles).forEach(function(key) {
             if (tiles[key] == 'unincorporated') {
                 $('#'+key).addClass('unincorporated')
+            } else {
+                $('#'+key).removeClass('unincorporated')
+                $('#'+key).addClass(tiles[key])
             }
         });
     }
@@ -106,7 +109,7 @@ $(function() {
 
         for (var i = 0; i < corporations.length; i++) {
             html += '<label class="btn btn-default">'+
-                        '<input type="radio" name="corps" value="'+ corporations[i] +'">'+
+                        '<input type="radio" name="corps" value="'+ corporations[i].toLowerCase() +'">'+
                         '<span>' + corporations[i] +'</span>'+
                     '</label>';
         }

@@ -12,6 +12,7 @@ import (
 	"github.com/svera/acquire/tile"
 	"github.com/svera/acquire/tileset"
 	"strconv"
+	"strings"
 )
 
 type Hub struct {
@@ -85,6 +86,28 @@ func (h *Hub) Run() {
 				}
 			}
 
+			if m.Content.Typ == "ncp" {
+				var response []byte
+				corpName := m.Content.Det["cor"]
+				corp, err := h.findCorpByName(corpName)
+				if err == nil {
+					err := h.game.FoundCorporation(corp)
+					if err == nil {
+						h.broadcastUpdate()
+						h.playerUpdate(m.Author)
+					}
+				}
+
+				if err != nil {
+					res := &ErrorMessage{
+						Type:    "err",
+						Content: err.Error(),
+					}
+					response, _ = json.Marshal(res)
+					h.sendMessage(m.Author, response)
+				}
+			}
+
 			break
 		}
 	}
@@ -133,6 +156,15 @@ func corpNames(corps []corporation.Interface) []string {
 	return names
 }
 
+func (h *Hub) findCorpByName(name string) (corporation.Interface, error) {
+	for _, corp := range h.game.Corporations() {
+		if strings.ToLower(corp.Name()) == name {
+			return corp, nil
+		}
+	}
+	return &corporation.Corporation{}, errors.New("corporation not found")
+}
+
 func (h *Hub) boardOwnership() map[string]string {
 	cells := make(map[string]string)
 	var letters = [9]string{"A", "B", "C", "D", "E", "F", "G", "H", "I"}
@@ -140,7 +172,7 @@ func (h *Hub) boardOwnership() map[string]string {
 		for _, letter := range letters {
 			cell := h.game.Board().Cell(number, letter)
 			if cell.Owner().Type() == "corporation" {
-				cells[strconv.Itoa(number)+letter] = cell.Owner().(*corporation.Corporation).Name()
+				cells[strconv.Itoa(number)+letter] = strings.ToLower(cell.Owner().(*corporation.Corporation).Name())
 			} else {
 				cells[strconv.Itoa(number)+letter] = cell.Owner().Type()
 			}
@@ -205,13 +237,13 @@ func (h *Hub) removeClient(c *client.Client) {
 }
 
 func (h *Hub) newGame() {
-	corp1, _ := corporation.New("Corp a", 0)
-	corp2, _ := corporation.New("Corp b", 0)
-	corp3, _ := corporation.New("Corp c", 1)
-	corp4, _ := corporation.New("Corp d", 1)
-	corp5, _ := corporation.New("Corp e", 1)
-	corp6, _ := corporation.New("Corp f", 2)
-	corp7, _ := corporation.New("Corp g", 2)
+	corp1, _ := corporation.New("Sackson", 0)
+	corp2, _ := corporation.New("Zeta", 0)
+	corp3, _ := corporation.New("Hydra", 1)
+	corp4, _ := corporation.New("Fusion", 1)
+	corp5, _ := corporation.New("America", 1)
+	corp6, _ := corporation.New("Phoenix", 2)
+	corp7, _ := corporation.New("Quantum", 2)
 	h.game, _ = acquire.New(
 		board.New(),
 		h.players(),
