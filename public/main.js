@@ -65,9 +65,9 @@ $(function() {
     }
 
     playerControls.on("click", '#newCorpButton', function() {
-        tl = $('input[name=corps]:checked')
+        corps = $('input[name=corps]:checked')
         conn.send(
-            createNewCorpMessage(tl.val())
+            createNewCorpMessage(corps.val())
         );
     });
 
@@ -76,6 +76,25 @@ $(function() {
             "typ": "ncp",
             "det": {
                 "cor": corp
+            }
+        };
+        return JSON.stringify(message);
+    }
+
+    playerControls.on("click", '#buyButton', function() {
+        buy = $('input[name=stocks]')
+        console.log(buy)
+        /*
+        conn.send(
+            createNewBuyMessage(buy.val())
+        );*/
+    });
+
+    createNewBuyMessage = function(buy) {
+        var message =  {
+            "typ": "buy",
+            "det": {
+                buy
             }
         };
         return JSON.stringify(message);
@@ -139,7 +158,7 @@ $(function() {
         buttonState = !playerActive ? 'disabled="true"' : ''
         html = html + '</ul>' +
                     '</div>'+
-                   '<input type="button" id="newCorpButton" class="btn btn-primary" value="Buy"' + buttonState +' />'
+                   '<input type="button" id="buyButton" class="btn btn-primary" value="Buy"' + buttonState +' />'
         $("#player-controls").append(html)
     }    
 });
