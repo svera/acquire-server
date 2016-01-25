@@ -18,6 +18,7 @@ $(function() {
         switch (msg.typ) {
             case "err":
                 console.log(msg.cnt)
+                break;
             case "upd":
                 console.log("update received")
                 console.log(msg)
@@ -29,15 +30,20 @@ $(function() {
                     $("#playButton").attr("disabled", true);
                     playerActive = false;
                 }
+                break;
             case "dir":
-                if (msg.hasOwnProperty("hnd")) {
-                    updateHand(msg.hnd)
-                }
-                if (msg.hasOwnProperty("ste")) {
-                    if (msg.ste == "FoundCorp") {
+                if (msg.hasOwnProperty("sta")) {
+                    if (msg.sta == "PlayTile") {
+                        updateHand(msg.hnd)
+                    }
+                    if (msg.sta == "FoundCorp") {
                         chooseNewCorporation(msg.ina)
                     }
+                    if (msg.sta == "BuyStock") {
+                        buyStocks(msg.act)
+                    }                    
                 }
+                break;
         }
     };
 
@@ -118,4 +124,22 @@ $(function() {
                       '<input type="button" id="newCorpButton" class="btn btn-primary" value="Found corporation"' + buttonState +' />'
         $("#player-controls").append(html)
     }
+
+    buyStocks = function(corporations) {
+        $("#player-controls").html("")
+        var html = '<div>'+
+                        '<p>Buy Stocks</p>'+
+                        '<ul class="list-unstyled">'
+        for (var i = 0; i < corporations.length; i++) {
+            html += '<li><label>'+
+                        '<span>' + corporations[i] +'</span>'+
+                        '<input type="number" min="0" max="3" name="stocks['+ corporations[i].toLowerCase() +']">'+
+                    '</label></li>';
+        }
+        buttonState = !playerActive ? 'disabled="true"' : ''
+        html = html + '</ul>' +
+                    '</div>'+
+                   '<input type="button" id="newCorpButton" class="btn btn-primary" value="Buy"' + buttonState +' />'
+        $("#player-controls").append(html)
+    }    
 });

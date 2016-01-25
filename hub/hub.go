@@ -3,11 +3,12 @@ package hub
 import (
 	"encoding/json"
 	"errors"
-	//"fmt"
+	"fmt"
 	"github.com/svera/acquire"
 	"github.com/svera/acquire-server/client"
 	"github.com/svera/acquire/board"
 	"github.com/svera/acquire/corporation"
+	"github.com/svera/acquire/fsm"
 	"github.com/svera/acquire/player"
 	"github.com/svera/acquire/tile"
 	"github.com/svera/acquire/tileset"
@@ -108,6 +109,10 @@ func (h *Hub) Run() {
 				}
 			}
 
+			if m.Content.Typ == "buy" {
+				fmt.Println(m.Content.Det)
+			}
+
 			break
 		}
 	}
@@ -135,6 +140,7 @@ func (h *Hub) playerUpdate(c *client.Client) {
 		Hand:          h.tilesToSlice(c.Pl),
 		State:         h.game.GameStateName(),
 		InactiveCorps: corpNames(h.game.InactiveCorporations()),
+		ActiveCorps:   corpNames(h.game.ActiveCorporations()),
 	}
 	response, _ := json.Marshal(directMsg)
 	h.sendMessage(c, response)
@@ -199,8 +205,9 @@ func (h *Hub) sendInitialHand() {
 			hnd = append(hnd, strconv.Itoa(tl.Number())+tl.Letter())
 		}
 		res := &DirectMessage{
-			Type: "dir",
-			Hand: h.tilesToSlice(c.Pl),
+			Type:  "dir",
+			Hand:  h.tilesToSlice(c.Pl),
+			State: h.game.GameStateName(),
 		}
 		response, _ := json.Marshal(res)
 		h.sendMessage(c, response)
@@ -257,5 +264,6 @@ func (h *Hub) newGame() {
 			corp7,
 		},
 		tileset.New(),
+		&fsm.PlayTile{},
 	)
 }
