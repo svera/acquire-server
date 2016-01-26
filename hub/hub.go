@@ -62,82 +62,80 @@ func (h *Hub) Run() {
 			break
 
 		case m := <-h.Messages:
+			var err error
+
 			if m.Author.Pl != h.game.CurrentPlayer() {
 				break
 			}
-			if m.Content.Typ == "ply" {
-				var response []byte
-				coords := m.Content.Det["til"]
-				tl, err := coordsToTile(coords)
-				if err == nil {
-					err = h.game.PlayTile(tl)
-					if err == nil {
-						h.broadcastUpdate()
-						h.playerUpdate(m.Author)
-					}
-				}
 
-				if err != nil {
-					res := &ErrorMessage{
-						Type:    "err",
-						Content: err.Error(),
-					}
-					response, _ = json.Marshal(res)
-					h.sendMessage(m.Author, response)
-				}
+			switch m.Content.Type {
+			case "ply":
+				err = h.playTile(m.Content.Params, m.Author)
+			case "ncp":
+				err = h.foundCorporation(m.Content.Params, m.Author)
+			case "buy":
+				err = h.buyStock(m.Content.Params, m.Author)
 			}
 
-			if m.Content.Typ == "ncp" {
-				var response []byte
-				corpName := m.Content.Det["cor"]
-				corp, err := h.findCorpByName(corpName)
-				if err == nil {
-					err := h.game.FoundCorporation(corp)
-					if err == nil {
-						h.broadcastUpdate()
-						h.playerUpdate(m.Author)
-					}
+			if err != nil {
+				res := &ErrorMessage{
+					Type:    "err",
+					Content: err.Error(),
 				}
-
-				if err != nil {
-					res := &ErrorMessage{
-						Type:    "err",
-						Content: err.Error(),
-					}
-					response, _ = json.Marshal(res)
-					h.sendMessage(m.Author, response)
-				}
+				response, _ := json.Marshal(res)
+				h.sendMessage(m.Author, response)
 			}
-
-			if m.Content.Typ == "buy" {
-				var response []byte
-				buy := map[corporation.Interface]int{}
-
-				for corpName, amount := range m.Content.Det {
-					corp, err := h.findCorpByName(corpName)
-					if err == nil {
-						buy[corp], _ = strconv.Atoi(amount)
-					}
-				}
-				err := h.game.BuyStock(buy)
-				if err == nil {
-					h.broadcastUpdate()
-					h.playerUpdate(m.Author)
-				}
-
-				if err != nil {
-					res := &ErrorMessage{
-						Type:    "err",
-						Content: err.Error(),
-					}
-					response, _ = json.Marshal(res)
-					h.sendMessage(m.Author, response)
-				}
-			}
-
 			break
 		}
 	}
+}
+
+func (h *Hub) playTile(params map[string]string, c *client.Client) error {
+	var err error
+	coords := params["til"]
+
+	if tl, err := coordsToTile(coords); err == nil {
+		if err := h.game.PlayTile(tl); err == nil {
+			h.broadcastUpdate()
+			h.playerUpdate(c)
+			return nil
+		}
+	}
+	return err
+}
+
+func (h *Hub) foundCorporation(params map[string]string, c *client.Client) error {
+	var err error
+	corpName := params["cor"]
+
+	if corp, err := h.findCorpByName(corpName); err == nil {
+		if err := h.game.FoundCorporation(corp); err == nil {
+			h.broadcastUpdate()
+			h.playerUpdate(c)
+			return nil
+		}
+	}
+	return err
+}
+
+func (h *Hub) buyStock(params map[string]string, c *client.Client) error {
+	var err error
+	buy := map[corporation.Interface]int{}
+
+	for corpName, amount := range params {
+		if corp, err := h.findCorpByName(corpName); err == nil {
+			buy[corp], _ = strconv.Atoi(amount)
+		} else {
+			return err
+		}
+	}
+
+	if err := h.game.BuyStock(buy); err == nil {
+		h.broadcastUpdate()
+		h.playerUpdate(c)
+		return nil
+	}
+	return err
 }
 
 func (h *Hub) broadcastUpdate() {
