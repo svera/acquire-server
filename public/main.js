@@ -82,21 +82,25 @@ $(function() {
     }
 
     playerControls.on("click", '#buyButton', function() {
-        buy = $('input[name=stocks]')
-        console.log(buy)
-        /*
+        console.log("entra")
+        var buy = {};
+        $('.buyStocks').each(function() {
+            buy[this.name] = $(this).val();
+        })
         conn.send(
-            createNewBuyMessage(buy.val())
-        );*/
+            createNewBuyMessage(buy)
+        );        
     });
 
     createNewBuyMessage = function(buy) {
         var message =  {
             "typ": "buy",
-            "det": {
-                buy
-            }
+            "det": {}
         };
+        for (corp in buy) {
+            message["det"][corp] = buy[corp]
+        };
+        console.log(JSON.stringify(message))
         return JSON.stringify(message);
     }
 
@@ -152,7 +156,7 @@ $(function() {
         for (var i = 0; i < corporations.length; i++) {
             html += '<li><label>'+
                         '<span>' + corporations[i] +'</span>'+
-                        '<input type="number" min="0" max="3" name="stocks['+ corporations[i].toLowerCase() +']">'+
+                        '<input type="number" min="0" max="3" name="'+ corporations[i].toLowerCase() +'" value="0" class="buyStocks">'+
                     '</label></li>';
         }
         buttonState = !playerActive ? 'disabled="true"' : ''

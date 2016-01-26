@@ -3,7 +3,7 @@ package hub
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
+	//"fmt"
 	"github.com/svera/acquire"
 	"github.com/svera/acquire-server/client"
 	"github.com/svera/acquire/board"
@@ -110,7 +110,29 @@ func (h *Hub) Run() {
 			}
 
 			if m.Content.Typ == "buy" {
-				fmt.Println(m.Content.Det)
+				var response []byte
+				buy := map[corporation.Interface]int{}
+
+				for corpName, amount := range m.Content.Det {
+					corp, err := h.findCorpByName(corpName)
+					if err == nil {
+						buy[corp], _ = strconv.Atoi(amount)
+					}
+				}
+				err := h.game.BuyStock(buy)
+				if err == nil {
+					h.broadcastUpdate()
+					h.playerUpdate(m.Author)
+				}
+
+				if err != nil {
+					res := &ErrorMessage{
+						Type:    "err",
+						Content: err.Error(),
+					}
+					response, _ = json.Marshal(res)
+					h.sendMessage(m.Author, response)
+				}
 			}
 
 			break
@@ -184,7 +206,7 @@ func (h *Hub) boardOwnership() map[string]string {
 			}
 		}
 	}
-	//fmt.Printf("%v", cells)
+
 	return cells
 }
 
