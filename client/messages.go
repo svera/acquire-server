@@ -1,8 +1,8 @@
 package client
 
 type MessageContent struct {
-	Type   string            `json:"typ"`
-	Params map[string]string `json:"det"`
+	Type   string                 `json:"typ"`
+	Params map[string]interface{} `json:"par"`
 }
 
 type Message struct {

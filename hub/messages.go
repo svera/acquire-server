@@ -15,7 +15,7 @@ type CommonMessage struct {
 type DirectMessage struct {
 	Type          string         `json:"typ"`
 	Hand          []string       `json:"hnd"`
-	Shares        map[string]int `json:"shr"`
+	Shares        map[string]int `json:"sha"`
 	State         string         `json:"sta"`
 	InactiveCorps []string       `json:"ina"`
 	ActiveCorps   []string       `json:"act"`

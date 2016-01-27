@@ -90,9 +90,9 @@ func (h *Hub) Run() {
 	}
 }
 
-func (h *Hub) playTile(params map[string]string, c *client.Client) error {
+func (h *Hub) playTile(params map[string]interface{}, c *client.Client) error {
 	var err error
-	coords := params["til"]
+	coords := params["til"].(string)
 
 	if tl, err := coordsToTile(coords); err == nil {
 		if err := h.game.PlayTile(tl); err == nil {
@@ -104,9 +104,9 @@ func (h *Hub) playTile(params map[string]string, c *client.Client) error {
 	return err
 }
 
-func (h *Hub) foundCorporation(params map[string]string, c *client.Client) error {
+func (h *Hub) foundCorporation(params map[string]interface{}, c *client.Client) error {
 	var err error
-	corpName := params["cor"]
+	corpName := params["cor"].(string)
 
 	if corp, err := h.findCorpByName(corpName); err == nil {
 		if err := h.game.FoundCorporation(corp); err == nil {
@@ -118,13 +118,13 @@ func (h *Hub) foundCorporation(params map[string]string, c *client.Client) error
 	return err
 }
 
-func (h *Hub) buyStock(params map[string]string, c *client.Client) error {
+func (h *Hub) buyStock(params map[string]interface{}, c *client.Client) error {
 	var err error
 	buy := map[corporation.Interface]int{}
 
 	for corpName, amount := range params {
 		if corp, err := h.findCorpByName(corpName); err == nil {
-			buy[corp], _ = strconv.Atoi(amount)
+			buy[corp], _ = amount.(int)
 		} else {
 			return err
 		}
@@ -161,6 +161,7 @@ func (h *Hub) playerUpdate(c *client.Client) {
 		State:         h.game.GameStateName(),
 		InactiveCorps: corpNames(h.game.InactiveCorporations()),
 		ActiveCorps:   corpNames(h.game.ActiveCorporations()),
+		//Shares:        c.Pl.Shares(c),
 	}
 	response, _ := json.Marshal(directMsg)
 	h.sendMessage(c, response)
@@ -264,26 +265,34 @@ func (h *Hub) removeClient(c *client.Client) {
 }
 
 func (h *Hub) newGame() {
-	corp1, _ := corporation.New("Sackson", 0)
-	corp2, _ := corporation.New("Zeta", 0)
-	corp3, _ := corporation.New("Hydra", 1)
-	corp4, _ := corporation.New("Fusion", 1)
-	corp5, _ := corporation.New("America", 1)
-	corp6, _ := corporation.New("Phoenix", 2)
-	corp7, _ := corporation.New("Quantum", 2)
 	h.game, _ = acquire.New(
 		board.New(),
 		h.players(),
-		[7]corporation.Interface{
-			corp1,
-			corp2,
-			corp3,
-			corp4,
-			corp5,
-			corp6,
-			corp7,
-		},
+		createCorporations(),
 		tileset.New(),
 		&fsm.PlayTile{},
 	)
+}
+
+func createCorporations() [7]corporation.Interface {
+	var corps [7]corporation.Interface
+	corpsParams := map[string]int{
+		"Sackson": 0,
+		"Zeta":    0,
+		"Hydra":   1,
+		"Fusion":  1,
+		"America": 1,
+		"Phoenix": 2,
+		"Quantum": 2,
+	}
+	i := 0
+	for name, class := range corpsParams {
+		if corp, err := corporation.New(name, class); err == nil {
+			corps[i] = corp
+		} else {
+			panic(err)
+		}
+		i++
+	}
+	return corps
 }
