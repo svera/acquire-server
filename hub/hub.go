@@ -47,7 +47,7 @@ func (h *Hub) Run() {
 		case c := <-h.Register:
 			h.clients = append(h.clients, c)
 			if len(h.clients) == 3 {
-				h.newGame()
+				h.newGameMergeTest()
 				h.sendInitialHand()
 			}
 			break
@@ -198,10 +198,10 @@ func (h *Hub) boardOwnership() map[string]string {
 	for number := 1; number < 13; number++ {
 		for _, letter := range letters {
 			cell := h.game.Board().Cell(number, letter)
-			if cell.Owner().Type() == "corporation" {
-				cells[strconv.Itoa(number)+letter] = strings.ToLower(cell.Owner().(*corporation.Corporation).Name())
+			if cell.Type() == "corporation" {
+				cells[strconv.Itoa(number)+letter] = strings.ToLower(cell.(*corporation.Corporation).Name())
 			} else {
-				cells[strconv.Itoa(number)+letter] = cell.Owner().Type()
+				cells[strconv.Itoa(number)+letter] = cell.Type()
 			}
 		}
 	}
@@ -215,7 +215,7 @@ func coordsToTile(tl string) (tile.Interface, error) {
 	}
 	number, _ := strconv.Atoi(tl[:len(tl)-1])
 	letter := string(tl[len(tl)-1 : len(tl)])
-	return tile.New(number, letter, tile.Unincorporated{}), nil
+	return tile.New(number, letter), nil
 }
 
 func (h *Hub) sendInitialHand() {
@@ -225,14 +225,9 @@ func (h *Hub) sendInitialHand() {
 		for _, tl := range tiles {
 			hnd = append(hnd, strconv.Itoa(tl.Number())+tl.Letter())
 		}
-		res := &DirectMessage{
-			Type:  "dir",
-			Hand:  h.tilesToSlice(c.Pl),
-			State: h.game.GameStateName(),
-		}
-		response, _ := json.Marshal(res)
-		h.sendMessage(c, response)
+		h.playerUpdate(c)
 	}
+	h.broadcastUpdate()
 }
 
 func (h *Hub) sendMessage(c *client.Client, message []byte) {
@@ -295,4 +290,38 @@ func createCorporations() [7]corporation.Interface {
 		i++
 	}
 	return corps
+}
+
+func (h *Hub) newGameMergeTest() {
+	bd := board.New()
+	ts := tileset.NewStub()
+	corps := createCorporations()
+	tiles := []tile.Interface{
+		tile.New(5, "E"),
+		tile.New(6, "E"),
+	}
+	tiles2 := []tile.Interface{
+		tile.New(8, "E"),
+		tile.New(9, "E"),
+		tile.New(10, "E"),
+	}
+
+	ts.DiscardTile(tiles[0])
+	ts.DiscardTile(tiles[1])
+	ts.DiscardTile(tiles2[0])
+	ts.DiscardTile(tiles2[1])
+	ts.DiscardTile(tiles2[2])
+	bd.SetOwner(corps[0], tiles)
+	bd.SetOwner(corps[1], tiles2)
+
+	h.game, _ = acquire.New(
+		bd,
+		h.players(),
+		corps,
+		tileset.New(),
+		&fsm.PlayTile{},
+	)
+
+	h.players()[0].DiscardTile(h.players()[0].Tiles()[0])
+	h.players()[0].PickTile(tile.New(7, "E"))
 }
