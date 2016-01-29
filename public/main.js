@@ -32,6 +32,8 @@ $(function() {
                 }
                 break;
             case "dir":
+                console.log("direct message received");
+                console.log(msg);            
                 if (msg.hasOwnProperty("sta")) {
                     if (msg.sta == "PlayTile") {
                         updateHand(msg.hnd);
@@ -170,14 +172,14 @@ $(function() {
         var html =  '<p>Sell / Trade stock shares</p>'+
                         '<table>'+
                             '<thead><tr>'+
-                                '<th>Sell</th><th>Trade</th>'+
+                                '<th>&nbsp;</th><th>Sell</th><th>Trade</th>'+
                             '</tr></thead>'+
                             '<tbody>';
-        for (var i = 0; i < corporations.length; i++) {
-            html += '<tr><td>' + corporations[i] +
-                        '<input type="number" min="0" name="sell['+ corporations[i].toLowerCase() +']" value="0" class="sell">'+
+        for (var name in corporations) {
+            html += '<tr><td>' + name +
+                        '<input type="number" min="0" max="'+ corporations[name]+'" name="sell['+ name +']" value="0" class="sell">'+
                     '</td><td>'+
-                        '<input type="number" min="0" name="trade['+ corporations[i].toLowerCase() +']" value="0" step="2" class="trade">'+
+                        '<input type="number" min="0" max="'+ corporations[name]+'" name="trade['+ name +']" value="0" step="2" class="trade">'+
                     '</td></tr>';
         }      
         buttonState = !playerActive ? 'disabled="true"' : '';                      

@@ -3,7 +3,7 @@ package hub
 import (
 	"encoding/json"
 	"errors"
-	//"fmt"
+	"fmt"
 	"github.com/svera/acquire"
 	"github.com/svera/acquire-server/client"
 	"github.com/svera/acquire/board"
@@ -161,7 +161,7 @@ func (h *Hub) playerUpdate(c *client.Client) {
 		State:         h.game.GameStateName(),
 		InactiveCorps: corpNames(h.game.InactiveCorporations()),
 		ActiveCorps:   corpNames(h.game.ActiveCorporations()),
-		//Shares:        c.Pl.Shares(c),
+		Shares:        h.mapShares(c.Pl),
 	}
 	response, _ := json.Marshal(directMsg)
 	h.sendMessage(c, response)
@@ -181,6 +181,16 @@ func corpNames(corps []corporation.Interface) []string {
 		names = append(names, corp.Name())
 	}
 	return names
+}
+
+func (h *Hub) mapShares(pl player.Interface) map[string]int {
+	corps := map[string]int{}
+	for _, c := range h.game.ActiveCorporations() {
+		if amount := pl.Shares(c); amount > 0 {
+			corps[strings.ToLower(c.Name())] = amount
+		}
+	}
+	return corps
 }
 
 func (h *Hub) findCorpByName(name string) (corporation.Interface, error) {
@@ -313,6 +323,8 @@ func (h *Hub) newGameMergeTest() {
 	ts.DiscardTile(tiles2[2])
 	bd.SetOwner(corps[0], tiles)
 	bd.SetOwner(corps[1], tiles2)
+	corps[0].Grow(2)
+	corps[1].Grow(3)
 
 	h.game, _ = acquire.New(
 		bd,
@@ -321,7 +333,9 @@ func (h *Hub) newGameMergeTest() {
 		tileset.New(),
 		&fsm.PlayTile{},
 	)
-
+	fmt.Println("corp name: %s", corps[0].Name())
+	fmt.Println("corp name: %s", corps[1].Name())
 	h.players()[0].DiscardTile(h.players()[0].Tiles()[0])
 	h.players()[0].PickTile(tile.New(7, "E"))
+	h.players()[0].AddShares(corps[0], 5)
 }
