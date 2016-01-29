@@ -107,6 +107,31 @@ $(function() {
         return JSON.stringify(message);
     }
 
+    playerControls.on("click", '#sellTradeButton', function() {
+        var sell = {};
+        var trade = {};
+        $('.sell').each(function() {
+            sell[this.name] = $(this).val();
+        })
+        $('.trade').each(function() {
+            trade[this.name] = $(this).val();
+        })            
+        conn.send(
+            createSellTradeMessage(sell, trade)
+        );
+    });
+
+    createSellTradeMessage = function(sell, trade) {
+        var message =  {
+            "typ": "sel",
+            "par": {
+                "sel": sell,
+                "tra": trade
+            }
+        };
+        return JSON.stringify(message);
+    }
+
     updateBoard = function(tiles) {
         Object.keys(tiles).forEach(function(key) {
             if (tiles[key] == 'unincorporated') {
@@ -177,13 +202,13 @@ $(function() {
                             '<tbody>';
         for (var name in corporations) {
             html += '<tr><td>' + name + '</td>'+
-                        '<td><input type="number" min="0" max="'+ corporations[name]+'" name="sell['+ name +']" value="0" class="sell"></td>'+
-                        '<td><input type="number" min="0" max="'+ corporations[name]+'" name="trade['+ name +']" value="0" step="2" class="trade"></td>'+
+                        '<td><input type="number" min="0" max="'+ corporations[name]+'" name="'+ name +'" value="0" class="sell"></td>'+
+                        '<td><input type="number" min="0" max="'+ corporations[name]+'" name="'+ name +'" value="0" step="2" class="trade"></td>'+
                     '</tr>';
         }      
         buttonState = !playerActive ? 'disabled="true"' : '';                      
         html += '</tbody></table>'+
-            '<input type="button" id="buyButton" class="btn btn-primary" value="Sell / Trade"' + buttonState +' />';
+            '<input type="button" id="sellTradeButton" class="btn btn-primary" value="Sell / Trade"' + buttonState +' />';
         $("#player-controls").append(html);
     }    
 });

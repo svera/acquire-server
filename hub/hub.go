@@ -74,6 +74,8 @@ func (h *Hub) Run() {
 				err = h.foundCorporation(m.Content.Params, m.Author)
 			case "buy":
 				err = h.buyStock(m.Content.Params, m.Author)
+			case "sel":
+				err = h.sellTrade(m.Content.Params, m.Author)
 			}
 
 			if err != nil {
@@ -130,6 +132,34 @@ func (h *Hub) buyStock(params map[string]interface{}, c *client.Client) error {
 	}
 
 	if err := h.game.BuyStock(buy); err == nil {
+		h.broadcastUpdate()
+		h.playerUpdate(c)
+		return nil
+	}
+	return err
+}
+
+func (h *Hub) sellTrade(params map[string]interface{}, c *client.Client) error {
+	var err error
+	sell := map[corporation.Interface]int{}
+	trade := map[corporation.Interface]int{}
+
+	for corpName, amount := range params["sel"].(map[string]interface{}) {
+		if corp, err := h.findCorpByName(corpName); err == nil {
+			sell[corp], _ = amount.(int)
+		} else {
+			return err
+		}
+	}
+	for corpName, amount := range params["tra"].(map[string]interface{}) {
+		if corp, err := h.findCorpByName(corpName); err == nil {
+			trade[corp], _ = amount.(int)
+		} else {
+			return err
+		}
+	}
+
+	if err := h.game.SellTrade(sell, trade); err == nil {
 		h.broadcastUpdate()
 		h.playerUpdate(c)
 		return nil
