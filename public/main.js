@@ -176,11 +176,10 @@ $(function() {
                             '</tr></thead>'+
                             '<tbody>';
         for (var name in corporations) {
-            html += '<tr><td>' + name +
-                        '<input type="number" min="0" max="'+ corporations[name]+'" name="sell['+ name +']" value="0" class="sell">'+
-                    '</td><td>'+
-                        '<input type="number" min="0" max="'+ corporations[name]+'" name="trade['+ name +']" value="0" step="2" class="trade">'+
-                    '</td></tr>';
+            html += '<tr><td>' + name + '</td>'+
+                        '<td><input type="number" min="0" max="'+ corporations[name]+'" name="sell['+ name +']" value="0" class="sell"></td>'+
+                        '<td><input type="number" min="0" max="'+ corporations[name]+'" name="trade['+ name +']" value="0" step="2" class="trade"></td>'+
+                    '</tr>';
         }      
         buttonState = !playerActive ? 'disabled="true"' : '';                      
         html += '</tbody></table>'+
