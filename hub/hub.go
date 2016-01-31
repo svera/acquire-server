@@ -8,9 +8,9 @@ import (
 	"github.com/svera/acquire/board"
 	"github.com/svera/acquire/corporation"
 	"github.com/svera/acquire/fsm"
-	"github.com/svera/acquire/player"
 	"github.com/svera/acquire/tile"
 	"github.com/svera/acquire/tileset"
+	"github.com/svera/acquire/interfaces"
 	"strconv"
 	"strings"
 )
@@ -121,7 +121,7 @@ func (h *Hub) foundCorporation(params map[string]interface{}, c *client.Client) 
 
 func (h *Hub) buyStock(params map[string]interface{}, c *client.Client) error {
 	var err error
-	buy := map[corporation.Interface]int{}
+	buy := map[interfaces.Corporation]int{}
 
 	for corpName, amount := range params {
 		if corp, err := h.findCorpByName(corpName); err == nil {
@@ -141,8 +141,8 @@ func (h *Hub) buyStock(params map[string]interface{}, c *client.Client) error {
 
 func (h *Hub) sellTrade(params map[string]interface{}, c *client.Client) error {
 	var err error
-	sell := map[corporation.Interface]int{}
-	trade := map[corporation.Interface]int{}
+	sell := map[interfaces.Corporation]int{}
+	trade := map[interfaces.Corporation]int{}
 
 	for corpName, amount := range params["sel"].(map[string]interface{}) {
 		if corp, err := h.findCorpByName(corpName); err == nil {
@@ -196,7 +196,7 @@ func (h *Hub) playerUpdate(c *client.Client) {
 	h.sendMessage(c, response)
 }
 
-func (h *Hub) tilesToSlice(pl player.Interface) []string {
+func (h *Hub) tilesToSlice(pl interfaces.Player) []string {
 	var hnd []string
 	for _, tl := range pl.Tiles() {
 		hnd = append(hnd, strconv.Itoa(tl.Number())+tl.Letter())
@@ -204,7 +204,7 @@ func (h *Hub) tilesToSlice(pl player.Interface) []string {
 	return hnd
 }
 
-func corpNames(corps []corporation.Interface) []string {
+func corpNames(corps []interfaces.Corporation) []string {
 	names := []string{}
 	for _, corp := range corps {
 		names = append(names, corp.Name())
@@ -212,7 +212,7 @@ func corpNames(corps []corporation.Interface) []string {
 	return names
 }
 
-func (h *Hub) mapShares(pl player.Interface) map[string]int {
+func (h *Hub) mapShares(pl interfaces.Player) map[string]int {
 	corps := map[string]int{}
 	for _, c := range h.game.ActiveCorporations() {
 		if amount := pl.Shares(c); amount > 0 {
@@ -222,7 +222,7 @@ func (h *Hub) mapShares(pl player.Interface) map[string]int {
 	return corps
 }
 
-func (h *Hub) findCorpByName(name string) (corporation.Interface, error) {
+func (h *Hub) findCorpByName(name string) (interfaces.Corporation, error) {
 	for _, corp := range h.game.Corporations() {
 		if strings.ToLower(corp.Name()) == name {
 			return corp, nil
@@ -248,7 +248,7 @@ func (h *Hub) boardOwnership() map[string]string {
 	return cells
 }
 
-func coordsToTile(tl string) (tile.Interface, error) {
+func coordsToTile(tl string) (interfaces.Tile, error) {
 	if len(tl) < 2 {
 		return &tile.Tile{}, errors.New("Not a valid tile")
 	}
@@ -281,8 +281,8 @@ func (h *Hub) sendMessage(c *client.Client, message []byte) {
 	}
 }
 
-func (h *Hub) players() []player.Interface {
-	var players []player.Interface
+func (h *Hub) players() []interfaces.Player {
+	var players []interfaces.Player
 	for _, c := range h.clients {
 		players = append(players, c.Pl)
 	}
@@ -308,8 +308,8 @@ func (h *Hub) newGame() {
 	)
 }
 
-func createCorporations() [7]corporation.Interface {
-	var corps [7]corporation.Interface
+func createCorporations() [7]interfaces.Corporation {
+	var corps [7]interfaces.Corporation
 	corpsParams := [7]map[string]int{
 		map[string]int{"Sackson": 0},
 		map[string]int{"Zeta": 0},
@@ -336,11 +336,11 @@ func (h *Hub) newGameMergeTest() {
 	bd := board.New()
 	ts := tileset.NewStub()
 	corps := createCorporations()
-	tiles := []tile.Interface{
+	tiles := []interfaces.Tile{
 		tile.New(5, "E"),
 		tile.New(6, "E"),
 	}
-	tiles2 := []tile.Interface{
+	tiles2 := []interfaces.Tile{
 		tile.New(8, "E"),
 		tile.New(9, "E"),
 		tile.New(10, "E"),
