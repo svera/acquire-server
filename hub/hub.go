@@ -8,9 +8,9 @@ import (
 	"github.com/svera/acquire/board"
 	"github.com/svera/acquire/corporation"
 	"github.com/svera/acquire/fsm"
+	"github.com/svera/acquire/interfaces"
 	"github.com/svera/acquire/tile"
 	"github.com/svera/acquire/tileset"
-	"github.com/svera/acquire/interfaces"
 	"strconv"
 	"strings"
 )
@@ -133,7 +133,7 @@ func (h *Hub) buyStock(params map[string]interface{}, c *client.Client) error {
 
 	if err := h.game.BuyStock(buy); err == nil {
 		h.broadcastUpdate()
-		h.playerUpdate(c)
+		h.playerUpdate(h.getCurrentPlayerClient())
 		return nil
 	}
 	return err
@@ -161,7 +161,7 @@ func (h *Hub) sellTrade(params map[string]interface{}, c *client.Client) error {
 
 	if err := h.game.SellTrade(sell, trade); err == nil {
 		h.broadcastUpdate()
-		h.playerUpdate(c)
+		h.playerUpdate(h.getCurrentPlayerClient())
 		return nil
 	}
 	return err
@@ -181,6 +181,16 @@ func (h *Hub) broadcastUpdate() {
 		response, _ := json.Marshal(commonMsg)
 		h.sendMessage(c, response)
 	}
+}
+
+func (h *Hub) getCurrentPlayerClient() *client.Client {
+	cl := &client.Client{}
+	for _, cl = range h.clients {
+		if cl.Pl == h.game.CurrentPlayer() {
+			break
+		}
+	}
+	return cl
 }
 
 func (h *Hub) playerUpdate(c *client.Client) {
@@ -367,4 +377,5 @@ func (h *Hub) newGameMergeTest() {
 	h.players()[0].DiscardTile(h.players()[0].Tiles()[0])
 	h.players()[0].PickTile(tile.New(7, "E"))
 	h.players()[0].AddShares(corps[0], 5)
+	h.players()[1].AddShares(corps[0], 5)
 }
