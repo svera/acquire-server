@@ -24,11 +24,10 @@ $(function() {
                 console.log(msg);
                 updateBoard(msg.brd);
                 if (msg.ebl) {
-                    $("#playButton").attr("disabled", false);
                     playerActive = true;
                 } else {
-                    $("#playButton").attr("disabled", true);
                     playerActive = false;
+                    $("#player-controls").html("")
                 }
                 break;
             case "dir":
@@ -134,17 +133,17 @@ $(function() {
 
     updateBoard = function(tiles) {
         Object.keys(tiles).forEach(function(key) {
+            $('#'+key).removeClass();
             if (tiles[key] == 'unincorporated') {
                 $('#'+key).addClass('unincorporated')
             } else {
-                $('#'+key).removeClass('unincorporated')
                 $('#'+key).addClass(tiles[key])
             }
         });
     }
 
     updateHand = function(hand) {
-        $("#player-controls").html("")
+        $("#player-controls").html("");
         var html = '<div class="btn-group" role="group" aria-label="..." data-toggle="buttons">';
 
         for (var i = 0; i < hand.length; i++) {
@@ -160,7 +159,7 @@ $(function() {
     }
 
     chooseNewCorporation = function(corporations) {
-        $("#player-controls").html("")
+        $("#player-controls").html("");
         var html = '<div class="btn-group" role="group" aria-label="..." data-toggle="buttons">'+
                         '<p>You have founded a new corporation! Please choose one:</p>';
 
