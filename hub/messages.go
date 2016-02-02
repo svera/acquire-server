@@ -19,4 +19,5 @@ type DirectMessage struct {
 	State         string         `json:"sta"`
 	InactiveCorps []string       `json:"ina"`
 	ActiveCorps   []string       `json:"act"`
+	TiedCorps     []string       `json:"tie"`
 }

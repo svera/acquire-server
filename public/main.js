@@ -45,7 +45,10 @@ $(function() {
                     }
                     if (msg.sta == "SellTrade") {
                         sellTrade(msg.sha);
-                    }                         
+                    }
+                    if (msg.sta == "UntieMerge") {
+                        untieMerge(msg.tie);
+                    }
                 }
                 break;
         }
@@ -131,6 +134,27 @@ $(function() {
         return JSON.stringify(message);
     }
 
+    playerControls.on("click", '#untieMergeButton', function() {
+        corps = $('input[name=corps]:checked')
+        conn.send(
+            createUntieMergeMessage(corps.val())
+        );
+    });
+
+    createUntieMergeMessage = function(corp) {
+        var message =  {
+            "typ": "unt",
+            "par": {
+                "cor": corp
+            }
+        };
+        return JSON.stringify(message);
+    }
+    
+////////////////////
+// HTML functions //
+///////////////////
+
     updateBoard = function(tiles) {
         Object.keys(tiles).forEach(function(key) {
             $('#'+key).removeClass();
@@ -208,6 +232,23 @@ $(function() {
         buttonState = !playerActive ? 'disabled="true"' : '';                      
         html += '</tbody></table>'+
             '<input type="button" id="sellTradeButton" class="btn btn-primary" value="Sell / Trade"' + buttonState +' />';
+        $("#player-controls").append(html);
+    }
+
+    untieMerge = function(corporations) {
+        $("#player-controls").html("");
+        var html = '<div class="btn-group" role="group" aria-label="..." data-toggle="buttons">'+
+                        '<p>There is a tie in the merge:</p>';
+
+        for (var i = 0; i < corporations.length; i++) {
+            html += '<label class="btn btn-default">'+
+                        '<input type="radio" name="corps" value="'+ corporations[i].toLowerCase() +'">'+
+                        '<span>' + corporations[i] +'</span>'+
+                    '</label>';
+        }
+        buttonState = !playerActive ? 'disabled="true"' : '';
+        html += '</div>'+
+                      '<input type="button" id="untieMergeButton" class="btn btn-primary" value="choose acquiring corporation"' + buttonState +' />'
         $("#player-controls").append(html);
     }    
 });

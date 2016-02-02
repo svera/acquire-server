@@ -46,7 +46,7 @@ func (h *Hub) Run() {
 		case c := <-h.Register:
 			h.clients = append(h.clients, c)
 			if len(h.clients) == 3 {
-				h.newGameMergeTest()
+				h.newGameTiedMergeTest()
 				h.sendInitialHand()
 			}
 			break
@@ -76,6 +76,8 @@ func (h *Hub) Run() {
 				err = h.buyStock(m.Content.Params, m.Author)
 			case "sel":
 				err = h.sellTrade(m.Content.Params, m.Author)
+			case "unt":
+				err = h.untieMerge(m.Content.Params, m.Author)
 			}
 
 			if err != nil {
@@ -167,6 +169,20 @@ func (h *Hub) sellTrade(params map[string]interface{}, c *client.Client) error {
 	return err
 }
 
+func (h *Hub) untieMerge(params map[string]interface{}, c *client.Client) error {
+	var err error
+	corpName := params["cor"].(string)
+
+	if corp, err := h.findCorpByName(corpName); err == nil {
+		if err := h.game.UntieMerge(corp); err == nil {
+			h.broadcastUpdate()
+			h.playerUpdate(c)
+			return nil
+		}
+	}
+	return err
+}
+
 func (h *Hub) broadcastUpdate() {
 	commonMsg := CommonMessage{
 		Type:  "upd",
@@ -200,6 +216,7 @@ func (h *Hub) playerUpdate(c *client.Client) {
 		State:         h.game.GameStateName(),
 		InactiveCorps: corpNames(h.game.InactiveCorporations()),
 		ActiveCorps:   corpNames(h.game.ActiveCorporations()),
+		TiedCorps:     corpNames(h.game.TiedCorps()),
 		Shares:        h.mapShares(c.Pl),
 	}
 	response, _ := json.Marshal(directMsg)
@@ -364,6 +381,46 @@ func (h *Hub) newGameMergeTest() {
 	bd.SetOwner(corps[0], tiles)
 	bd.SetOwner(corps[1], tiles2)
 	corps[0].Grow(2)
+	corps[1].Grow(3)
+
+	h.game, _ = acquire.New(
+		bd,
+		h.players(),
+		corps,
+		tileset.New(),
+		&fsm.PlayTile{},
+	)
+
+	h.players()[0].DiscardTile(h.players()[0].Tiles()[0])
+	h.players()[0].PickTile(tile.New(7, "E"))
+	h.players()[0].AddShares(corps[0], 5)
+	h.players()[1].AddShares(corps[0], 5)
+}
+
+func (h *Hub) newGameTiedMergeTest() {
+	bd := board.New()
+	ts := tileset.NewStub()
+	corps := createCorporations()
+	tiles := []interfaces.Tile{
+		tile.New(4, "E"),
+		tile.New(5, "E"),
+		tile.New(6, "E"),
+	}
+	tiles2 := []interfaces.Tile{
+		tile.New(8, "E"),
+		tile.New(9, "E"),
+		tile.New(10, "E"),
+	}
+
+	ts.DiscardTile(tiles[0])
+	ts.DiscardTile(tiles[1])
+	ts.DiscardTile(tiles[2])
+	ts.DiscardTile(tiles2[0])
+	ts.DiscardTile(tiles2[1])
+	ts.DiscardTile(tiles2[2])
+	bd.SetOwner(corps[0], tiles)
+	bd.SetOwner(corps[1], tiles2)
+	corps[0].Grow(3)
 	corps[1].Grow(3)
 
 	h.game, _ = acquire.New(
