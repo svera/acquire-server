@@ -241,7 +241,7 @@ func corpNames(corps []interfaces.Corporation) []string {
 
 func (h *Hub) mapShares(pl interfaces.Player) map[string]int {
 	corps := map[string]int{}
-	for _, c := range h.game.ActiveCorporations() {
+	for _, c := range h.game.DefunctCorporations() {
 		if amount := pl.Shares(c); amount > 0 {
 			corps[strings.ToLower(c.Name())] = amount
 		}
@@ -435,4 +435,6 @@ func (h *Hub) newGameTiedMergeTest() {
 	h.players()[0].PickTile(tile.New(7, "E"))
 	h.players()[0].AddShares(corps[0], 5)
 	h.players()[1].AddShares(corps[0], 5)
+	h.players()[0].AddShares(corps[1], 3)
+	h.players()[1].AddShares(corps[1], 3)
 }
