@@ -110,25 +110,24 @@ $(function() {
     }
 
     playerControls.on("click", '#sellTradeButton', function() {
-        var sell = {};
-        var trade = {};
+        var corps = {};
         $('.sell').each(function() {
-            sell[this.name] = $(this).val();
+            corps[this.name] = {}
+            corps[this.name]["sel"] = $(this).val();
         })
         $('.trade').each(function() {
-            trade[this.name] = $(this).val();
+            corps[this.name]["tra"] = $(this).val();
         })            
         conn.send(
-            createSellTradeMessage(sell, trade)
+            createSellTradeMessage(corps)
         );
     });
 
-    createSellTradeMessage = function(sell, trade) {
+    createSellTradeMessage = function(corps) {
         var message =  {
             "typ": "sel",
             "par": {
-                "sel": sell,
-                "tra": trade
+                "cor": corps
             }
         };
         return JSON.stringify(message);
@@ -150,7 +149,7 @@ $(function() {
         };
         return JSON.stringify(message);
     }
-    
+
 ////////////////////
 // HTML functions //
 ///////////////////

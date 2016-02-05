@@ -3,6 +3,7 @@ package hub
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/svera/acquire"
 	"github.com/svera/acquire-server/client"
 	"github.com/svera/acquire/board"
@@ -62,22 +63,41 @@ func (h *Hub) Run() {
 
 		case m := <-h.Messages:
 			var err error
+			var ok bool
 
 			if m.Author.Pl != h.game.CurrentPlayer() {
 				break
 			}
 
+			// TODO: look for a type switch for this case
 			switch m.Content.Type {
 			case "ply":
-				err = h.playTile(m.Content.Params, m.Author)
+				if params, ok := m.Content.Params.(client.PlayTileMessageParams); ok {
+					err = h.playTile(params, m.Author)
+				}
 			case "ncp":
-				err = h.foundCorporation(m.Content.Params, m.Author)
+				if params, ok := m.Content.Params.(client.NewCorpMessageParams); ok {
+					err = h.foundCorporation(params, m.Author)
+				}
 			case "buy":
-				err = h.buyStock(m.Content.Params, m.Author)
+				if params, ok := m.Content.Params.(client.BuyMessageParams); ok {
+					err = h.buyStock(params, m.Author)
+				}
 			case "sel":
-				err = h.sellTrade(m.Content.Params, m.Author)
+				if params, ok := m.Content.Params.(client.SellTradeMessageParams); ok {
+					err = h.sellTrade(params, m.Author)
+				}
 			case "unt":
-				err = h.untieMerge(m.Content.Params, m.Author)
+				if params, ok := m.Content.Params.(client.UntieMergeMessageParams); ok {
+					err = h.untieMerge(params, m.Author)
+				}
+			default:
+				err = errors.New("Message parsing error")
+			}
+
+			if !ok {
+				fmt.Println("%v", m.Content.Params)
+				err = errors.New("Message parsing error")
 			}
 
 			if err != nil {
@@ -93,11 +113,10 @@ func (h *Hub) Run() {
 	}
 }
 
-func (h *Hub) playTile(params map[string]interface{}, c *client.Client) error {
+func (h *Hub) playTile(params client.PlayTileMessageParams, c *client.Client) error {
 	var err error
-	coords := params["til"].(string)
 
-	if tl, err := coordsToTile(coords); err == nil {
+	if tl, err := coordsToTile(params.Tile); err == nil {
 		if err := h.game.PlayTile(tl); err == nil {
 			h.broadcastUpdate()
 			h.playerUpdate(c)
@@ -107,11 +126,10 @@ func (h *Hub) playTile(params map[string]interface{}, c *client.Client) error {
 	return err
 }
 
-func (h *Hub) foundCorporation(params map[string]interface{}, c *client.Client) error {
+func (h *Hub) foundCorporation(params client.NewCorpMessageParams, c *client.Client) error {
 	var err error
-	corpName := params["cor"].(string)
 
-	if corp, err := h.findCorpByName(corpName); err == nil {
+	if corp, err := h.findCorpByName(params.Corporation); err == nil {
 		if err := h.game.FoundCorporation(corp); err == nil {
 			h.broadcastUpdate()
 			h.playerUpdate(c)
@@ -121,13 +139,13 @@ func (h *Hub) foundCorporation(params map[string]interface{}, c *client.Client) 
 	return err
 }
 
-func (h *Hub) buyStock(params map[string]interface{}, c *client.Client) error {
+func (h *Hub) buyStock(params client.BuyMessageParams, c *client.Client) error {
 	var err error
 	buy := map[interfaces.Corporation]int{}
 
-	for corpName, amount := range params {
+	for corpName, amount := range params.Corporations {
 		if corp, err := h.findCorpByName(corpName); err == nil {
-			buy[corp], _ = amount.(int)
+			buy[corp] = amount
 		} else {
 			return err
 		}
@@ -141,21 +159,15 @@ func (h *Hub) buyStock(params map[string]interface{}, c *client.Client) error {
 	return err
 }
 
-func (h *Hub) sellTrade(params map[string]interface{}, c *client.Client) error {
+func (h *Hub) sellTrade(params client.SellTradeMessageParams, c *client.Client) error {
 	var err error
 	sell := map[interfaces.Corporation]int{}
 	trade := map[interfaces.Corporation]int{}
 
-	for corpName, amount := range params["sel"].(map[string]interface{}) {
+	for corpName, operation := range params.Corporations {
 		if corp, err := h.findCorpByName(corpName); err == nil {
-			sell[corp], _ = amount.(int)
-		} else {
-			return err
-		}
-	}
-	for corpName, amount := range params["tra"].(map[string]interface{}) {
-		if corp, err := h.findCorpByName(corpName); err == nil {
-			trade[corp], _ = amount.(int)
+			sell[corp] = operation.Sell
+			trade[corp] = operation.Trade
 		} else {
 			return err
 		}
@@ -169,11 +181,10 @@ func (h *Hub) sellTrade(params map[string]interface{}, c *client.Client) error {
 	return err
 }
 
-func (h *Hub) untieMerge(params map[string]interface{}, c *client.Client) error {
+func (h *Hub) untieMerge(params client.UntieMergeMessageParams, c *client.Client) error {
 	var err error
-	corpName := params["cor"].(string)
 
-	if corp, err := h.findCorpByName(corpName); err == nil {
+	if corp, err := h.findCorpByName(params.Corporation); err == nil {
 		if err := h.game.UntieMerge(corp); err == nil {
 			h.broadcastUpdate()
 			h.playerUpdate(c)
