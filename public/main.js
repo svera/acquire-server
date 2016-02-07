@@ -113,10 +113,10 @@ $(function() {
         var corps = {};
         $('.sell').each(function() {
             corps[this.name] = {}
-            corps[this.name]["sel"] = $(this).val();
+            corps[this.name]["sel"] = parseInt($(this).val());
         })
         $('.trade').each(function() {
-            corps[this.name]["tra"] = $(this).val();
+            corps[this.name]["tra"] = parseInt($(this).val());
         })            
         conn.send(
             createSellTradeMessage(corps)
