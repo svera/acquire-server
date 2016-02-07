@@ -130,6 +130,7 @@ $(function() {
                 "cor": corps
             }
         };
+        console.log(JSON.stringify(message));
         return JSON.stringify(message);
     }
 

@@ -3,7 +3,6 @@ package hub
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/svera/acquire"
 	"github.com/svera/acquire-server/client"
 	"github.com/svera/acquire/board"
@@ -63,41 +62,39 @@ func (h *Hub) Run() {
 
 		case m := <-h.Messages:
 			var err error
-			var ok bool
 
 			if m.Author.Pl != h.game.CurrentPlayer() {
 				break
 			}
 
-			// TODO: look for a type switch for this case
 			switch m.Content.Type {
 			case "ply":
-				if params, ok := m.Content.Params.(client.PlayTileMessageParams); ok {
+		    	var params client.PlayTileMessageParams
+			    if err = json.Unmarshal(m.Content.Params, &params); err == nil {
 					err = h.playTile(params, m.Author)
-				}
+			    }					
 			case "ncp":
-				if params, ok := m.Content.Params.(client.NewCorpMessageParams); ok {
+		    	var params client.NewCorpMessageParams
+			    if err = json.Unmarshal(m.Content.Params, &params); err == nil {
 					err = h.foundCorporation(params, m.Author)
-				}
+			    }					
 			case "buy":
-				if params, ok := m.Content.Params.(client.BuyMessageParams); ok {
+		    	var params client.BuyMessageParams
+			    if err = json.Unmarshal(m.Content.Params, &params); err == nil {
 					err = h.buyStock(params, m.Author)
-				}
+			    }					
 			case "sel":
-				if params, ok := m.Content.Params.(client.SellTradeMessageParams); ok {
+		    	var params client.SellTradeMessageParams
+			    if err = json.Unmarshal(m.Content.Params, &params); err == nil {
 					err = h.sellTrade(params, m.Author)
-				}
+			    }					
 			case "unt":
-				if params, ok := m.Content.Params.(client.UntieMergeMessageParams); ok {
+		    	var params client.UntieMergeMessageParams
+			    if err = json.Unmarshal(m.Content.Params, &params); err == nil {
 					err = h.untieMerge(params, m.Author)
-				}
+			    }
 			default:
-				err = errors.New("Message parsing error")
-			}
-
-			if !ok {
-				fmt.Println("%v", m.Content.Params)
-				err = errors.New("Message parsing error")
+				err = errors.New("Message parsing error")			    
 			}
 
 			if err != nil {

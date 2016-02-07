@@ -1,8 +1,10 @@
 package client
 
+import "encoding/json"
+
 type MessageContent struct {
 	Type   string      `json:"typ"`
-	Params interface{} `json:"par"`
+	Params json.RawMessage `json:"par"`
 }
 
 type Message struct {
