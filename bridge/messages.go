@@ -1,4 +1,4 @@
-package hub
+package bridge
 
 type ErrorMessage struct {
 	Type    string `json:"typ"`
