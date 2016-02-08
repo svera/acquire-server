@@ -25,30 +25,26 @@ $(function() {
                 updateBoard(msg.brd);
                 if (msg.ebl) {
                     playerActive = true;
+                    if (msg.hasOwnProperty("sta")) {
+                        if (msg.sta == "PlayTile") {
+                            updateHand(msg.hnd);
+                        }
+                        if (msg.sta == "FoundCorp") {
+                            chooseNewCorporation(msg.ina);
+                        }
+                        if (msg.sta == "BuyStock") {
+                            buyStocks(msg.act);
+                        }
+                        if (msg.sta == "SellTrade") {
+                            sellTrade(msg.sha);
+                        }
+                        if (msg.sta == "UntieMerge") {
+                            untieMerge(msg.tie);
+                        }
+                    }
                 } else {
                     playerActive = false;
                     $("#player-controls").html("")
-                }
-                break;
-            case "dir":
-                console.log("direct message received");
-                console.log(msg);            
-                if (msg.hasOwnProperty("sta")) {
-                    if (msg.sta == "PlayTile") {
-                        updateHand(msg.hnd);
-                    }
-                    if (msg.sta == "FoundCorp") {
-                        chooseNewCorporation(msg.ina);
-                    }
-                    if (msg.sta == "BuyStock") {
-                        buyStocks(msg.act);
-                    }
-                    if (msg.sta == "SellTrade") {
-                        sellTrade(msg.sha);
-                    }
-                    if (msg.sta == "UntieMerge") {
-                        untieMerge(msg.tie);
-                    }
                 }
                 break;
         }

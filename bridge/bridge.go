@@ -235,21 +235,15 @@ func createCorporations() [7]interfaces.Corporation {
 	return corps
 }
 
-func (b *Bridge) Status(pl interfaces.Player) *DirectMessage {
-	return &DirectMessage{
-		Type:          "dir",
+func (b *Bridge) Status(pl interfaces.Player) *StatusMessage {
+	return &StatusMessage{
+		Type:          "upd",
+		Board:         b.boardOwnership(),
 		Hand:          b.tilesToSlice(pl),
 		State:         b.game.GameStateName(),
 		InactiveCorps: corpNames(b.game.InactiveCorporations()),
 		ActiveCorps:   corpNames(b.game.ActiveCorporations()),
 		TiedCorps:     corpNames(b.game.TiedCorps()),
 		Shares:        b.mapShares(pl),
-	}
-}
-
-func (b *Bridge) CommonStatus() *CommonMessage {
-	return &CommonMessage{
-		Type:  "upd",
-		Board: b.boardOwnership(),
 	}
 }

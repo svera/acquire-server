@@ -41,7 +41,6 @@ func (h *Hub) Run() {
 			if len(h.clients) == 3 {
 				h.bridge.NewGameTiedMergeTest(h.players())
 				h.broadcastUpdate()
-				h.playerUpdate(h.getCurrentPlayerClient())
 			}
 			break
 
@@ -70,29 +69,22 @@ func (h *Hub) Run() {
 				h.sendMessage(m.Author, response)
 			} else {
 				h.broadcastUpdate()
-				h.playerUpdate(h.getCurrentPlayerClient())
 			}
 		}
 	}
 }
 
 func (h *Hub) broadcastUpdate() {
-	commonMsg := h.bridge.CommonStatus()
 	for _, c := range h.clients {
+		msg := h.bridge.Status(c.Pl)
 		if c.Pl == h.bridge.CurrentPlayer() {
-			commonMsg.Enabled = true
+			msg.Enabled = true
 		} else {
-			commonMsg.Enabled = false
+			msg.Enabled = false
 		}
-		response, _ := json.Marshal(commonMsg)
+		response, _ := json.Marshal(msg)
 		h.sendMessage(c, response)
 	}
-}
-
-func (h *Hub) playerUpdate(c *client.Client) {
-	directMessage := h.bridge.Status(c.Pl)
-	response, _ := json.Marshal(directMessage)
-	h.sendMessage(c, response)
 }
 
 func (h *Hub) getCurrentPlayerClient() *client.Client {
