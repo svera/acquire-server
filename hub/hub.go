@@ -61,52 +61,57 @@ func (h *Hub) Run() {
 			break
 
 		case m := <-h.Messages:
-			var err error
-
 			if m.Author.Pl != h.game.CurrentPlayer() {
 				break
 			}
 
-			switch m.Content.Type {
-			case "ply":
-		    	var params client.PlayTileMessageParams
-			    if err = json.Unmarshal(m.Content.Params, &params); err == nil {
-					err = h.playTile(params, m.Author)
-			    }					
-			case "ncp":
-		    	var params client.NewCorpMessageParams
-			    if err = json.Unmarshal(m.Content.Params, &params); err == nil {
-					err = h.foundCorporation(params, m.Author)
-			    }					
-			case "buy":
-		    	var params client.BuyMessageParams
-			    if err = json.Unmarshal(m.Content.Params, &params); err == nil {
-					err = h.buyStock(params, m.Author)
-			    }					
-			case "sel":
-		    	var params client.SellTradeMessageParams
-			    if err = json.Unmarshal(m.Content.Params, &params); err == nil {
-					err = h.sellTrade(params, m.Author)
-			    }					
-			case "unt":
-		    	var params client.UntieMergeMessageParams
-			    if err = json.Unmarshal(m.Content.Params, &params); err == nil {
-					err = h.untieMerge(params, m.Author)
-			    }
-			default:
-				err = errors.New("Message parsing error")			    
-			}
-
-			if err != nil {
-				res := &ErrorMessage{
-					Type:    "err",
-					Content: err.Error(),
-				}
-				response, _ := json.Marshal(res)
-				h.sendMessage(m.Author, response)
-			}
-			break
+			h.parseMessage(m)
 		}
+	}
+}
+
+func (h *Hub) parseMessage(m *client.Message) {
+	var err error
+
+	switch m.Content.Type {
+	case "ply":
+		var params client.PlayTileMessageParams
+		if err = json.Unmarshal(m.Content.Params, &params); err == nil {
+			err = h.playTile(params, m.Author)
+		}
+	case "ncp":
+		var params client.NewCorpMessageParams
+		if err = json.Unmarshal(m.Content.Params, &params); err == nil {
+			err = h.foundCorporation(params, m.Author)
+		}
+	case "buy":
+		var params client.BuyMessageParams
+		if err = json.Unmarshal(m.Content.Params, &params); err == nil {
+			err = h.buyStock(params, m.Author)
+		}
+	case "sel":
+		var params client.SellTradeMessageParams
+		if err = json.Unmarshal(m.Content.Params, &params); err == nil {
+			err = h.sellTrade(params, m.Author)
+		}
+	case "unt":
+		var params client.UntieMergeMessageParams
+		if err = json.Unmarshal(m.Content.Params, &params); err == nil {
+			err = h.untieMerge(params, m.Author)
+		}
+	case "end":
+		err = h.claimEndGame(m.Author)
+	default:
+		err = errors.New("Message parsing error")
+	}
+
+	if err != nil {
+		res := &ErrorMessage{
+			Type:    "err",
+			Content: err.Error(),
+		}
+		response, _ := json.Marshal(res)
+		h.sendMessage(m.Author, response)
 	}
 }
 
@@ -187,6 +192,17 @@ func (h *Hub) untieMerge(params client.UntieMergeMessageParams, c *client.Client
 			h.playerUpdate(c)
 			return nil
 		}
+	}
+	return err
+}
+
+func (h *Hub) claimEndGame(c *client.Client) error {
+	var err error
+
+	if err := h.game.ClaimEndGame(); err == nil {
+		h.broadcastUpdate()
+		h.playerUpdate(c)
+		return nil
 	}
 	return err
 }

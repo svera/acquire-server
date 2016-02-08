@@ -151,6 +151,20 @@ $(function() {
         return JSON.stringify(message);
     }
 
+    playerControls.on("click", '#claimEndButton', function() {
+        conn.send(
+            createClaimEndMessage()
+        );
+    });
+
+    createClaimEndMessage = function() {
+        var message =  {
+            "typ": "end",
+            "par": {}
+        };
+        return JSON.stringify(message);
+    }
+
 ////////////////////
 // HTML functions //
 ///////////////////
@@ -178,7 +192,8 @@ $(function() {
         }
         buttonState = !playerActive ? 'disabled="true"' : '';
         html += '</div>'+
-                      '<input type="button" id="playButton" class="btn btn-primary" value="Play tile"' + buttonState +' />';
+                      '<input type="button" id="playButton" class="btn btn-primary" value="Play tile"' + buttonState +' />'+
+                      '<input type="button" id="claimEndButton" class="btn" value="Claim game end"' + buttonState +' />';
         $("#player-controls").append(html);
     }
 
@@ -195,7 +210,8 @@ $(function() {
         }
         buttonState = !playerActive ? 'disabled="true"' : '';
         html += '</div>'+
-                      '<input type="button" id="newCorpButton" class="btn btn-primary" value="Found corporation"' + buttonState +' />'
+                      '<input type="button" id="newCorpButton" class="btn btn-primary" value="Found corporation"' + buttonState +' />'+
+                      '<input type="button" id="claimEndButton" class="btn" value="Claim game end"' + buttonState +' />';
         $("#player-controls").append(html);
     }
 
@@ -211,7 +227,8 @@ $(function() {
         }
         buttonState = !playerActive ? 'disabled="true"' : '';
         html += '</ul>' +
-               '<input type="button" id="buyButton" class="btn btn-primary" value="Buy"' + buttonState +' />';
+               '<input type="button" id="buyButton" class="btn btn-primary" value="Buy"' + buttonState +' />'+
+               '<input type="button" id="claimEndButton" class="btn" value="Claim game end"' + buttonState +' />';
         $("#player-controls").append(html);
     }
 
@@ -231,7 +248,8 @@ $(function() {
         }      
         buttonState = !playerActive ? 'disabled="true"' : '';                      
         html += '</tbody></table>'+
-            '<input type="button" id="sellTradeButton" class="btn btn-primary" value="Sell / Trade"' + buttonState +' />';
+            '<input type="button" id="sellTradeButton" class="btn btn-primary" value="Sell / Trade"' + buttonState +' />'+
+            '<input type="button" id="claimEndButton" class="btn" value="Claim game end"' + buttonState +' />';
         $("#player-controls").append(html);
     }
 
@@ -248,7 +266,8 @@ $(function() {
         }
         buttonState = !playerActive ? 'disabled="true"' : '';
         html += '</div>'+
-                      '<input type="button" id="untieMergeButton" class="btn btn-primary" value="choose acquiring corporation"' + buttonState +' />'
+          '<input type="button" id="untieMergeButton" class="btn btn-primary" value="choose acquiring corporation"' + buttonState +' />'+
+          '<input type="button" id="claimEndButton" class="btn" value="Claim game end"' + buttonState +' />';
         $("#player-controls").append(html);
     }    
 });
