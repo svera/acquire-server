@@ -20,8 +20,7 @@ $(function() {
                 console.log(msg.cnt);
                 break;
             case "upd":
-                console.log("update received");
-                console.log(msg);
+                //console.log(msg);
                 updateBoard(msg.brd);
                 if (msg.ebl) {
                     playerActive = true;
@@ -97,11 +96,14 @@ $(function() {
     createNewBuyMessage = function(buy) {
         var message =  {
             "typ": "buy",
-            "par": {}
+            "par": {
+                "cor": {}
+            }
         };
         for (corp in buy) {
-            message["par"][corp] = buy[corp]
-        };
+            message["par"]["cor"][corp] = parseInt(buy[corp]);
+        }
+        console.log(JSON.stringify(message));
         return JSON.stringify(message);
     }
 

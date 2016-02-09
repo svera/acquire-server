@@ -90,7 +90,7 @@ func (b *Bridge) buyStock(params client.BuyMessageParams) error {
 		}
 	}
 
-	if err := b.game.BuyStock(buy); err == nil {
+	if err = b.game.BuyStock(buy); err == nil {
 		return nil
 	}
 	return err
@@ -110,7 +110,7 @@ func (b *Bridge) sellTrade(params client.SellTradeMessageParams) error {
 		}
 	}
 
-	if err := b.game.SellTrade(sell, trade); err == nil {
+	if err = b.game.SellTrade(sell, trade); err == nil {
 		return nil
 	}
 	return err
@@ -201,7 +201,7 @@ func (b *Bridge) CurrentPlayer() interfaces.Player {
 	return b.game.CurrentPlayer()
 }
 
-func (b *Bridge) newGame(players []interfaces.Player) {
+func (b *Bridge) NewGame(players []interfaces.Player) {
 	b.game, _ = acquire.New(
 		board.New(),
 		players,

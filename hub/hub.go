@@ -39,7 +39,7 @@ func (h *Hub) Run() {
 		case c := <-h.Register:
 			h.clients = append(h.clients, c)
 			if len(h.clients) == 3 {
-				h.bridge.NewGameTiedMergeTest(h.players())
+				h.bridge.NewGameMergeTest(h.players())
 				h.broadcastUpdate()
 			}
 			break
