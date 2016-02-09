@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"github.com/svera/acquire-server/bridge"
 	"github.com/svera/acquire-server/client"
-	"github.com/svera/acquire/interfaces"
 )
 
 type Hub struct {
@@ -38,8 +37,9 @@ func (h *Hub) Run() {
 		select {
 		case c := <-h.Register:
 			h.clients = append(h.clients, c)
+			h.bridge.AddPlayer()
 			if len(h.clients) == 3 {
-				h.bridge.NewGameMergeTest(h.players())
+				h.bridge.NewGameMergeTest()
 				h.broadcastUpdate()
 			}
 			break
@@ -54,7 +54,7 @@ func (h *Hub) Run() {
 			break
 
 		case m := <-h.Messages:
-			if m.Author.Pl != h.bridge.CurrentPlayer() {
+			if m.Author != h.currentPlayerClient() {
 				break
 			}
 
@@ -75,9 +75,9 @@ func (h *Hub) Run() {
 }
 
 func (h *Hub) broadcastUpdate() {
-	for _, c := range h.clients {
-		msg := h.bridge.Status(c.Pl)
-		if c.Pl == h.bridge.CurrentPlayer() {
+	for n, c := range h.clients {
+		msg := h.bridge.Status(n)
+		if c == h.currentPlayerClient() {
 			msg.Enabled = true
 		} else {
 			msg.Enabled = false
@@ -87,14 +87,8 @@ func (h *Hub) broadcastUpdate() {
 	}
 }
 
-func (h *Hub) getCurrentPlayerClient() *client.Client {
-	cl := &client.Client{}
-	for _, cl = range h.clients {
-		if cl.Pl == h.bridge.CurrentPlayer() {
-			break
-		}
-	}
-	return cl
+func (h *Hub) currentPlayerClient() *client.Client {
+	return h.clients[h.bridge.CurrentPlayerNumber()]
 }
 
 func (h *Hub) sendMessage(c *client.Client, message []byte) {
@@ -107,14 +101,6 @@ func (h *Hub) sendMessage(c *client.Client, message []byte) {
 		close(c.Incoming)
 		h.removeClient(c)
 	}
-}
-
-func (h *Hub) players() []interfaces.Player {
-	var players []interfaces.Player
-	for _, c := range h.clients {
-		players = append(players, c.Pl)
-	}
-	return players
 }
 
 func (h *Hub) removeClient(c *client.Client) {

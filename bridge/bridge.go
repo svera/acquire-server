@@ -9,6 +9,7 @@ import (
 	"github.com/svera/acquire/corporation"
 	"github.com/svera/acquire/fsm"
 	"github.com/svera/acquire/interfaces"
+	"github.com/svera/acquire/player"
 	"github.com/svera/acquire/tile"
 	"github.com/svera/acquire/tileset"
 	"strconv"
@@ -16,7 +17,8 @@ import (
 )
 
 type AcquireBridge struct {
-	game *acquire.Game
+	game    *acquire.Game
+	players []interfaces.Player
 }
 
 func (b *AcquireBridge) ParseMessage(m *client.Message) error {
@@ -197,14 +199,14 @@ func coordsToTile(tl string) (interfaces.Tile, error) {
 	return tile.New(number, letter), nil
 }
 
-func (b *AcquireBridge) CurrentPlayer() interfaces.Player {
-	return b.game.CurrentPlayer()
+func (b *AcquireBridge) CurrentPlayerNumber() int {
+	return b.game.CurrentPlayerNumber()
 }
 
-func (b *AcquireBridge) NewGame(players []interfaces.Player) {
+func (b *AcquireBridge) NewGame() {
 	b.game, _ = acquire.New(
 		board.New(),
-		players,
+		b.players,
 		createCorporations(),
 		tileset.New(),
 		&fsm.PlayTile{},
@@ -235,7 +237,8 @@ func createCorporations() [7]interfaces.Corporation {
 	return corps
 }
 
-func (b *AcquireBridge) Status(pl interfaces.Player) *StatusMessage {
+func (b *AcquireBridge) Status(n int) *StatusMessage {
+	pl := b.players[n]
 	return &StatusMessage{
 		Type:          "upd",
 		Board:         b.boardOwnership(),
@@ -246,4 +249,8 @@ func (b *AcquireBridge) Status(pl interfaces.Player) *StatusMessage {
 		TiedCorps:     corpNames(b.game.TiedCorps()),
 		Shares:        b.mapShares(pl),
 	}
+}
+
+func (b *AcquireBridge) AddPlayer() {
+	b.players = append(b.players, player.New())
 }

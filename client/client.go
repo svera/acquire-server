@@ -3,7 +3,6 @@ package client
 import (
 	"encoding/json"
 	"github.com/gorilla/websocket"
-	"github.com/svera/acquire/interfaces"
 	"net/http"
 	"time"
 )
@@ -16,12 +15,12 @@ const (
 )
 
 type Client struct {
-	Pl       interfaces.Player
+	Name     string
 	ws       *websocket.Conn
 	Incoming chan []byte // Channel storing incoming messages
 }
 
-func New(w http.ResponseWriter, r *http.Request, pl interfaces.Player) (*Client, error) {
+func New(w http.ResponseWriter, r *http.Request) (*Client, error) {
 	var upgrader = websocket.Upgrader{
 		ReadBufferSize:  maxMessageSize,
 		WriteBufferSize: maxMessageSize,
@@ -33,7 +32,6 @@ func New(w http.ResponseWriter, r *http.Request, pl interfaces.Player) (*Client,
 	}
 
 	return &Client{
-		Pl:       pl,
 		Incoming: make(chan []byte, maxMessageSize),
 		ws:       ws,
 	}, nil

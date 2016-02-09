@@ -4,7 +4,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/svera/acquire-server/client"
 	"github.com/svera/acquire-server/hub"
-	"github.com/svera/acquire/player"
 	"html/template"
 	"log"
 	"net/http"
@@ -27,9 +26,7 @@ func join(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newPlayer := player.New()
-
-	c, err := client.New(w, r, newPlayer)
+	c, err := client.New(w, r)
 	if err != nil {
 		log.Println(err)
 		return

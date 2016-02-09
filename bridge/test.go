@@ -9,7 +9,7 @@ import (
 	"github.com/svera/acquire/tileset"
 )
 
-func (b *AcquireBridge) NewGameMergeTest(players []interfaces.Player) {
+func (b *AcquireBridge) NewGameMergeTest() {
 	bd := board.New()
 	ts := tileset.NewStub()
 	corps := createCorporations()
@@ -35,19 +35,19 @@ func (b *AcquireBridge) NewGameMergeTest(players []interfaces.Player) {
 
 	b.game, _ = acquire.New(
 		bd,
-		players,
+		b.players,
 		corps,
 		tileset.New(),
 		&fsm.PlayTile{},
 	)
 
-	players[0].DiscardTile(players[0].Tiles()[0])
-	players[0].PickTile(tile.New(7, "E"))
-	players[0].AddShares(corps[0], 5)
-	players[1].AddShares(corps[0], 5)
+	b.players[0].DiscardTile(b.players[0].Tiles()[0])
+	b.players[0].PickTile(tile.New(7, "E"))
+	b.players[0].AddShares(corps[0], 5)
+	b.players[1].AddShares(corps[0], 5)
 }
 
-func (b *AcquireBridge) NewGameTiedMergeTest(players []interfaces.Player) {
+func (b *AcquireBridge) NewGameTiedMergeTest() {
 	bd := board.New()
 	ts := tileset.NewStub()
 	corps := createCorporations()
@@ -75,16 +75,16 @@ func (b *AcquireBridge) NewGameTiedMergeTest(players []interfaces.Player) {
 
 	b.game, _ = acquire.New(
 		bd,
-		players,
+		b.players,
 		corps,
 		tileset.New(),
 		&fsm.PlayTile{},
 	)
 
-	players[0].DiscardTile(players[0].Tiles()[0])
-	players[0].PickTile(tile.New(7, "E"))
-	players[0].AddShares(corps[0], 5)
-	players[1].AddShares(corps[0], 5)
-	players[0].AddShares(corps[1], 3)
-	players[1].AddShares(corps[1], 3)
+	b.players[0].DiscardTile(b.players[0].Tiles()[0])
+	b.players[0].PickTile(tile.New(7, "E"))
+	b.players[0].AddShares(corps[0], 5)
+	b.players[1].AddShares(corps[0], 5)
+	b.players[0].AddShares(corps[1], 3)
+	b.players[1].AddShares(corps[1], 3)
 }
