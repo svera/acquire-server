@@ -9,7 +9,7 @@ import (
 	"github.com/svera/acquire/tileset"
 )
 
-func (b *Bridge) NewGameMergeTest(players []interfaces.Player) {
+func (b *AcquireBridge) NewGameMergeTest(players []interfaces.Player) {
 	bd := board.New()
 	ts := tileset.NewStub()
 	corps := createCorporations()
@@ -47,7 +47,7 @@ func (b *Bridge) NewGameMergeTest(players []interfaces.Player) {
 	players[1].AddShares(corps[0], 5)
 }
 
-func (b *Bridge) NewGameTiedMergeTest(players []interfaces.Player) {
+func (b *AcquireBridge) NewGameTiedMergeTest(players []interfaces.Player) {
 	bd := board.New()
 	ts := tileset.NewStub()
 	corps := createCorporations()

@@ -20,7 +20,7 @@ type Hub struct {
 	// Unregister requests
 	Unregister chan *client.Client
 
-	bridge *bridge.Bridge
+	bridge *bridge.AcquireBridge
 }
 
 func New() *Hub {
@@ -29,7 +29,7 @@ func New() *Hub {
 		Register:   make(chan *client.Client),
 		Unregister: make(chan *client.Client),
 		clients:    []*client.Client{},
-		bridge:     &bridge.Bridge{},
+		bridge:     &bridge.AcquireBridge{},
 	}
 }
 

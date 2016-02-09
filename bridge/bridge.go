@@ -15,11 +15,11 @@ import (
 	"strings"
 )
 
-type Bridge struct {
+type AcquireBridge struct {
 	game *acquire.Game
 }
 
-func (b *Bridge) ParseMessage(m *client.Message) error {
+func (b *AcquireBridge) ParseMessage(m *client.Message) error {
 	var err error
 
 	switch m.Content.Type {
@@ -56,7 +56,7 @@ func (b *Bridge) ParseMessage(m *client.Message) error {
 	return err
 }
 
-func (b *Bridge) playTile(params client.PlayTileMessageParams) error {
+func (b *AcquireBridge) playTile(params client.PlayTileMessageParams) error {
 	var err error
 
 	if tl, err := coordsToTile(params.Tile); err == nil {
@@ -67,7 +67,7 @@ func (b *Bridge) playTile(params client.PlayTileMessageParams) error {
 	return err
 }
 
-func (b *Bridge) foundCorporation(params client.NewCorpMessageParams) error {
+func (b *AcquireBridge) foundCorporation(params client.NewCorpMessageParams) error {
 	var err error
 
 	if corp, err := b.findCorpByName(params.Corporation); err == nil {
@@ -78,7 +78,7 @@ func (b *Bridge) foundCorporation(params client.NewCorpMessageParams) error {
 	return err
 }
 
-func (b *Bridge) buyStock(params client.BuyMessageParams) error {
+func (b *AcquireBridge) buyStock(params client.BuyMessageParams) error {
 	var err error
 	buy := map[interfaces.Corporation]int{}
 
@@ -96,7 +96,7 @@ func (b *Bridge) buyStock(params client.BuyMessageParams) error {
 	return err
 }
 
-func (b *Bridge) sellTrade(params client.SellTradeMessageParams) error {
+func (b *AcquireBridge) sellTrade(params client.SellTradeMessageParams) error {
 	var err error
 	sell := map[interfaces.Corporation]int{}
 	trade := map[interfaces.Corporation]int{}
@@ -116,7 +116,7 @@ func (b *Bridge) sellTrade(params client.SellTradeMessageParams) error {
 	return err
 }
 
-func (b *Bridge) untieMerge(params client.UntieMergeMessageParams) error {
+func (b *AcquireBridge) untieMerge(params client.UntieMergeMessageParams) error {
 	var err error
 
 	if corp, err := b.findCorpByName(params.Corporation); err == nil {
@@ -127,7 +127,7 @@ func (b *Bridge) untieMerge(params client.UntieMergeMessageParams) error {
 	return err
 }
 
-func (b *Bridge) claimEndGame() error {
+func (b *AcquireBridge) claimEndGame() error {
 	var err error
 
 	if err := b.game.ClaimEndGame(); err == nil {
@@ -136,7 +136,7 @@ func (b *Bridge) claimEndGame() error {
 	return err
 }
 
-func (b *Bridge) tilesToSlice(pl interfaces.Player) []string {
+func (b *AcquireBridge) tilesToSlice(pl interfaces.Player) []string {
 	var hnd []string
 	for _, tl := range pl.Tiles() {
 		hnd = append(hnd, strconv.Itoa(tl.Number())+tl.Letter())
@@ -152,7 +152,7 @@ func corpNames(corps []interfaces.Corporation) []string {
 	return names
 }
 
-func (b *Bridge) mapShares(pl interfaces.Player) map[string]int {
+func (b *AcquireBridge) mapShares(pl interfaces.Player) map[string]int {
 	corps := map[string]int{}
 	for _, c := range b.game.DefunctCorporations() {
 		if amount := pl.Shares(c); amount > 0 {
@@ -162,7 +162,7 @@ func (b *Bridge) mapShares(pl interfaces.Player) map[string]int {
 	return corps
 }
 
-func (b *Bridge) findCorpByName(name string) (interfaces.Corporation, error) {
+func (b *AcquireBridge) findCorpByName(name string) (interfaces.Corporation, error) {
 	for _, corp := range b.game.Corporations() {
 		if strings.ToLower(corp.Name()) == name {
 			return corp, nil
@@ -171,7 +171,7 @@ func (b *Bridge) findCorpByName(name string) (interfaces.Corporation, error) {
 	return &corporation.Corporation{}, errors.New("corporation not found")
 }
 
-func (b *Bridge) boardOwnership() map[string]string {
+func (b *AcquireBridge) boardOwnership() map[string]string {
 	cells := make(map[string]string)
 	var letters = [9]string{"A", "B", "C", "D", "E", "F", "G", "H", "I"}
 	for number := 1; number < 13; number++ {
@@ -197,11 +197,11 @@ func coordsToTile(tl string) (interfaces.Tile, error) {
 	return tile.New(number, letter), nil
 }
 
-func (b *Bridge) CurrentPlayer() interfaces.Player {
+func (b *AcquireBridge) CurrentPlayer() interfaces.Player {
 	return b.game.CurrentPlayer()
 }
 
-func (b *Bridge) NewGame(players []interfaces.Player) {
+func (b *AcquireBridge) NewGame(players []interfaces.Player) {
 	b.game, _ = acquire.New(
 		board.New(),
 		players,
@@ -235,7 +235,7 @@ func createCorporations() [7]interfaces.Corporation {
 	return corps
 }
 
-func (b *Bridge) Status(pl interfaces.Player) *StatusMessage {
+func (b *AcquireBridge) Status(pl interfaces.Player) *StatusMessage {
 	return &StatusMessage{
 		Type:          "upd",
 		Board:         b.boardOwnership(),
