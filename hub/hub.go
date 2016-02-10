@@ -1,9 +1,8 @@
 package hub
 
 import (
-	"encoding/json"
-	"github.com/svera/acquire-server/bridge"
 	"github.com/svera/acquire-server/client"
+	"github.com/svera/acquire-server/interfaces"
 )
 
 type Hub struct {
@@ -19,16 +18,16 @@ type Hub struct {
 	// Unregister requests
 	Unregister chan *client.Client
 
-	bridge *bridge.AcquireBridge
+	gameBridge interfaces.Bridge
 }
 
-func New() *Hub {
+func New(b interfaces.Bridge) *Hub {
 	return &Hub{
 		Messages:   make(chan *client.Message),
 		Register:   make(chan *client.Client),
 		Unregister: make(chan *client.Client),
 		clients:    []*client.Client{},
-		bridge:     &bridge.AcquireBridge{},
+		gameBridge: b,
 	}
 }
 
@@ -37,9 +36,9 @@ func (h *Hub) Run() {
 		select {
 		case c := <-h.Register:
 			h.clients = append(h.clients, c)
-			h.bridge.AddPlayer()
+			h.gameBridge.AddPlayer()
 			if len(h.clients) == 3 {
-				h.bridge.NewGameMergeTest()
+				h.gameBridge.NewGameMergeTest()
 				h.broadcastUpdate()
 			}
 			break
@@ -58,14 +57,9 @@ func (h *Hub) Run() {
 				break
 			}
 
-			err := h.bridge.ParseMessage(m)
+			response, err := h.gameBridge.ParseMessage(m.Content.Type, m.Content.Params)
 
 			if err != nil {
-				res := &bridge.ErrorMessage{
-					Type:    "err",
-					Content: err.Error(),
-				}
-				response, _ := json.Marshal(res)
 				h.sendMessage(m.Author, response)
 			} else {
 				h.broadcastUpdate()
@@ -76,19 +70,13 @@ func (h *Hub) Run() {
 
 func (h *Hub) broadcastUpdate() {
 	for n, c := range h.clients {
-		msg := h.bridge.Status(n)
-		if c == h.currentPlayerClient() {
-			msg.Enabled = true
-		} else {
-			msg.Enabled = false
-		}
-		response, _ := json.Marshal(msg)
+		response := h.gameBridge.Status(n)
 		h.sendMessage(c, response)
 	}
 }
 
 func (h *Hub) currentPlayerClient() *client.Client {
-	return h.clients[h.bridge.CurrentPlayerNumber()]
+	return h.clients[h.gameBridge.CurrentPlayerNumber()]
 }
 
 func (h *Hub) sendMessage(c *client.Client, message []byte) {

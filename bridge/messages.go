@@ -1,11 +1,36 @@
 package bridge
 
-type ErrorMessage struct {
+type playTileMessageParams struct {
+	Tile string `json:"til"`
+}
+
+type newCorpMessageParams struct {
+	Corporation string `json:"cor"`
+}
+
+type buyMessageParams struct {
+	Corporations map[string]int `json:"cor"`
+}
+
+type sellTrade struct {
+	Sell  int `json:"sel"`
+	Trade int `json:"tra"`
+}
+
+type sellTradeMessageParams struct {
+	Corporations map[string]sellTrade `json:"cor"`
+}
+
+type untieMergeMessageParams struct {
+	Corporation string `json:"cor"`
+}
+
+type errorMessage struct {
 	Type    string `json:"typ"`
 	Content string `json:"cnt"`
 }
 
-type StatusMessage struct {
+type statusMessage struct {
 	Type          string            `json:"typ"`
 	Board         map[string]string `json:"brd"`
 	Prices        map[string]int    `json:"prc"`

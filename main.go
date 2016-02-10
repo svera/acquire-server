@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/gorilla/mux"
+	"github.com/svera/acquire-server/bridge"
 	"github.com/svera/acquire-server/client"
 	"github.com/svera/acquire-server/hub"
 	"html/template"
@@ -62,7 +63,7 @@ func create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id := generateId()
-	h := hub.New()
+	h := hub.New(&bridge.AcquireBridge{})
 	hubs[id] = h
 
 	go hubs[id].Run()
