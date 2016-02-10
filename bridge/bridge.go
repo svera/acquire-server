@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/svera/acquire"
-	"github.com/svera/acquire-server/client"
 	"github.com/svera/acquire/board"
 	"github.com/svera/acquire/corporation"
 	"github.com/svera/acquire/fsm"
 	"github.com/svera/acquire/interfaces"
+	"github.com/svera/acquire/player"
 	"github.com/svera/acquire/tile"
 	"github.com/svera/acquire/tileset"
 	"strconv"
@@ -16,47 +16,57 @@ import (
 )
 
 type AcquireBridge struct {
-	game *acquire.Game
+	game    *acquire.Game
+	players []interfaces.Player
 }
 
-func (b *AcquireBridge) ParseMessage(m *client.Message) error {
+func (b *AcquireBridge) ParseMessage(t string, params json.RawMessage) ([]byte, error) {
 	var err error
+	var response []byte
 
-	switch m.Content.Type {
+	switch t {
 	case "ply":
-		var params client.PlayTileMessageParams
-		if err = json.Unmarshal(m.Content.Params, &params); err == nil {
-			err = b.playTile(params)
+		var parsed playTileMessageParams
+		if err = json.Unmarshal(params, &parsed); err == nil {
+			err = b.playTile(parsed)
 		}
 	case "ncp":
-		var params client.NewCorpMessageParams
-		if err = json.Unmarshal(m.Content.Params, &params); err == nil {
-			err = b.foundCorporation(params)
+		var parsed newCorpMessageParams
+		if err = json.Unmarshal(params, &parsed); err == nil {
+			err = b.foundCorporation(parsed)
 		}
 	case "buy":
-		var params client.BuyMessageParams
-		if err = json.Unmarshal(m.Content.Params, &params); err == nil {
-			err = b.buyStock(params)
+		var parsed buyMessageParams
+		if err = json.Unmarshal(params, &parsed); err == nil {
+			err = b.buyStock(parsed)
 		}
 	case "sel":
-		var params client.SellTradeMessageParams
-		if err = json.Unmarshal(m.Content.Params, &params); err == nil {
-			err = b.sellTrade(params)
+		var parsed sellTradeMessageParams
+		if err = json.Unmarshal(params, &parsed); err == nil {
+			err = b.sellTrade(parsed)
 		}
 	case "unt":
-		var params client.UntieMergeMessageParams
-		if err = json.Unmarshal(m.Content.Params, &params); err == nil {
-			err = b.untieMerge(params)
+		var parsed untieMergeMessageParams
+		if err = json.Unmarshal(params, &parsed); err == nil {
+			err = b.untieMerge(parsed)
 		}
 	case "end":
 		err = b.claimEndGame()
 	default:
 		err = errors.New("Message parsing error")
 	}
-	return err
+
+	if err != nil {
+		res := &errorMessage{
+			Type:    "err",
+			Content: err.Error(),
+		}
+		response, _ = json.Marshal(res)
+	}
+	return response, err
 }
 
-func (b *AcquireBridge) playTile(params client.PlayTileMessageParams) error {
+func (b *AcquireBridge) playTile(params playTileMessageParams) error {
 	var err error
 
 	if tl, err := coordsToTile(params.Tile); err == nil {
@@ -67,7 +77,7 @@ func (b *AcquireBridge) playTile(params client.PlayTileMessageParams) error {
 	return err
 }
 
-func (b *AcquireBridge) foundCorporation(params client.NewCorpMessageParams) error {
+func (b *AcquireBridge) foundCorporation(params newCorpMessageParams) error {
 	var err error
 
 	if corp, err := b.findCorpByName(params.Corporation); err == nil {
@@ -78,7 +88,7 @@ func (b *AcquireBridge) foundCorporation(params client.NewCorpMessageParams) err
 	return err
 }
 
-func (b *AcquireBridge) buyStock(params client.BuyMessageParams) error {
+func (b *AcquireBridge) buyStock(params buyMessageParams) error {
 	var err error
 	buy := map[interfaces.Corporation]int{}
 
@@ -96,7 +106,7 @@ func (b *AcquireBridge) buyStock(params client.BuyMessageParams) error {
 	return err
 }
 
-func (b *AcquireBridge) sellTrade(params client.SellTradeMessageParams) error {
+func (b *AcquireBridge) sellTrade(params sellTradeMessageParams) error {
 	var err error
 	sell := map[interfaces.Corporation]int{}
 	trade := map[interfaces.Corporation]int{}
@@ -116,7 +126,7 @@ func (b *AcquireBridge) sellTrade(params client.SellTradeMessageParams) error {
 	return err
 }
 
-func (b *AcquireBridge) untieMerge(params client.UntieMergeMessageParams) error {
+func (b *AcquireBridge) untieMerge(params untieMergeMessageParams) error {
 	var err error
 
 	if corp, err := b.findCorpByName(params.Corporation); err == nil {
@@ -197,14 +207,14 @@ func coordsToTile(tl string) (interfaces.Tile, error) {
 	return tile.New(number, letter), nil
 }
 
-func (b *AcquireBridge) CurrentPlayer() interfaces.Player {
-	return b.game.CurrentPlayer()
+func (b *AcquireBridge) CurrentPlayerNumber() int {
+	return b.game.CurrentPlayerNumber()
 }
 
-func (b *AcquireBridge) NewGame(players []interfaces.Player) {
+func (b *AcquireBridge) NewGame() {
 	b.game, _ = acquire.New(
 		board.New(),
-		players,
+		b.players,
 		createCorporations(),
 		tileset.New(),
 		&fsm.PlayTile{},
@@ -235,8 +245,9 @@ func createCorporations() [7]interfaces.Corporation {
 	return corps
 }
 
-func (b *AcquireBridge) Status(pl interfaces.Player) *StatusMessage {
-	return &StatusMessage{
+func (b *AcquireBridge) Status(n int) []byte {
+	pl := b.players[n]
+	msg := statusMessage{
 		Type:          "upd",
 		Board:         b.boardOwnership(),
 		Hand:          b.tilesToSlice(pl),
@@ -245,5 +256,15 @@ func (b *AcquireBridge) Status(pl interfaces.Player) *StatusMessage {
 		ActiveCorps:   corpNames(b.game.ActiveCorporations()),
 		TiedCorps:     corpNames(b.game.TiedCorps()),
 		Shares:        b.mapShares(pl),
+		Enabled:       false,
 	}
+	if b.CurrentPlayerNumber() == n {
+		msg.Enabled = true
+	}
+	response, _ := json.Marshal(msg)
+	return response
+}
+
+func (b *AcquireBridge) AddPlayer() {
+	b.players = append(b.players, player.New())
 }

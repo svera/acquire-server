@@ -1,10 +1,8 @@
 package hub
 
 import (
-	"encoding/json"
-	"github.com/svera/acquire-server/bridge"
 	"github.com/svera/acquire-server/client"
-	"github.com/svera/acquire/interfaces"
+	"github.com/svera/acquire-server/interfaces"
 )
 
 type Hub struct {
@@ -20,16 +18,16 @@ type Hub struct {
 	// Unregister requests
 	Unregister chan *client.Client
 
-	bridge *bridge.AcquireBridge
+	gameBridge interfaces.Bridge
 }
 
-func New() *Hub {
+func New(b interfaces.Bridge) *Hub {
 	return &Hub{
 		Messages:   make(chan *client.Message),
 		Register:   make(chan *client.Client),
 		Unregister: make(chan *client.Client),
 		clients:    []*client.Client{},
-		bridge:     &bridge.AcquireBridge{},
+		gameBridge: b,
 	}
 }
 
@@ -38,8 +36,9 @@ func (h *Hub) Run() {
 		select {
 		case c := <-h.Register:
 			h.clients = append(h.clients, c)
+			h.gameBridge.AddPlayer()
 			if len(h.clients) == 3 {
-				h.bridge.NewGameMergeTest(h.players())
+				h.gameBridge.NewGameMergeTest()
 				h.broadcastUpdate()
 			}
 			break
@@ -54,18 +53,13 @@ func (h *Hub) Run() {
 			break
 
 		case m := <-h.Messages:
-			if m.Author.Pl != h.bridge.CurrentPlayer() {
+			if m.Author != h.currentPlayerClient() {
 				break
 			}
 
-			err := h.bridge.ParseMessage(m)
+			response, err := h.gameBridge.ParseMessage(m.Content.Type, m.Content.Params)
 
 			if err != nil {
-				res := &bridge.ErrorMessage{
-					Type:    "err",
-					Content: err.Error(),
-				}
-				response, _ := json.Marshal(res)
 				h.sendMessage(m.Author, response)
 			} else {
 				h.broadcastUpdate()
@@ -75,26 +69,14 @@ func (h *Hub) Run() {
 }
 
 func (h *Hub) broadcastUpdate() {
-	for _, c := range h.clients {
-		msg := h.bridge.Status(c.Pl)
-		if c.Pl == h.bridge.CurrentPlayer() {
-			msg.Enabled = true
-		} else {
-			msg.Enabled = false
-		}
-		response, _ := json.Marshal(msg)
+	for n, c := range h.clients {
+		response := h.gameBridge.Status(n)
 		h.sendMessage(c, response)
 	}
 }
 
-func (h *Hub) getCurrentPlayerClient() *client.Client {
-	cl := &client.Client{}
-	for _, cl = range h.clients {
-		if cl.Pl == h.bridge.CurrentPlayer() {
-			break
-		}
-	}
-	return cl
+func (h *Hub) currentPlayerClient() *client.Client {
+	return h.clients[h.gameBridge.CurrentPlayerNumber()]
 }
 
 func (h *Hub) sendMessage(c *client.Client, message []byte) {
@@ -107,14 +89,6 @@ func (h *Hub) sendMessage(c *client.Client, message []byte) {
 		close(c.Incoming)
 		h.removeClient(c)
 	}
-}
-
-func (h *Hub) players() []interfaces.Player {
-	var players []interfaces.Player
-	for _, c := range h.clients {
-		players = append(players, c.Pl)
-	}
-	return players
 }
 
 func (h *Hub) removeClient(c *client.Client) {

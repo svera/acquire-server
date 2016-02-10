@@ -20,7 +20,7 @@ $(function() {
                 console.log(msg.cnt);
                 break;
             case "upd":
-                //console.log(msg);
+                console.log(msg);
                 updateBoard(msg.brd);
                 if (msg.ebl) {
                     playerActive = true;
