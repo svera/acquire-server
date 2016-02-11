@@ -36,10 +36,8 @@ func (h *Hub) Run() {
 		select {
 		case c := <-h.Register:
 			h.clients = append(h.clients, c)
-			h.gameBridge.AddPlayer()
-			if len(h.clients) == 3 {
-				h.gameBridge.NewGameMergeTest()
-				h.broadcastUpdate()
+			if err := h.gameBridge.AddPlayer(); err != nil {
+				break
 			}
 			break
 

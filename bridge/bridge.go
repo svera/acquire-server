@@ -20,40 +20,62 @@ type AcquireBridge struct {
 	players []interfaces.Player
 }
 
+const (
+	// GameFull is an error returned when a game already has the maximum number of players
+	GameFull           = "wrong_corporation_class"
+	GameNotStarted     = "game_not_started"
+	GameAlreadyStarted = "game_already_started"
+)
+
 func (b *AcquireBridge) ParseMessage(t string, params json.RawMessage) ([]byte, error) {
 	var err error
 	var response []byte
 
-	switch t {
-	case "ply":
-		var parsed playTileMessageParams
-		if err = json.Unmarshal(params, &parsed); err == nil {
-			err = b.playTile(parsed)
+	if t == "ini" {
+		if b.gameStarted() {
+			err = errors.New(GameAlreadyStarted)
 		}
-	case "ncp":
-		var parsed newCorpMessageParams
-		if err = json.Unmarshal(params, &parsed); err == nil {
-			err = b.foundCorporation(parsed)
+		b.game, err = acquire.New(
+			board.New(),
+			b.players,
+			createCorporations(),
+			tileset.New(),
+			&fsm.PlayTile{},
+		)
+	} else if !b.gameStarted() {
+		err = errors.New(GameNotStarted)
+	} else {
+		switch t {
+		case "ply":
+			var parsed playTileMessageParams
+			if err = json.Unmarshal(params, &parsed); err == nil {
+				err = b.playTile(parsed)
+			}
+		case "ncp":
+			var parsed newCorpMessageParams
+			if err = json.Unmarshal(params, &parsed); err == nil {
+				err = b.foundCorporation(parsed)
+			}
+		case "buy":
+			var parsed buyMessageParams
+			if err = json.Unmarshal(params, &parsed); err == nil {
+				err = b.buyStock(parsed)
+			}
+		case "sel":
+			var parsed sellTradeMessageParams
+			if err = json.Unmarshal(params, &parsed); err == nil {
+				err = b.sellTrade(parsed)
+			}
+		case "unt":
+			var parsed untieMergeMessageParams
+			if err = json.Unmarshal(params, &parsed); err == nil {
+				err = b.untieMerge(parsed)
+			}
+		case "end":
+			err = b.claimEndGame()
+		default:
+			err = errors.New("Message parsing error")
 		}
-	case "buy":
-		var parsed buyMessageParams
-		if err = json.Unmarshal(params, &parsed); err == nil {
-			err = b.buyStock(parsed)
-		}
-	case "sel":
-		var parsed sellTradeMessageParams
-		if err = json.Unmarshal(params, &parsed); err == nil {
-			err = b.sellTrade(parsed)
-		}
-	case "unt":
-		var parsed untieMergeMessageParams
-		if err = json.Unmarshal(params, &parsed); err == nil {
-			err = b.untieMerge(parsed)
-		}
-	case "end":
-		err = b.claimEndGame()
-	default:
-		err = errors.New("Message parsing error")
 	}
 
 	if err != nil {
@@ -90,6 +112,7 @@ func (b *AcquireBridge) foundCorporation(params newCorpMessageParams) error {
 
 func (b *AcquireBridge) buyStock(params buyMessageParams) error {
 	var err error
+
 	buy := map[interfaces.Corporation]int{}
 
 	for corpName, amount := range params.Corporations {
@@ -108,6 +131,7 @@ func (b *AcquireBridge) buyStock(params buyMessageParams) error {
 
 func (b *AcquireBridge) sellTrade(params sellTradeMessageParams) error {
 	var err error
+
 	sell := map[interfaces.Corporation]int{}
 	trade := map[interfaces.Corporation]int{}
 
@@ -208,17 +232,17 @@ func coordsToTile(tl string) (interfaces.Tile, error) {
 }
 
 func (b *AcquireBridge) CurrentPlayerNumber() int {
+	if !b.gameStarted() {
+		return 0
+	}
 	return b.game.CurrentPlayerNumber()
 }
 
-func (b *AcquireBridge) NewGame() {
-	b.game, _ = acquire.New(
-		board.New(),
-		b.players,
-		createCorporations(),
-		tileset.New(),
-		&fsm.PlayTile{},
-	)
+func (b *AcquireBridge) gameStarted() bool {
+	if b.game == nil {
+		return false
+	}
+	return true
 }
 
 func createCorporations() [7]interfaces.Corporation {
@@ -265,6 +289,10 @@ func (b *AcquireBridge) Status(n int) []byte {
 	return response
 }
 
-func (b *AcquireBridge) AddPlayer() {
+func (b *AcquireBridge) AddPlayer() error {
+	if len(b.players) == 6 {
+		return errors.New(GameFull)
+	}
 	b.players = append(b.players, player.New())
+	return nil
 }
