@@ -22,16 +22,19 @@ type AcquireBridge struct {
 
 const (
 	// GameFull is an error returned when a game already has the maximum number of players
-	GameFull       = "wrong_corporation_class"
-	GameNotStarted = "game_not_started"
+	GameFull           = "wrong_corporation_class"
+	GameNotStarted     = "game_not_started"
+	GameAlreadyStarted = "game_already_started"
 )
 
 func (b *AcquireBridge) ParseMessage(t string, params json.RawMessage) ([]byte, error) {
 	var err error
 	var response []byte
 
-	switch t {
-	case "ini":
+	if t == "ini" {
+		if b.gameStarted() {
+			err = errors.New(GameAlreadyStarted)
+		}
 		b.game, err = acquire.New(
 			board.New(),
 			b.players,
@@ -39,37 +42,40 @@ func (b *AcquireBridge) ParseMessage(t string, params json.RawMessage) ([]byte, 
 			tileset.New(),
 			&fsm.PlayTile{},
 		)
-
-		//b.NewGameMergeTest()
-	case "ply":
-		var parsed playTileMessageParams
-		if err = json.Unmarshal(params, &parsed); err == nil {
-			err = b.playTile(parsed)
+	} else if !b.gameStarted() {
+		err = errors.New(GameNotStarted)
+	} else {
+		switch t {
+		case "ply":
+			var parsed playTileMessageParams
+			if err = json.Unmarshal(params, &parsed); err == nil {
+				err = b.playTile(parsed)
+			}
+		case "ncp":
+			var parsed newCorpMessageParams
+			if err = json.Unmarshal(params, &parsed); err == nil {
+				err = b.foundCorporation(parsed)
+			}
+		case "buy":
+			var parsed buyMessageParams
+			if err = json.Unmarshal(params, &parsed); err == nil {
+				err = b.buyStock(parsed)
+			}
+		case "sel":
+			var parsed sellTradeMessageParams
+			if err = json.Unmarshal(params, &parsed); err == nil {
+				err = b.sellTrade(parsed)
+			}
+		case "unt":
+			var parsed untieMergeMessageParams
+			if err = json.Unmarshal(params, &parsed); err == nil {
+				err = b.untieMerge(parsed)
+			}
+		case "end":
+			err = b.claimEndGame()
+		default:
+			err = errors.New("Message parsing error")
 		}
-	case "ncp":
-		var parsed newCorpMessageParams
-		if err = json.Unmarshal(params, &parsed); err == nil {
-			err = b.foundCorporation(parsed)
-		}
-	case "buy":
-		var parsed buyMessageParams
-		if err = json.Unmarshal(params, &parsed); err == nil {
-			err = b.buyStock(parsed)
-		}
-	case "sel":
-		var parsed sellTradeMessageParams
-		if err = json.Unmarshal(params, &parsed); err == nil {
-			err = b.sellTrade(parsed)
-		}
-	case "unt":
-		var parsed untieMergeMessageParams
-		if err = json.Unmarshal(params, &parsed); err == nil {
-			err = b.untieMerge(parsed)
-		}
-	case "end":
-		err = b.claimEndGame()
-	default:
-		err = errors.New("Message parsing error")
 	}
 
 	if err != nil {
@@ -85,10 +91,6 @@ func (b *AcquireBridge) ParseMessage(t string, params json.RawMessage) ([]byte, 
 func (b *AcquireBridge) playTile(params playTileMessageParams) error {
 	var err error
 
-	if !b.gameStarted() {
-		return errors.New(GameNotStarted)
-	}
-
 	if tl, err := coordsToTile(params.Tile); err == nil {
 		if err := b.game.PlayTile(tl); err == nil {
 			return nil
@@ -100,10 +102,6 @@ func (b *AcquireBridge) playTile(params playTileMessageParams) error {
 func (b *AcquireBridge) foundCorporation(params newCorpMessageParams) error {
 	var err error
 
-	if !b.gameStarted() {
-		return errors.New(GameNotStarted)
-	}
-
 	if corp, err := b.findCorpByName(params.Corporation); err == nil {
 		if err := b.game.FoundCorporation(corp); err == nil {
 			return nil
@@ -114,10 +112,6 @@ func (b *AcquireBridge) foundCorporation(params newCorpMessageParams) error {
 
 func (b *AcquireBridge) buyStock(params buyMessageParams) error {
 	var err error
-
-	if !b.gameStarted() {
-		return errors.New(GameNotStarted)
-	}
 
 	buy := map[interfaces.Corporation]int{}
 
@@ -137,10 +131,6 @@ func (b *AcquireBridge) buyStock(params buyMessageParams) error {
 
 func (b *AcquireBridge) sellTrade(params sellTradeMessageParams) error {
 	var err error
-
-	if !b.gameStarted() {
-		return errors.New(GameNotStarted)
-	}
 
 	sell := map[interfaces.Corporation]int{}
 	trade := map[interfaces.Corporation]int{}
@@ -163,10 +153,6 @@ func (b *AcquireBridge) sellTrade(params sellTradeMessageParams) error {
 func (b *AcquireBridge) untieMerge(params untieMergeMessageParams) error {
 	var err error
 
-	if !b.gameStarted() {
-		return errors.New(GameNotStarted)
-	}
-
 	if corp, err := b.findCorpByName(params.Corporation); err == nil {
 		if err := b.game.UntieMerge(corp); err == nil {
 			return nil
@@ -177,10 +163,6 @@ func (b *AcquireBridge) untieMerge(params untieMergeMessageParams) error {
 
 func (b *AcquireBridge) claimEndGame() error {
 	var err error
-
-	if !b.gameStarted() {
-		return errors.New(GameNotStarted)
-	}
 
 	if err := b.game.ClaimEndGame(); err == nil {
 		return nil
