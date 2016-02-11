@@ -22,6 +22,8 @@ $(function() {
             case "upd":
                 console.log(msg);
                 updateBoard(msg.brd);
+                $('#gamePanel').show();
+                $('#lobby').hide();                
                 if (msg.ebl) {
                     playerActive = true;
                     if (msg.hasOwnProperty("sta")) {
@@ -48,6 +50,13 @@ $(function() {
                 break;
         }
     };
+
+    $("#lobby").on("click", '#startGameButton', function() {
+        message = {"typ": "ini", "par": {}}
+        conn.send(
+            JSON.stringify(message)
+        );
+    });
 
     playerControls.on("click", '#playButton', function() {
         tl = $('input[name=tiles]:checked')

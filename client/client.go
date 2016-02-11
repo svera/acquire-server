@@ -18,6 +18,7 @@ type Client struct {
 	Name     string
 	ws       *websocket.Conn
 	Incoming chan []byte // Channel storing incoming messages
+	Owner    bool
 }
 
 func New(w http.ResponseWriter, r *http.Request) (*Client, error) {
