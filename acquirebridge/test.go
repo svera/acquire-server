@@ -1,4 +1,4 @@
-package bridge
+package acquirebridge
 
 import (
 	"github.com/svera/acquire"
@@ -9,10 +9,10 @@ import (
 	"github.com/svera/acquire/tileset"
 )
 
-func (b *AcquireBridge) NewGameMergeTest() {
+func (b *acquireBridge) NewGameMergeTest() {
 	bd := board.New()
 	ts := tileset.NewStub()
-	corps := createCorporations()
+	b.corporations = createCorporations()
 	tiles := []interfaces.Tile{
 		tile.New(5, "E"),
 		tile.New(6, "E"),
@@ -28,29 +28,29 @@ func (b *AcquireBridge) NewGameMergeTest() {
 	ts.DiscardTile(tiles2[0])
 	ts.DiscardTile(tiles2[1])
 	ts.DiscardTile(tiles2[2])
-	bd.SetOwner(corps[0], tiles)
-	bd.SetOwner(corps[1], tiles2)
-	corps[0].Grow(2)
-	corps[1].Grow(3)
+	bd.SetOwner(b.corporations[0], tiles)
+	bd.SetOwner(b.corporations[1], tiles2)
+	b.corporations[0].Grow(2)
+	b.corporations[1].Grow(3)
 
 	b.game, _ = acquire.New(
 		bd,
 		b.players,
-		corps,
-		tileset.New(),
+		b.corporations,
+		ts,
 		&fsm.PlayTile{},
 	)
 
 	b.players[0].DiscardTile(b.players[0].Tiles()[0])
 	b.players[0].PickTile(tile.New(7, "E"))
-	b.players[0].AddShares(corps[0], 5)
-	b.players[1].AddShares(corps[0], 5)
+	b.players[0].AddShares(b.corporations[0], 5)
+	b.players[1].AddShares(b.corporations[0], 5)
 }
 
-func (b *AcquireBridge) NewGameTiedMergeTest() {
+func (b *acquireBridge) NewGameTiedMergeTest() {
 	bd := board.New()
 	ts := tileset.NewStub()
-	corps := createCorporations()
+	b.corporations = createCorporations()
 	tiles := []interfaces.Tile{
 		tile.New(4, "E"),
 		tile.New(5, "E"),
@@ -68,23 +68,23 @@ func (b *AcquireBridge) NewGameTiedMergeTest() {
 	ts.DiscardTile(tiles2[0])
 	ts.DiscardTile(tiles2[1])
 	ts.DiscardTile(tiles2[2])
-	bd.SetOwner(corps[0], tiles)
-	bd.SetOwner(corps[1], tiles2)
-	corps[0].Grow(3)
-	corps[1].Grow(3)
+	bd.SetOwner(b.corporations[0], tiles)
+	bd.SetOwner(b.corporations[1], tiles2)
+	b.corporations[0].Grow(3)
+	b.corporations[1].Grow(3)
 
 	b.game, _ = acquire.New(
 		bd,
 		b.players,
-		corps,
-		tileset.New(),
+		b.corporations,
+		ts,
 		&fsm.PlayTile{},
 	)
 
 	b.players[0].DiscardTile(b.players[0].Tiles()[0])
 	b.players[0].PickTile(tile.New(7, "E"))
-	b.players[0].AddShares(corps[0], 5)
-	b.players[1].AddShares(corps[0], 5)
-	b.players[0].AddShares(corps[1], 3)
-	b.players[1].AddShares(corps[1], 3)
+	b.players[0].AddShares(b.corporations[0], 5)
+	b.players[1].AddShares(b.corporations[0], 5)
+	b.players[0].AddShares(b.corporations[1], 3)
+	b.players[1].AddShares(b.corporations[1], 3)
 }

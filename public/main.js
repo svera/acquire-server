@@ -22,6 +22,8 @@ $(function() {
             case "upd":
                 console.log(msg);
                 updateBoard(msg.brd);
+                updateStatusBoard(msg);
+                updatePlayerStatusBoard(msg);                
                 $('#gamePanel').show();
                 $('#lobby').hide();                
                 if (msg.ebl) {
@@ -31,13 +33,13 @@ $(function() {
                             updateHand(msg.hnd);
                         }
                         if (msg.sta == "FoundCorp") {
-                            chooseNewCorporation(msg.ina);
+                            chooseNewCorporation(msg.cor);
                         }
                         if (msg.sta == "BuyStock") {
-                            buyStocks(msg.act);
+                            buyStocks(msg.cor);
                         }
                         if (msg.sta == "SellTrade") {
-                            sellTrade(msg.sha);
+                            sellTrade(msg.cor);
                         }
                         if (msg.sta == "UntieMerge") {
                             untieMerge(msg.tie);
@@ -187,14 +189,44 @@ $(function() {
         });
     }
 
+    updateStatusBoard = function(status) {
+        var html = "<tr><td>Size</td>";
+        for (var i=0; i < status.cor.length; i++) {
+            html += '<td>'+status.cor[i].siz+'</td>';
+        }
+        html += "</tr><tr><td>Price</td>";
+        for (var i=0; i < status.cor.length; i++) {
+            html += '<td>'+status.cor[i].prc+'</td>';
+        }
+        html += "</tr><tr><td>Majority</td>";
+        for (var i=0; i < status.cor.length; i++) {
+            html += '<td>'+status.cor[i].maj+'</td>';
+        }
+        html += "</tr><tr><td>Minority</td>";
+        for (var i=0; i < status.cor.length; i++) {
+            html += '<td>'+status.cor[i].min+'</td>';
+        }
+        html += "</tr>";
+        $("#status-board tbody").html(html);
+    }
+
+    updatePlayerStatusBoard = function(status) {
+        var html = "<tr><td>"+status.csh+"</td>";
+        for (var i=0; i < status.cor.length; i++) {
+            html += '<td>'+status.cor[i].own+'</td>';
+        }
+        html += "</tr>";
+        $("#player-status-board tbody").html(html);
+    }
+
     updateHand = function(hand) {
         $("#player-controls").html("");
         var html = '<div class="btn-group" role="group" aria-label="..." data-toggle="buttons">';
 
         for (var i = 0; i < hand.length; i++) {
             html += '<label class="btn btn-default">'+
-                        '<input type="radio" name="tiles" value="'+ hand[i] +'">'+
-                        '<span>' + hand[i] +'</span>'+
+                        '<input type="radio" name="tiles" value="'+ hand[i].coo +'">'+
+                        '<span>' + hand[i].coo +'</span>'+
                     '</label>';
         }
         buttonState = !playerActive ? 'disabled="true"' : '';
@@ -210,10 +242,12 @@ $(function() {
                         '<p>You have founded a new corporation! Please choose one:</p>';
 
         for (var i = 0; i < corporations.length; i++) {
-            html += '<label class="btn btn-default">'+
-                        '<input type="radio" name="corps" value="'+ corporations[i].toLowerCase() +'">'+
-                        '<span>' + corporations[i] +'</span>'+
-                    '</label>';
+            if (corporations[i].siz == 0) {
+                html += '<label class="btn btn-default">'+
+                            '<input type="radio" name="corps" value="'+ corporations[i].nam.toLowerCase() +'">'+
+                            '<span>' + corporations[i].nam +'</span>'+
+                        '</label>';
+            }
         }
         buttonState = !playerActive ? 'disabled="true"' : '';
         html += '</div>'+
@@ -227,10 +261,12 @@ $(function() {
         var html = '<p>Buy Stocks</p>'+
                     '<ul class="list-unstyled">';
         for (var i = 0; i < corporations.length; i++) {
-            html += '<li><label>'+
-                        '<span>' + corporations[i] +'</span>'+
-                        '<input type="number" min="0" max="3" name="'+ corporations[i].toLowerCase() +'" value="0" class="buyStocks">'+
-                    '</label></li>';
+            if (corporations[i].siz > 0) {
+                html += '<li><label>'+
+                            '<span>' + corporations[i].nam +'</span>'+
+                            '<input type="number" min="0" max="3" name="'+ corporations[i].nam.toLowerCase() +'" value="0" class="buyStocks">'+
+                        '</label></li>';
+            }
         }
         buttonState = !playerActive ? 'disabled="true"' : '';
         html += '</ul>' +
@@ -247,11 +283,13 @@ $(function() {
                                 '<th>&nbsp;</th><th>Sell</th><th>Trade</th>'+
                             '</tr></thead>'+
                             '<tbody>';
-        for (var name in corporations) {
-            html += '<tr><td>' + name + '</td>'+
-                        '<td><input type="number" min="0" max="'+ corporations[name]+'" name="'+ name +'" value="0" class="sell"></td>'+
-                        '<td><input type="number" min="0" max="'+ corporations[name]+'" name="'+ name +'" value="0" step="2" class="trade"></td>'+
-                    '</tr>';
+        for (var i = 0; i < corporations.length; i++) {
+            if (corporations[i].def) {
+                html += '<tr><td>' + corporations[i].nam + '</td>'+
+                            '<td><input type="number" min="0" max="'+ corporations[i].own+'" name="'+ corporations[i].nam.toLowerCase() +'" value="0" class="sell"></td>'+
+                            '<td><input type="number" min="0" max="'+ corporations[i].own+'" name="'+ corporations[i].nam.toLowerCase() +'" value="0" step="2" class="trade"></td>'+
+                        '</tr>';
+                }
         }      
         buttonState = !playerActive ? 'disabled="true"' : '';                      
         html += '</tbody></table>'+
