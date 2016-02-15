@@ -26,6 +26,7 @@ const (
 	GameFull           = "wrong_corporation_class"
 	GameNotStarted     = "game_not_started"
 	GameAlreadyStarted = "game_already_started"
+	WrongMessage       = "message_parsing_error"
 )
 
 func New() *acquireBridge {
@@ -84,7 +85,7 @@ func (b *acquireBridge) ParseMessage(t string, params json.RawMessage) ([]byte, 
 		case "end":
 			err = b.claimEndGame()
 		default:
-			err = errors.New("Message parsing error")
+			err = errors.New(WrongMessage)
 		}
 	}
 
@@ -217,7 +218,7 @@ func corpNames(corps []interfaces.Corporation) []string {
 }
 
 func (b *acquireBridge) findCorpByName(name string) (interfaces.Corporation, error) {
-	for _, corp := range b.game.Corporations() {
+	for _, corp := range b.corporations {
 		if strings.ToLower(corp.Name()) == name {
 			return corp, nil
 		}

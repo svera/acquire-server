@@ -2,7 +2,6 @@ package hub
 
 import (
 	"github.com/svera/acquire-server/client"
-	"github.com/svera/acquire-server/interfaces"
 )
 
 type Hub struct {
@@ -18,10 +17,10 @@ type Hub struct {
 	// Unregister requests
 	Unregister chan *client.Client
 
-	gameBridge interfaces.Bridge
+	gameBridge Bridge
 }
 
-func New(b interfaces.Bridge) *Hub {
+func New(b Bridge) *Hub {
 	return &Hub{
 		Messages:   make(chan *client.Message),
 		Register:   make(chan *client.Client),
