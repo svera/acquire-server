@@ -1,23 +1,24 @@
-package bridge
+package acquirebridge
 
 import (
 	"encoding/json"
 	"errors"
 	"github.com/svera/acquire"
-	"github.com/svera/acquire/board"
+	//"github.com/svera/acquire/board"
 	"github.com/svera/acquire/corporation"
-	"github.com/svera/acquire/fsm"
+	//"github.com/svera/acquire/fsm"
 	"github.com/svera/acquire/interfaces"
 	"github.com/svera/acquire/player"
 	"github.com/svera/acquire/tile"
-	"github.com/svera/acquire/tileset"
+	//"github.com/svera/acquire/tileset"
 	"strconv"
 	"strings"
 )
 
-type AcquireBridge struct {
-	game    *acquire.Game
-	players []interfaces.Player
+type acquireBridge struct {
+	game         *acquire.Game
+	players      []interfaces.Player
+	corporations [7]interfaces.Corporation
 }
 
 const (
@@ -25,9 +26,16 @@ const (
 	GameFull           = "wrong_corporation_class"
 	GameNotStarted     = "game_not_started"
 	GameAlreadyStarted = "game_already_started"
+	WrongMessage       = "message_parsing_error"
 )
 
-func (b *AcquireBridge) ParseMessage(t string, params json.RawMessage) ([]byte, error) {
+func New() *acquireBridge {
+	return &acquireBridge{
+		corporations: createCorporations(),
+	}
+}
+
+func (b *acquireBridge) ParseMessage(t string, params json.RawMessage) ([]byte, error) {
 	var err error
 	var response []byte
 
@@ -35,13 +43,16 @@ func (b *AcquireBridge) ParseMessage(t string, params json.RawMessage) ([]byte, 
 		if b.gameStarted() {
 			err = errors.New(GameAlreadyStarted)
 		}
-		b.game, err = acquire.New(
-			board.New(),
-			b.players,
-			createCorporations(),
-			tileset.New(),
-			&fsm.PlayTile{},
-		)
+		/*
+			b.game, err = acquire.New(
+				board.New(),
+				b.players,
+				b.corporations,
+				tileset.New(),
+				&fsm.PlayTile{},
+			)
+		*/
+		b.NewGameMergeTest()
 	} else if !b.gameStarted() {
 		err = errors.New(GameNotStarted)
 	} else {
@@ -74,7 +85,7 @@ func (b *AcquireBridge) ParseMessage(t string, params json.RawMessage) ([]byte, 
 		case "end":
 			err = b.claimEndGame()
 		default:
-			err = errors.New("Message parsing error")
+			err = errors.New(WrongMessage)
 		}
 	}
 
@@ -88,7 +99,7 @@ func (b *AcquireBridge) ParseMessage(t string, params json.RawMessage) ([]byte, 
 	return response, err
 }
 
-func (b *AcquireBridge) playTile(params playTileMessageParams) error {
+func (b *acquireBridge) playTile(params playTileMessageParams) error {
 	var err error
 
 	if tl, err := coordsToTile(params.Tile); err == nil {
@@ -99,7 +110,7 @@ func (b *AcquireBridge) playTile(params playTileMessageParams) error {
 	return err
 }
 
-func (b *AcquireBridge) foundCorporation(params newCorpMessageParams) error {
+func (b *acquireBridge) foundCorporation(params newCorpMessageParams) error {
 	var err error
 
 	if corp, err := b.findCorpByName(params.Corporation); err == nil {
@@ -110,7 +121,7 @@ func (b *AcquireBridge) foundCorporation(params newCorpMessageParams) error {
 	return err
 }
 
-func (b *AcquireBridge) buyStock(params buyMessageParams) error {
+func (b *acquireBridge) buyStock(params buyMessageParams) error {
 	var err error
 
 	buy := map[interfaces.Corporation]int{}
@@ -129,7 +140,7 @@ func (b *AcquireBridge) buyStock(params buyMessageParams) error {
 	return err
 }
 
-func (b *AcquireBridge) sellTrade(params sellTradeMessageParams) error {
+func (b *acquireBridge) sellTrade(params sellTradeMessageParams) error {
 	var err error
 
 	sell := map[interfaces.Corporation]int{}
@@ -150,7 +161,7 @@ func (b *AcquireBridge) sellTrade(params sellTradeMessageParams) error {
 	return err
 }
 
-func (b *AcquireBridge) untieMerge(params untieMergeMessageParams) error {
+func (b *acquireBridge) untieMerge(params untieMergeMessageParams) error {
 	var err error
 
 	if corp, err := b.findCorpByName(params.Corporation); err == nil {
@@ -161,7 +172,7 @@ func (b *AcquireBridge) untieMerge(params untieMergeMessageParams) error {
 	return err
 }
 
-func (b *AcquireBridge) claimEndGame() error {
+func (b *acquireBridge) claimEndGame() error {
 	var err error
 
 	if err := b.game.ClaimEndGame(); err == nil {
@@ -170,12 +181,32 @@ func (b *AcquireBridge) claimEndGame() error {
 	return err
 }
 
-func (b *AcquireBridge) tilesToSlice(pl interfaces.Player) []string {
-	var hnd []string
+func (b *acquireBridge) tilesData(pl interfaces.Player) []handData {
+	var hnd []handData
 	for _, tl := range pl.Tiles() {
-		hnd = append(hnd, strconv.Itoa(tl.Number())+tl.Letter())
+		hnd = append(hnd, handData{
+			Coords:   strconv.Itoa(tl.Number()) + tl.Letter(),
+			Playable: b.game.IsTilePlayable(tl),
+		})
 	}
 	return hnd
+}
+
+func (b *acquireBridge) corpsData(pl interfaces.Player) []corpData {
+	var data []corpData
+	for _, corp := range b.corporations {
+		data = append(data, corpData{
+			Name:            corp.Name(),
+			Price:           corp.StockPrice(),
+			MajorityBonus:   corp.MajorityBonus(),
+			MinorityBonus:   corp.MinorityBonus(),
+			OwnedShares:     pl.Shares(corp),
+			RemainingShares: corp.Stock(),
+			Size:            corp.Size(),
+			Defunct:         b.game.IsCorporationDefunct(corp),
+		})
+	}
+	return data
 }
 
 func corpNames(corps []interfaces.Corporation) []string {
@@ -186,18 +217,8 @@ func corpNames(corps []interfaces.Corporation) []string {
 	return names
 }
 
-func (b *AcquireBridge) mapShares(pl interfaces.Player) map[string]int {
-	corps := map[string]int{}
-	for _, c := range b.game.DefunctCorporations() {
-		if amount := pl.Shares(c); amount > 0 {
-			corps[strings.ToLower(c.Name())] = amount
-		}
-	}
-	return corps
-}
-
-func (b *AcquireBridge) findCorpByName(name string) (interfaces.Corporation, error) {
-	for _, corp := range b.game.Corporations() {
+func (b *acquireBridge) findCorpByName(name string) (interfaces.Corporation, error) {
+	for _, corp := range b.corporations {
 		if strings.ToLower(corp.Name()) == name {
 			return corp, nil
 		}
@@ -205,7 +226,7 @@ func (b *AcquireBridge) findCorpByName(name string) (interfaces.Corporation, err
 	return &corporation.Corporation{}, errors.New("corporation not found")
 }
 
-func (b *AcquireBridge) boardOwnership() map[string]string {
+func (b *acquireBridge) boardOwnership() map[string]string {
 	cells := make(map[string]string)
 	var letters = [9]string{"A", "B", "C", "D", "E", "F", "G", "H", "I"}
 	for number := 1; number < 13; number++ {
@@ -231,14 +252,14 @@ func coordsToTile(tl string) (interfaces.Tile, error) {
 	return tile.New(number, letter), nil
 }
 
-func (b *AcquireBridge) CurrentPlayerNumber() int {
+func (b *acquireBridge) CurrentPlayerNumber() int {
 	if !b.gameStarted() {
 		return 0
 	}
 	return b.game.CurrentPlayerNumber()
 }
 
-func (b *AcquireBridge) gameStarted() bool {
+func (b *acquireBridge) gameStarted() bool {
 	if b.game == nil {
 		return false
 	}
@@ -246,7 +267,7 @@ func (b *AcquireBridge) gameStarted() bool {
 }
 
 func createCorporations() [7]interfaces.Corporation {
-	var corps [7]interfaces.Corporation
+	var corporations [7]interfaces.Corporation
 	corpsParams := [7]map[string]int{
 		map[string]int{"Sackson": 0},
 		map[string]int{"Zeta": 0},
@@ -260,27 +281,26 @@ func createCorporations() [7]interfaces.Corporation {
 	for i, corpData := range corpsParams {
 		for corpName, corpClass := range corpData {
 			if corp, err := corporation.New(corpName, corpClass); err == nil {
-				corps[i] = corp
+				corporations[i] = corp
 			} else {
 				panic(err)
 			}
 		}
 	}
-	return corps
+	return corporations
 }
 
-func (b *AcquireBridge) Status(n int) []byte {
+func (b *acquireBridge) Status(n int) []byte {
 	pl := b.players[n]
 	msg := statusMessage{
-		Type:          "upd",
-		Board:         b.boardOwnership(),
-		Hand:          b.tilesToSlice(pl),
-		State:         b.game.GameStateName(),
-		InactiveCorps: corpNames(b.game.InactiveCorporations()),
-		ActiveCorps:   corpNames(b.game.ActiveCorporations()),
-		TiedCorps:     corpNames(b.game.TiedCorps()),
-		Shares:        b.mapShares(pl),
-		Enabled:       false,
+		Type:      "upd",
+		Board:     b.boardOwnership(),
+		Hand:      b.tilesData(pl),
+		State:     b.game.GameStateName(),
+		Corps:     b.corpsData(pl),
+		TiedCorps: corpNames(b.game.TiedCorps()),
+		Enabled:   false,
+		Cash:      pl.Cash(),
 	}
 	if b.CurrentPlayerNumber() == n {
 		msg.Enabled = true
@@ -289,7 +309,7 @@ func (b *AcquireBridge) Status(n int) []byte {
 	return response
 }
 
-func (b *AcquireBridge) AddPlayer() error {
+func (b *acquireBridge) AddPlayer() error {
 	if len(b.players) == 6 {
 		return errors.New(GameFull)
 	}
