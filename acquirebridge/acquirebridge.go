@@ -273,7 +273,7 @@ func (b *acquireBridge) Status(n int) []byte {
 		TiedCorps: corpNames(b.game.TiedCorps()),
 		Enabled:   false,
 		Cash:      pl.Cash(),
-		LastTurn:  b.game.LastTurn(),
+		LastTurn:  b.game.IsLastTurn(),
 	}
 	if b.CurrentPlayerNumber() == n {
 		msg.Enabled = true
