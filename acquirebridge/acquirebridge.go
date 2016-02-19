@@ -52,7 +52,7 @@ func (b *acquireBridge) ParseMessage(t string, params json.RawMessage) ([]byte, 
 				&fsm.PlayTile{},
 			)
 		*/
-		b.NewGameMergeTest()
+		b.NewGameMultiMergeTest()
 	} else if !b.gameStarted() {
 		err = errors.New(GameNotStarted)
 	} else {
@@ -181,34 +181,6 @@ func (b *acquireBridge) claimEndGame() error {
 	return err
 }
 
-func (b *acquireBridge) tilesData(pl interfaces.Player) []handData {
-	var hnd []handData
-	for _, tl := range pl.Tiles() {
-		hnd = append(hnd, handData{
-			Coords:   strconv.Itoa(tl.Number()) + tl.Letter(),
-			Playable: b.game.IsTilePlayable(tl),
-		})
-	}
-	return hnd
-}
-
-func (b *acquireBridge) corpsData(pl interfaces.Player) []corpData {
-	var data []corpData
-	for _, corp := range b.corporations {
-		data = append(data, corpData{
-			Name:            corp.Name(),
-			Price:           corp.StockPrice(),
-			MajorityBonus:   corp.MajorityBonus(),
-			MinorityBonus:   corp.MinorityBonus(),
-			OwnedShares:     pl.Shares(corp),
-			RemainingShares: corp.Stock(),
-			Size:            corp.Size(),
-			Defunct:         b.game.IsCorporationDefunct(corp),
-		})
-	}
-	return data
-}
-
 func corpNames(corps []interfaces.Corporation) []string {
 	names := []string{}
 	for _, corp := range corps {
@@ -301,12 +273,41 @@ func (b *acquireBridge) Status(n int) []byte {
 		TiedCorps: corpNames(b.game.TiedCorps()),
 		Enabled:   false,
 		Cash:      pl.Cash(),
+		LastTurn:  b.game.LastTurn(),
 	}
 	if b.CurrentPlayerNumber() == n {
 		msg.Enabled = true
 	}
 	response, _ := json.Marshal(msg)
 	return response
+}
+
+func (b *acquireBridge) tilesData(pl interfaces.Player) []handData {
+	var hnd []handData
+	for _, tl := range pl.Tiles() {
+		hnd = append(hnd, handData{
+			Coords:   strconv.Itoa(tl.Number()) + tl.Letter(),
+			Playable: b.game.IsTilePlayable(tl),
+		})
+	}
+	return hnd
+}
+
+func (b *acquireBridge) corpsData(pl interfaces.Player) []corpData {
+	var data []corpData
+	for _, corp := range b.corporations {
+		data = append(data, corpData{
+			Name:            corp.Name(),
+			Price:           corp.StockPrice(),
+			MajorityBonus:   corp.MajorityBonus(),
+			MinorityBonus:   corp.MinorityBonus(),
+			OwnedShares:     pl.Shares(corp),
+			RemainingShares: corp.Stock(),
+			Size:            corp.Size(),
+			Defunct:         b.game.IsCorporationDefunct(corp),
+		})
+	}
+	return data
 }
 
 func (b *acquireBridge) AddPlayer() error {

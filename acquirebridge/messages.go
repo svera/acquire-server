@@ -55,4 +55,5 @@ type statusMessage struct {
 	Corps     []corpData        `json:"cor"`
 	TiedCorps []string          `json:"tie"`
 	Cash      int               `json:"csh"`
+	LastTurn  bool              `json:"lst"`
 }
