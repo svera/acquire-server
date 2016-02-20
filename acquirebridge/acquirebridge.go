@@ -27,6 +27,7 @@ const (
 	GameNotStarted     = "game_not_started"
 	GameAlreadyStarted = "game_already_started"
 	WrongMessage       = "message_parsing_error"
+	NotEndGame         = "not_end_game"
 )
 
 func New() *acquireBridge {
@@ -52,7 +53,7 @@ func (b *acquireBridge) ParseMessage(t string, params json.RawMessage) ([]byte, 
 				&fsm.PlayTile{},
 			)
 		*/
-		b.NewGameMultiMergeTest()
+		b.NewGameEndTest()
 	} else if !b.gameStarted() {
 		err = errors.New(GameNotStarted)
 	} else {
@@ -173,12 +174,10 @@ func (b *acquireBridge) untieMerge(params untieMergeMessageParams) error {
 }
 
 func (b *acquireBridge) claimEndGame() error {
-	var err error
-
-	if err := b.game.ClaimEndGame(); err == nil {
-		return nil
+	if !b.game.ClaimEndGame().IsLastTurn() {
+		return errors.New(NotEndGame)
 	}
-	return err
+	return nil
 }
 
 func corpNames(corps []interfaces.Corporation) []string {

@@ -44,10 +44,17 @@ $(function() {
                         if (msg.sta == "UntieMerge") {
                             untieMerge(msg.tie);
                         }
+                        if (msg.sta == "EndGame") {
+                            endGame();
+                        }
                     }
                 } else {
                     playerActive = false;
-                    $("#player-controls").html("")
+                    if (msg.sta == "EndGame") {
+                        endGame();
+                    } else {
+                        $("#player-controls").html("");
+                    }
                 }
                 break;
         }
@@ -314,5 +321,9 @@ $(function() {
           '<input type="button" id="untieMergeButton" class="btn btn-primary" value="choose acquiring corporation"' + buttonState +' />'+
           '<input type="button" id="claimEndButton" class="btn" value="Claim game end"' + buttonState +' />';
         $("#player-controls").append(html);
-    }    
+    }
+
+    endGame = function() {
+        $("#player-controls").html("Game ended");
+    }          
 });

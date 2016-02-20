@@ -146,3 +146,43 @@ func (b *acquireBridge) NewGameMultiMergeTest() {
 	b.players[0].AddShares(b.corporations[3], 2)
 	b.players[1].AddShares(b.corporations[3], 2)
 }
+
+func (b *acquireBridge) NewGameEndTest() {
+	bd := board.New()
+	ts := tileset.NewStub()
+	b.corporations = createCorporations()
+	tiles := []interfaces.Tile{
+		tile.New(5, "E"),
+		tile.New(6, "E"),
+		tile.New(7, "E"),
+		tile.New(8, "E"),
+		tile.New(9, "E"),
+		tile.New(10, "E"),
+		tile.New(7, "C"),
+		tile.New(7, "D"),
+		tile.New(7, "F"),
+		tile.New(7, "G"),
+		tile.New(7, "H"),
+	}
+
+	for i, _ := range tiles {
+		ts.DiscardTile(tiles[i])
+	}
+	bd.SetOwner(b.corporations[0], tiles)
+	b.corporations[0].Grow(11)
+
+	b.game, _ = acquire.New(
+		bd,
+		b.players,
+		b.corporations,
+		ts,
+		&fsm.PlayTile{},
+	)
+
+	b.players[0].AddShares(b.corporations[0], 5)
+	b.players[1].AddShares(b.corporations[0], 5)
+	b.players[0].AddShares(b.corporations[2], 2)
+	b.players[1].AddShares(b.corporations[2], 2)
+	b.players[0].AddShares(b.corporations[3], 2)
+	b.players[1].AddShares(b.corporations[3], 2)
+}
