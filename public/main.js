@@ -14,6 +14,7 @@ $(function() {
 
     // Whenever we receive a message, update
     conn.onmessage = function(e) {
+        console.log(e.data)
         msg = JSON.parse(e.data);
         switch (msg.typ) {
             case "err":
@@ -218,9 +219,9 @@ $(function() {
     }
 
     updatePlayerStatusBoard = function(status) {
-        var html = "<tr><td>"+status.csh+"</td>";
-        for (var i=0; i < status.cor.length; i++) {
-            html += '<td>'+status.cor[i].own+'</td>';
+        var html = "<tr><td>"+status.ply.csh+"</td>";
+        for (var i=0; i < status.ply.own.length; i++) {
+            html += '<td>'+status.ply.own[i]+'</td>';
         }
         html += "</tr>";
         $("#player-status-board tbody").html(html);
