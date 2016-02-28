@@ -262,22 +262,16 @@ func createCorporations() [7]interfaces.Corporation {
 }
 
 func (b *acquireBridge) Status(n int) []byte {
-	pl := b.players[n]
-	playerInfo, rivalsInfo := b.playersInfo()
+	playerInfo, rivalsInfo := b.playersInfo(n)
 	msg := statusMessage{
 		Type:       "upd",
 		Board:      b.boardOwnership(),
-		Hand:       b.tilesData(pl),
 		State:      b.game.GameStateName(),
 		Corps:      b.corpsData(),
 		TiedCorps:  corpNames(b.game.TiedCorps()),
 		PlayerInfo: playerInfo,
 		RivalsInfo: rivalsInfo,
-		Enabled:    false,
 		LastTurn:   b.game.IsLastTurn(),
-	}
-	if b.CurrentPlayerNumber() == n {
-		msg.Enabled = true
 	}
 	response, _ := json.Marshal(msg)
 	return response
@@ -310,19 +304,24 @@ func (b *acquireBridge) corpsData() []corpData {
 	return data
 }
 
-func (b *acquireBridge) playersInfo() (playerData, map[string]playerData) {
+func (b *acquireBridge) playersInfo(n int) (playerData, map[string]playerData) {
 	rivals := map[string]playerData{}
 	var ply playerData
 	for i, p := range b.players {
-		if b.CurrentPlayerNumber() != i {
+		if n != i {
 			rivals[strconv.Itoa(i)] = playerData{
 				Cash:        p.Cash(),
 				OwnedShares: b.playersShares(i),
 			}
 		} else {
 			ply = playerData{
+				Enabled:     false,
+				Hand:        b.tilesData(p),
 				Cash:        p.Cash(),
 				OwnedShares: b.playersShares(i),
+			}
+			if b.CurrentPlayerNumber() == n {
+				ply.Enabled = true
 			}
 		}
 	}

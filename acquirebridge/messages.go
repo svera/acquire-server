@@ -46,15 +46,15 @@ type corpData struct {
 }
 
 type playerData struct {
-	Cash        int   `json:"csh"`
-	OwnedShares []int `json:"own"`
+	Enabled     bool       `json:"ebl"`
+	Hand        []handData `json:"hnd"`
+	Cash        int        `json:"csh"`
+	OwnedShares []int      `json:"own"`
 }
 
 type statusMessage struct {
 	Type       string                `json:"typ"`
 	Board      map[string]string     `json:"brd"`
-	Enabled    bool                  `json:"ebl"`
-	Hand       []handData            `json:"hnd"`
 	State      string                `json:"sta"`
 	Corps      []corpData            `json:"cor"`
 	TiedCorps  []string              `json:"tie"`

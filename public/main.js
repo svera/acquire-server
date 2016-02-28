@@ -14,7 +14,6 @@ $(function() {
 
     // Whenever we receive a message, update
     conn.onmessage = function(e) {
-        console.log(e.data)
         msg = JSON.parse(e.data);
         switch (msg.typ) {
             case "err":
@@ -27,11 +26,11 @@ $(function() {
                 updatePlayerStatusBoard(msg);                
                 $('#gamePanel').show();
                 $('#lobby').hide();                
-                if (msg.ebl) {
+                if (msg.ply.ebl) {
                     playerActive = true;
                     if (msg.hasOwnProperty("sta")) {
                         if (msg.sta == "PlayTile") {
-                            updateHand(msg.hnd);
+                            updateHand(msg.ply.hnd);
                         }
                         if (msg.sta == "FoundCorp") {
                             chooseNewCorporation(msg.cor);
