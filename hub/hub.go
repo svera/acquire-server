@@ -1,6 +1,7 @@
 package hub
 
 import (
+	"encoding/json"
 	"github.com/svera/acquire-server/client"
 )
 
@@ -38,6 +39,29 @@ func (h *Hub) Run() {
 			if err := h.gameBridge.AddPlayer(); err != nil {
 				break
 			}
+			if len(h.clients) == 1 {
+				c.Owner = true
+				msg := struct {
+					Type string `json:"typ"`
+					Role string `json:"rol"`
+				}{
+					Type: "ctl",
+					Role: "mng",
+				}
+				response, _ := json.Marshal(msg)
+				h.sendMessage(c, response)
+			}
+			msg := struct {
+				Type   string   `json:"typ"`
+				Values []string `json:"val"`
+			}{
+				Type:   "add",
+				Values: h.clientNames(),
+			}
+			response, _ := json.Marshal(msg)
+			for _, c := range h.clients {
+				h.sendMessage(c, response)
+			}
 			break
 
 		case c := <-h.Unregister:
@@ -63,6 +87,14 @@ func (h *Hub) Run() {
 			}
 		}
 	}
+}
+
+func (h *Hub) clientNames() []string {
+	names := []string{}
+	for _, c := range h.clients {
+		names = append(names, c.Name)
+	}
+	return names
 }
 
 func (h *Hub) broadcastUpdate() {

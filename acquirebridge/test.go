@@ -11,7 +11,7 @@ import (
 
 func (b *acquireBridge) NewGameMergeTest() {
 	bd := board.New()
-	ts := tileset.NewStub()
+	ts := tileset.New()
 	b.corporations = createCorporations()
 	tiles := []interfaces.Tile{
 		tile.New(5, "E"),
@@ -49,7 +49,7 @@ func (b *acquireBridge) NewGameMergeTest() {
 
 func (b *acquireBridge) NewGameTiedMergeTest() {
 	bd := board.New()
-	ts := tileset.NewStub()
+	ts := tileset.New()
 	b.corporations = createCorporations()
 	tiles := []interfaces.Tile{
 		tile.New(4, "E"),
@@ -91,7 +91,7 @@ func (b *acquireBridge) NewGameTiedMergeTest() {
 
 func (b *acquireBridge) NewGameMultiMergeTest() {
 	bd := board.New()
-	ts := tileset.NewStub()
+	ts := tileset.New()
 	b.corporations = createCorporations()
 	tiles := []interfaces.Tile{
 		tile.New(5, "E"),
@@ -149,7 +149,7 @@ func (b *acquireBridge) NewGameMultiMergeTest() {
 
 func (b *acquireBridge) NewGameEndTest() {
 	bd := board.New()
-	ts := tileset.NewStub()
+	ts := tileset.New()
 	b.corporations = createCorporations()
 	tiles := []interfaces.Tile{
 		tile.New(5, "E"),
@@ -165,7 +165,7 @@ func (b *acquireBridge) NewGameEndTest() {
 		tile.New(7, "H"),
 	}
 
-	for i, _ := range tiles {
+	for i := range tiles {
 		ts.DiscardTile(tiles[i])
 	}
 	bd.SetOwner(b.corporations[0], tiles)
