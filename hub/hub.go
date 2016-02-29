@@ -6,6 +6,10 @@ import (
 	"github.com/svera/acquire-server/client"
 )
 
+// Hub is a struct that manage the message flow between client (players)
+// and a game. It can work with any game as long as it implements the Bridge
+// interface. It also provides support for some common operations as adding/removing
+// players and more.
 type Hub struct {
 	// Registered clients
 	clients []*client.Client
@@ -22,6 +26,7 @@ type Hub struct {
 	gameBridge Bridge
 }
 
+// New returns a new Hub instance
 func New(b Bridge) *Hub {
 	return &Hub{
 		Messages:   make(chan *client.Message),
@@ -32,6 +37,7 @@ func New(b Bridge) *Hub {
 	}
 }
 
+// Run listens for messages coming from several channels and acts accordingly
 func (h *Hub) Run() {
 	for {
 		select {

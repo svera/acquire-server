@@ -62,7 +62,7 @@ func create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", 405)
 	}
 
-	id := generateId()
+	id := generateID()
 	h := hub.New(acquirebridge.New())
 	hubs[id] = h
 
@@ -90,6 +90,6 @@ func main() {
 }
 
 // TODO Implement proper random string generator
-func generateId() string {
+func generateID() string {
 	return "a"
 }
