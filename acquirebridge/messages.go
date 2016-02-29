@@ -40,20 +40,25 @@ type corpData struct {
 	Price           int    `json:"prc"`
 	MajorityBonus   int    `json:"maj"`
 	MinorityBonus   int    `json:"min"`
-	OwnedShares     int    `json:"own"`
 	RemainingShares int    `json:"rem"`
 	Size            int    `json:"siz"`
 	Defunct         bool   `json:"def"`
 }
 
+type playerData struct {
+	Enabled     bool       `json:"ebl"`
+	Hand        []handData `json:"hnd"`
+	Cash        int        `json:"csh"`
+	OwnedShares []int      `json:"own"`
+}
+
 type statusMessage struct {
-	Type      string            `json:"typ"`
-	Board     map[string]string `json:"brd"`
-	Enabled   bool              `json:"ebl"`
-	Hand      []handData        `json:"hnd"`
-	State     string            `json:"sta"`
-	Corps     []corpData        `json:"cor"`
-	TiedCorps []string          `json:"tie"`
-	Cash      int               `json:"csh"`
-	LastTurn  bool              `json:"lst"`
+	Type       string                `json:"typ"`
+	Board      map[string]string     `json:"brd"`
+	State      string                `json:"sta"`
+	Corps      []corpData            `json:"cor"`
+	TiedCorps  []string              `json:"tie"`
+	PlayerInfo playerData            `json:"ply"`
+	RivalsInfo map[string]playerData `json:"riv"`
+	LastTurn   bool                  `json:"lst"`
 }

@@ -262,20 +262,16 @@ func createCorporations() [7]interfaces.Corporation {
 }
 
 func (b *acquireBridge) Status(n int) []byte {
-	pl := b.players[n]
+	playerInfo, rivalsInfo := b.playersInfo(n)
 	msg := statusMessage{
-		Type:      "upd",
-		Board:     b.boardOwnership(),
-		Hand:      b.tilesData(pl),
-		State:     b.game.GameStateName(),
-		Corps:     b.corpsData(pl),
-		TiedCorps: corpNames(b.game.TiedCorps()),
-		Enabled:   false,
-		Cash:      pl.Cash(),
-		LastTurn:  b.game.IsLastTurn(),
-	}
-	if b.CurrentPlayerNumber() == n {
-		msg.Enabled = true
+		Type:       "upd",
+		Board:      b.boardOwnership(),
+		State:      b.game.GameStateName(),
+		Corps:      b.corpsData(),
+		TiedCorps:  corpNames(b.game.TiedCorps()),
+		PlayerInfo: playerInfo,
+		RivalsInfo: rivalsInfo,
+		LastTurn:   b.game.IsLastTurn(),
 	}
 	response, _ := json.Marshal(msg)
 	return response
@@ -292,7 +288,7 @@ func (b *acquireBridge) tilesData(pl interfaces.Player) []handData {
 	return hnd
 }
 
-func (b *acquireBridge) corpsData(pl interfaces.Player) []corpData {
+func (b *acquireBridge) corpsData() []corpData {
 	var data []corpData
 	for _, corp := range b.corporations {
 		data = append(data, corpData{
@@ -300,11 +296,42 @@ func (b *acquireBridge) corpsData(pl interfaces.Player) []corpData {
 			Price:           corp.StockPrice(),
 			MajorityBonus:   corp.MajorityBonus(),
 			MinorityBonus:   corp.MinorityBonus(),
-			OwnedShares:     pl.Shares(corp),
 			RemainingShares: corp.Stock(),
 			Size:            corp.Size(),
 			Defunct:         b.game.IsCorporationDefunct(corp),
 		})
+	}
+	return data
+}
+
+func (b *acquireBridge) playersInfo(n int) (playerData, map[string]playerData) {
+	rivals := map[string]playerData{}
+	var ply playerData
+	for i, p := range b.players {
+		if n != i {
+			rivals[strconv.Itoa(i)] = playerData{
+				Cash:        p.Cash(),
+				OwnedShares: b.playersShares(i),
+			}
+		} else {
+			ply = playerData{
+				Enabled:     false,
+				Hand:        b.tilesData(p),
+				Cash:        p.Cash(),
+				OwnedShares: b.playersShares(i),
+			}
+			if b.CurrentPlayerNumber() == n {
+				ply.Enabled = true
+			}
+		}
+	}
+	return ply, rivals
+}
+
+func (b *acquireBridge) playersShares(playerNumber int) []int {
+	var data []int
+	for _, corp := range b.corporations {
+		data = append(data, b.players[playerNumber].Shares(corp))
 	}
 	return data
 }

@@ -19,18 +19,29 @@ $(function() {
             case "err":
                 console.log(msg.cnt);
                 break;
+            case "ctl":
+                if (msg.rol == "mng") {
+                    $("#startGameButton").removeClass("hidden");
+                }
+                break;
+            case "add":
+                $("#playerList").html("");
+                for (var i=0; i < msg.val.length; i++) {
+                    $("#playerList").append("<li>Player</li>");
+                }
+                break;
             case "upd":
                 console.log(msg);
                 updateBoard(msg.brd);
                 updateStatusBoard(msg);
-                updatePlayerStatusBoard(msg);                
+                updatePlayerStatusBoard(msg);
                 $('#gamePanel').show();
-                $('#lobby').hide();                
-                if (msg.ebl) {
+                $('#lobby').hide();
+                if (msg.ply.ebl) {
                     playerActive = true;
                     if (msg.hasOwnProperty("sta")) {
                         if (msg.sta == "PlayTile") {
-                            updateHand(msg.hnd);
+                            updateHand(msg.ply.hnd);
                         }
                         if (msg.sta == "FoundCorp") {
                             chooseNewCorporation(msg.cor);
@@ -108,7 +119,7 @@ $(function() {
         })
         conn.send(
             createNewBuyMessage(buy)
-        );        
+        );
     });
 
     createNewBuyMessage = function(buy) {
@@ -133,7 +144,7 @@ $(function() {
         })
         $('.trade').each(function() {
             corps[this.name]["tra"] = parseInt($(this).val());
-        })            
+        })
         conn.send(
             createSellTradeMessage(corps)
         );
@@ -218,9 +229,9 @@ $(function() {
     }
 
     updatePlayerStatusBoard = function(status) {
-        var html = "<tr><td>"+status.csh+"</td>";
-        for (var i=0; i < status.cor.length; i++) {
-            html += '<td>'+status.cor[i].own+'</td>';
+        var html = "<tr><td>"+status.ply.csh+"</td>";
+        for (var i=0; i < status.ply.own.length; i++) {
+            html += '<td>'+status.ply.own[i]+'</td>';
         }
         html += "</tr>";
         $("#player-status-board tbody").html(html);
@@ -297,8 +308,8 @@ $(function() {
                             '<td><input type="number" min="0" max="'+ corporations[i].own+'" name="'+ corporations[i].nam.toLowerCase() +'" value="0" step="2" class="trade"></td>'+
                         '</tr>';
                 }
-        }      
-        buttonState = !playerActive ? 'disabled="true"' : '';                      
+        }
+        buttonState = !playerActive ? 'disabled="true"' : '';
         html += '</tbody></table>'+
             '<input type="button" id="sellTradeButton" class="btn btn-primary" value="Sell / Trade"' + buttonState +' />'+
             '<input type="button" id="claimEndButton" class="btn" value="Claim game end"' + buttonState +' />';
@@ -325,5 +336,5 @@ $(function() {
 
     endGame = function() {
         $("#player-controls").html("Game ended");
-    }          
+    }
 });
