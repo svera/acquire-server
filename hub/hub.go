@@ -36,34 +36,10 @@ func (h *Hub) Run() {
 	for {
 		select {
 		case c := <-h.Register:
-			h.clients = append(h.clients, c)
 			if len(h.clients) == h.gameBridge.MaximumPlayers() {
 				break
 			}
-			h.gameBridge.AddPlayer()
-			if len(h.clients) == 1 {
-				c.Owner = true
-				msg := struct {
-					Type string `json:"typ"`
-					Role string `json:"rol"`
-				}{
-					Type: "ctl",
-					Role: "mng",
-				}
-				response, _ := json.Marshal(msg)
-				h.sendMessage(c, response)
-			}
-			msg := struct {
-				Type   string   `json:"typ"`
-				Values []string `json:"val"`
-			}{
-				Type:   "add",
-				Values: h.clientNames(),
-			}
-			response, _ := json.Marshal(msg)
-			for _, c := range h.clients {
-				h.sendMessage(c, response)
-			}
+			h.addClient(c)
 			break
 
 		case c := <-h.Unregister:
@@ -83,10 +59,16 @@ func (h *Hub) Run() {
 			}
 
 			if m.Content.Type == "ini" {
+				if !m.Author.Owner {
+					break
+				}
 				if h.gameBridge.GameStarted() {
 					err = errors.New(GameAlreadyStarted)
 				}
 
+				if len(h.clients) < h.gameBridge.MinimumPlayers() {
+					err = errors.New(NotEnoughPlayers)
+				}
 				h.gameBridge.StartGame()
 
 			} else if !h.gameBridge.GameStarted() {
@@ -141,5 +123,33 @@ func (h *Hub) removeClient(c *client.Client) {
 			h.clients = append(h.clients[:i], h.clients[i+1:]...)
 			break
 		}
+	}
+}
+
+func (h *Hub) addClient(c *client.Client) {
+	h.clients = append(h.clients, c)
+	h.gameBridge.AddPlayer()
+	if len(h.clients) == 1 {
+		c.Owner = true
+		msg := struct {
+			Type string `json:"typ"`
+			Role string `json:"rol"`
+		}{
+			Type: "ctl",
+			Role: "mng",
+		}
+		response, _ := json.Marshal(msg)
+		h.sendMessage(c, response)
+	}
+	msg := struct {
+		Type   string   `json:"typ"`
+		Values []string `json:"val"`
+	}{
+		Type:   "add",
+		Values: h.clientNames(),
+	}
+	response, _ := json.Marshal(msg)
+	for _, c := range h.clients {
+		h.sendMessage(c, response)
 	}
 }

@@ -23,6 +23,7 @@ type acquireBridge struct {
 
 const (
 	NotEndGame     = "not_end_game"
+	minimumPlayers = 6
 	maximumPlayers = 6
 	WrongMessage   = "message_parsing_error"
 )
@@ -322,6 +323,11 @@ func (b *acquireBridge) AddPlayer() {
 func (b *acquireBridge) MaximumPlayers() int {
 	return maximumPlayers
 }
+
+func (b *acquireBridge) MinimumPlayers() int {
+	return minimumPlayers
+}
+
 func (b *acquireBridge) StartGame() error {
 	var err error
 	b.game, err = acquire.New(

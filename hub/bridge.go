@@ -12,6 +12,7 @@ type Bridge interface {
 	GameStarted() bool
 	StartGame() error
 	MaximumPlayers() int
+	MinimumPlayers() int
 }
 
 const (
@@ -20,4 +21,5 @@ const (
 	GameNotStarted     = "game_not_started"
 	GameAlreadyStarted = "game_already_started"
 	WrongMessage       = "message_parsing_error"
+	NotEnoughPlayers   = "not_enough_players"
 )
