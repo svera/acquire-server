@@ -2,6 +2,7 @@ package hub
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/svera/acquire-server/client"
 )
 
@@ -36,9 +37,10 @@ func (h *Hub) Run() {
 		select {
 		case c := <-h.Register:
 			h.clients = append(h.clients, c)
-			if err := h.gameBridge.AddPlayer(); err != nil {
+			if len(h.clients) == h.gameBridge.MaximumPlayers() {
 				break
 			}
+			h.gameBridge.AddPlayer()
 			if len(h.clients) == 1 {
 				c.Owner = true
 				msg := struct {
@@ -74,11 +76,24 @@ func (h *Hub) Run() {
 			break
 
 		case m := <-h.Messages:
+			var err error
+			var response []byte
 			if m.Author != h.currentPlayerClient() {
 				break
 			}
 
-			response, err := h.gameBridge.ParseMessage(m.Content.Type, m.Content.Params)
+			if m.Content.Type == "ini" {
+				if h.gameBridge.GameStarted() {
+					err = errors.New(GameAlreadyStarted)
+				}
+
+				h.gameBridge.StartGame()
+
+			} else if !h.gameBridge.GameStarted() {
+				err = errors.New(GameNotStarted)
+			} else {
+				response, err = h.gameBridge.ParseMessage(m.Content.Type, m.Content.Params)
+			}
 
 			if err != nil {
 				h.sendMessage(m.Author, response)

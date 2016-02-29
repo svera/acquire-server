@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/svera/acquire"
-	//"github.com/svera/acquire/board"
+	"github.com/svera/acquire/board"
 	"github.com/svera/acquire/corporation"
-	//"github.com/svera/acquire/fsm"
+	"github.com/svera/acquire/fsm"
 	"github.com/svera/acquire/interfaces"
 	"github.com/svera/acquire/player"
 	"github.com/svera/acquire/tile"
-	//"github.com/svera/acquire/tileset"
+	"github.com/svera/acquire/tileset"
 	"strconv"
 	"strings"
 )
@@ -22,12 +22,9 @@ type acquireBridge struct {
 }
 
 const (
-	// GameFull is an error returned when a game already has the maximum number of players
-	GameFull           = "wrong_corporation_class"
-	GameNotStarted     = "game_not_started"
-	GameAlreadyStarted = "game_already_started"
-	WrongMessage       = "message_parsing_error"
-	NotEndGame         = "not_end_game"
+	NotEndGame     = "not_end_game"
+	maximumPlayers = 6
+	WrongMessage   = "message_parsing_error"
 )
 
 func New() *acquireBridge {
@@ -40,54 +37,36 @@ func (b *acquireBridge) ParseMessage(t string, params json.RawMessage) ([]byte, 
 	var err error
 	var response []byte
 
-	if t == "ini" {
-		if b.gameStarted() {
-			err = errors.New(GameAlreadyStarted)
+	switch t {
+	case "ply":
+		var parsed playTileMessageParams
+		if err = json.Unmarshal(params, &parsed); err == nil {
+			err = b.playTile(parsed)
 		}
-		/*
-			b.game, err = acquire.New(
-				board.New(),
-				b.players,
-				b.corporations,
-				tileset.New(),
-				&fsm.PlayTile{},
-			)
-		*/
-		b.NewGameEndTest()
-	} else if !b.gameStarted() {
-		err = errors.New(GameNotStarted)
-	} else {
-		switch t {
-		case "ply":
-			var parsed playTileMessageParams
-			if err = json.Unmarshal(params, &parsed); err == nil {
-				err = b.playTile(parsed)
-			}
-		case "ncp":
-			var parsed newCorpMessageParams
-			if err = json.Unmarshal(params, &parsed); err == nil {
-				err = b.foundCorporation(parsed)
-			}
-		case "buy":
-			var parsed buyMessageParams
-			if err = json.Unmarshal(params, &parsed); err == nil {
-				err = b.buyStock(parsed)
-			}
-		case "sel":
-			var parsed sellTradeMessageParams
-			if err = json.Unmarshal(params, &parsed); err == nil {
-				err = b.sellTrade(parsed)
-			}
-		case "unt":
-			var parsed untieMergeMessageParams
-			if err = json.Unmarshal(params, &parsed); err == nil {
-				err = b.untieMerge(parsed)
-			}
-		case "end":
-			err = b.claimEndGame()
-		default:
-			err = errors.New(WrongMessage)
+	case "ncp":
+		var parsed newCorpMessageParams
+		if err = json.Unmarshal(params, &parsed); err == nil {
+			err = b.foundCorporation(parsed)
 		}
+	case "buy":
+		var parsed buyMessageParams
+		if err = json.Unmarshal(params, &parsed); err == nil {
+			err = b.buyStock(parsed)
+		}
+	case "sel":
+		var parsed sellTradeMessageParams
+		if err = json.Unmarshal(params, &parsed); err == nil {
+			err = b.sellTrade(parsed)
+		}
+	case "unt":
+		var parsed untieMergeMessageParams
+		if err = json.Unmarshal(params, &parsed); err == nil {
+			err = b.untieMerge(parsed)
+		}
+	case "end":
+		err = b.claimEndGame()
+	default:
+		err = errors.New(WrongMessage)
 	}
 
 	if err != nil {
@@ -224,13 +203,13 @@ func coordsToTile(tl string) (interfaces.Tile, error) {
 }
 
 func (b *acquireBridge) CurrentPlayerNumber() int {
-	if !b.gameStarted() {
+	if !b.GameStarted() {
 		return 0
 	}
 	return b.game.CurrentPlayerNumber()
 }
 
-func (b *acquireBridge) gameStarted() bool {
+func (b *acquireBridge) GameStarted() bool {
 	if b.game == nil {
 		return false
 	}
@@ -336,10 +315,21 @@ func (b *acquireBridge) playersShares(playerNumber int) []int {
 	return data
 }
 
-func (b *acquireBridge) AddPlayer() error {
-	if len(b.players) == 6 {
-		return errors.New(GameFull)
-	}
+func (b *acquireBridge) AddPlayer() {
 	b.players = append(b.players, player.New())
-	return nil
+}
+
+func (b *acquireBridge) MaximumPlayers() int {
+	return maximumPlayers
+}
+func (b *acquireBridge) StartGame() error {
+	var err error
+	b.game, err = acquire.New(
+		board.New(),
+		b.players,
+		b.corporations,
+		tileset.New(),
+		&fsm.PlayTile{},
+	)
+	return err
 }
