@@ -30,9 +30,15 @@ const (
 	maximumPlayers = 6
 	// WrongMessage defines the message returned when AcquireBridge receives a malformed message
 	WrongMessage = "message_parsing_error"
+	// GameAlreadyStarted is an error returned when a player tries to start a game in a hub instance which an already running one
+	GameAlreadyStarted = "game_already_started"
+	// GameNotStarted is an error returned when a player tries to do an action that requires a running game
+	GameNotStarted = "game_not_started"
+	// GameFull is an error returned when a game already has the maximum number of players
+	GameFull = "game_full"
 )
 
-// New initalizes a new AcquireBridge instance
+// New initializes a new AcquireBridge instance
 func New() *AcquireBridge {
 	return &AcquireBridge{
 		corporations: createCorporations(),
@@ -89,20 +95,23 @@ func (b *AcquireBridge) ParseMessage(t string, params json.RawMessage) ([]byte, 
 
 func (b *AcquireBridge) playTile(params playTileMessageParams) error {
 	var err error
+	var tl interfaces.Tile
 
-	if tl, err := coordsToTile(params.Tile); err == nil {
+	if tl, err = coordsToTile(params.Tile); err == nil {
 		if err := b.game.PlayTile(tl); err == nil {
 			return nil
 		}
 	}
+
 	return err
 }
 
 func (b *AcquireBridge) foundCorporation(params newCorpMessageParams) error {
 	var err error
+	var corp interfaces.Corporation
 
-	if corp, err := b.findCorpByName(params.Corporation); err == nil {
-		if err := b.game.FoundCorporation(corp); err == nil {
+	if corp, err = b.findCorpByName(params.Corporation); err == nil {
+		if err = b.game.FoundCorporation(corp); err == nil {
 			return nil
 		}
 	}
@@ -111,11 +120,12 @@ func (b *AcquireBridge) foundCorporation(params newCorpMessageParams) error {
 
 func (b *AcquireBridge) buyStock(params buyMessageParams) error {
 	var err error
+	var corp interfaces.Corporation
 
 	buy := map[interfaces.Corporation]int{}
 
 	for corpName, amount := range params.Corporations {
-		if corp, err := b.findCorpByName(corpName); err == nil {
+		if corp, err = b.findCorpByName(corpName); err == nil {
 			buy[corp] = amount
 		} else {
 			return err
@@ -130,12 +140,13 @@ func (b *AcquireBridge) buyStock(params buyMessageParams) error {
 
 func (b *AcquireBridge) sellTrade(params sellTradeMessageParams) error {
 	var err error
+	var corp interfaces.Corporation
 
 	sell := map[interfaces.Corporation]int{}
 	trade := map[interfaces.Corporation]int{}
 
 	for corpName, operation := range params.Corporations {
-		if corp, err := b.findCorpByName(corpName); err == nil {
+		if corp, err = b.findCorpByName(corpName); err == nil {
 			sell[corp] = operation.Sell
 			trade[corp] = operation.Trade
 		} else {
@@ -151,9 +162,10 @@ func (b *AcquireBridge) sellTrade(params sellTradeMessageParams) error {
 
 func (b *AcquireBridge) untieMerge(params untieMergeMessageParams) error {
 	var err error
+	var corp interfaces.Corporation
 
-	if corp, err := b.findCorpByName(params.Corporation); err == nil {
-		if err := b.game.UntieMerge(corp); err == nil {
+	if corp, err = b.findCorpByName(params.Corporation); err == nil {
+		if err = b.game.UntieMerge(corp); err == nil {
 			return nil
 		}
 	}
@@ -211,11 +223,11 @@ func coordsToTile(tl string) (interfaces.Tile, error) {
 }
 
 // CurrentPlayerNumber returns the number of the player currently in turn
-func (b *AcquireBridge) CurrentPlayerNumber() int {
+func (b *AcquireBridge) CurrentPlayerNumber() (int, error) {
 	if !b.GameStarted() {
-		return 0
+		return 0, errors.New(GameNotStarted)
 	}
-	return b.game.CurrentPlayerNumber()
+	return b.game.CurrentPlayerNumber(), nil
 }
 
 // GameStarted returns true if there's a game in progress, false otherwise
@@ -251,8 +263,11 @@ func createCorporations() [7]interfaces.Corporation {
 }
 
 // Status return a JSON string with the current status of the game
-func (b *AcquireBridge) Status(n int) []byte {
-	playerInfo, rivalsInfo := b.playersInfo(n)
+func (b *AcquireBridge) Status(n int) ([]byte, error) {
+	playerInfo, rivalsInfo, err := b.playersInfo(n)
+	if err != nil {
+		return json.RawMessage{}, err
+	}
 	msg := statusMessage{
 		Type:       "upd",
 		Board:      b.boardOwnership(),
@@ -264,7 +279,7 @@ func (b *AcquireBridge) Status(n int) []byte {
 		LastTurn:   b.game.IsLastTurn(),
 	}
 	response, _ := json.Marshal(msg)
-	return response
+	return response, err
 }
 
 func (b *AcquireBridge) tilesData(pl interfaces.Player) []handData {
@@ -294,9 +309,11 @@ func (b *AcquireBridge) corpsData() []corpData {
 	return data
 }
 
-func (b *AcquireBridge) playersInfo(n int) (playerData, map[string]playerData) {
+func (b *AcquireBridge) playersInfo(n int) (playerData, map[string]playerData, error) {
 	rivals := map[string]playerData{}
 	var ply playerData
+	var err error
+	var number int
 	for i, p := range b.players {
 		if n != i {
 			rivals[strconv.Itoa(i)] = playerData{
@@ -310,12 +327,12 @@ func (b *AcquireBridge) playersInfo(n int) (playerData, map[string]playerData) {
 				Cash:        p.Cash(),
 				OwnedShares: b.playersShares(i),
 			}
-			if b.CurrentPlayerNumber() == n {
+			if number, err = b.CurrentPlayerNumber(); number == n && err == nil {
 				ply.Enabled = true
 			}
 		}
 	}
-	return ply, rivals
+	return ply, rivals, err
 }
 
 func (b *AcquireBridge) playersShares(playerNumber int) []int {
@@ -327,23 +344,20 @@ func (b *AcquireBridge) playersShares(playerNumber int) []int {
 }
 
 // AddPlayer adds a new player to the game
-func (b *AcquireBridge) AddPlayer() {
+func (b *AcquireBridge) AddPlayer() error {
+	if len(b.players) == maximumPlayers {
+		return errors.New(GameFull)
+	}
 	b.players = append(b.players, player.New())
-}
-
-// MaximumPlayers returns the maximum number of players that can play
-func (b *AcquireBridge) MaximumPlayers() int {
-	return maximumPlayers
-}
-
-// MinimumPlayers returns the minimum number of players needed to play
-func (b *AcquireBridge) MinimumPlayers() int {
-	return minimumPlayers
+	return nil
 }
 
 // StartGame starts a new Acquire game
 func (b *AcquireBridge) StartGame() error {
 	var err error
+	if b.game != nil {
+		err = errors.New(GameAlreadyStarted)
+	}
 	b.game, err = acquire.New(
 		board.New(),
 		b.players,
