@@ -77,3 +77,66 @@ func TestStartGameWithNotEnoughPlayers(t *testing.T) {
 		t.Errorf("Bridge must return an error when trying to start a game with not enough players")
 	}
 }
+
+func TestStartGameWithEnoughPlayers(t *testing.T) {
+	bridge := New()
+	for i := 0; i < 3; i++ {
+		bridge.AddPlayer()
+	}
+	if err := bridge.StartGame(); err != nil {
+		t.Errorf("Bridge must not return an error when trying to start a game with enough players")
+	}
+}
+
+func TestStatusWithGameStarted(t *testing.T) {
+	bridge := New()
+	for i := 0; i < 3; i++ {
+		bridge.AddPlayer()
+	}
+	bridge.StartGame()
+	if _, err := bridge.Status(0); err != nil {
+		t.Errorf("Bridge must not return an error when trying to get the status of a started game")
+	}
+}
+
+func TestStatusWithGameNotStarted(t *testing.T) {
+	bridge := New()
+	for i := 0; i < 3; i++ {
+		bridge.AddPlayer()
+	}
+	if _, err := bridge.Status(0); err == nil {
+		t.Errorf("Bridge must return an error when trying to get the status of a non started game")
+	}
+}
+
+func TestStatusForInexistentPlayer(t *testing.T) {
+	bridge := New()
+	for i := 0; i < 3; i++ {
+		bridge.AddPlayer()
+	}
+	bridge.StartGame()
+	if _, err := bridge.Status(9); err == nil {
+		t.Errorf("Bridge must return an error when trying to get the game status of an inexistent player")
+	}
+}
+
+func TestAddPlayerToAFullGame(t *testing.T) {
+	bridge := New()
+	for i := 0; i < 7; i++ {
+		bridge.AddPlayer()
+	}
+	if err := bridge.AddPlayer(); err == nil {
+		t.Errorf("Bridge must return an error when trying to add a player to an already full game")
+	}
+}
+
+func TestAddPlayerToARunningGame(t *testing.T) {
+	bridge := New()
+	for i := 0; i < 3; i++ {
+		bridge.AddPlayer()
+	}
+	bridge.StartGame()
+	if err := bridge.AddPlayer(); err == nil {
+		t.Errorf("Bridge must return an error when trying to add a player to a running game")
+	}
+}

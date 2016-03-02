@@ -11,6 +11,5 @@ type Bridge interface {
 	CurrentPlayerNumber() (int, error)
 	Status(n int) ([]byte, error)
 	AddPlayer() error
-	GameStarted() bool
 	StartGame() error
 }

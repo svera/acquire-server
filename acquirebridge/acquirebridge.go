@@ -36,6 +36,8 @@ const (
 	GameNotStarted = "game_not_started"
 	// GameFull is an error returned when a game already has the maximum number of players
 	GameFull = "game_full"
+	// InexistentPlayer is an error returned when someone tries to get information of a non existent player
+	InexistentPlayer = "inexistent_player"
 )
 
 // New initializes a new AcquireBridge instance
@@ -224,14 +226,14 @@ func coordsToTile(tl string) (interfaces.Tile, error) {
 
 // CurrentPlayerNumber returns the number of the player currently in turn
 func (b *AcquireBridge) CurrentPlayerNumber() (int, error) {
-	if !b.GameStarted() {
+	if !b.gameStarted() {
 		return 0, errors.New(GameNotStarted)
 	}
 	return b.game.CurrentPlayerNumber(), nil
 }
 
-// GameStarted returns true if there's a game in progress, false otherwise
-func (b *AcquireBridge) GameStarted() bool {
+// gameStarted returns true if there's a game in progress, false otherwise
+func (b *AcquireBridge) gameStarted() bool {
 	if b.game == nil {
 		return false
 	}
@@ -314,6 +316,10 @@ func (b *AcquireBridge) playersInfo(n int) (playerData, map[string]playerData, e
 	var ply playerData
 	var err error
 	var number int
+
+	if n < 0 || n >= len(b.players) {
+		err = errors.New(InexistentPlayer)
+	}
 	for i, p := range b.players {
 		if n != i {
 			rivals[strconv.Itoa(i)] = playerData{
@@ -348,6 +354,9 @@ func (b *AcquireBridge) AddPlayer() error {
 	if len(b.players) == maximumPlayers {
 		return errors.New(GameFull)
 	}
+	if b.gameStarted() {
+		return errors.New(GameAlreadyStarted)
+	}
 	b.players = append(b.players, player.New())
 	return nil
 }
@@ -355,7 +364,7 @@ func (b *AcquireBridge) AddPlayer() error {
 // StartGame starts a new Acquire game
 func (b *AcquireBridge) StartGame() error {
 	var err error
-	if b.game != nil {
+	if b.gameStarted() {
 		err = errors.New(GameAlreadyStarted)
 	}
 	b.game, err = acquire.New(
