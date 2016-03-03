@@ -14,6 +14,9 @@ const (
 	maxMessageSize = 1024 * 1024
 )
 
+// Client is a struct that stores data related to a specific user and provides
+// several functions to send/receive data to/from a client using a websocket
+// connection
 type Client struct {
 	Name     string
 	ws       *websocket.Conn
@@ -21,6 +24,7 @@ type Client struct {
 	Owner    bool
 }
 
+// New returns a new Client instance
 func New(w http.ResponseWriter, r *http.Request) (*Client, error) {
 	var upgrader = websocket.Upgrader{
 		ReadBufferSize:  maxMessageSize,
