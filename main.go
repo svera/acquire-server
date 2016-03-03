@@ -27,7 +27,7 @@ func join(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	c, err := client.New(w, r)
+	c, err := client.NewHuman(w, r)
 	if err != nil {
 		log.Println(err)
 		return

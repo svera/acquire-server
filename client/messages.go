@@ -1,6 +1,9 @@
 package client
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"github.com/svera/acquire-server/interfaces"
+)
 
 type MessageContent struct {
 	Type   string          `json:"typ"`
@@ -8,6 +11,6 @@ type MessageContent struct {
 }
 
 type Message struct {
-	Author  *Client
+	Author  interfaces.Client
 	Content MessageContent
 }

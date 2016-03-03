@@ -3,6 +3,7 @@ package hub
 import (
 	"encoding/json"
 	"github.com/svera/acquire-server/client"
+	"github.com/svera/acquire-server/interfaces"
 )
 
 // Hub is a struct that manage the message flow between client (players)
@@ -11,16 +12,16 @@ import (
 // players and more.
 type Hub struct {
 	// Registered clients
-	clients []*client.Client
+	clients []interfaces.Client
 
 	// Inbound messages
 	Messages chan *client.Message
 
 	// Register requests
-	Register chan *client.Client
+	Register chan interfaces.Client
 
 	// Unregister requests
-	Unregister chan *client.Client
+	Unregister chan interfaces.Client
 
 	gameBridge Bridge
 }
@@ -29,9 +30,9 @@ type Hub struct {
 func New(b Bridge) *Hub {
 	return &Hub{
 		Messages:   make(chan *client.Message),
-		Register:   make(chan *client.Client),
-		Unregister: make(chan *client.Client),
-		clients:    []*client.Client{},
+		Register:   make(chan interfaces.Client),
+		Unregister: make(chan interfaces.Client),
+		clients:    []interfaces.Client{},
 		gameBridge: b,
 	}
 }
@@ -50,7 +51,7 @@ func (h *Hub) Run() {
 			for _, val := range h.clients {
 				if val == c {
 					h.removeClient(c)
-					close(c.Incoming)
+					close(c.Incoming())
 				}
 			}
 			break
@@ -59,7 +60,7 @@ func (h *Hub) Run() {
 			var response []byte
 
 			if m.Content.Type == "ini" {
-				if !m.Author.Owner {
+				if !m.Author.Owner() {
 					break
 				}
 
@@ -83,7 +84,7 @@ func (h *Hub) Run() {
 func (h *Hub) clientNames() []string {
 	names := []string{}
 	for _, c := range h.clients {
-		names = append(names, c.Name)
+		names = append(names, c.Name())
 	}
 	return names
 }
@@ -95,24 +96,24 @@ func (h *Hub) broadcastUpdate() {
 	}
 }
 
-func (h *Hub) currentPlayerClient() (*client.Client, error) {
+func (h *Hub) currentPlayerClient() (interfaces.Client, error) {
 	number, err := h.gameBridge.CurrentPlayerNumber()
 	return h.clients[number], err
 }
 
-func (h *Hub) sendMessage(c *client.Client, message []byte) {
+func (h *Hub) sendMessage(c interfaces.Client, message []byte) {
 	select {
-	case c.Incoming <- message:
+	case c.Incoming() <- message:
 		break
 
 	// We can't reach the client
 	default:
-		close(c.Incoming)
+		close(c.Incoming())
 		h.removeClient(c)
 	}
 }
 
-func (h *Hub) removeClient(c *client.Client) {
+func (h *Hub) removeClient(c interfaces.Client) {
 	for i := range h.clients {
 		if h.clients[i] == c {
 			h.clients = append(h.clients[:i], h.clients[i+1:]...)
@@ -121,14 +122,14 @@ func (h *Hub) removeClient(c *client.Client) {
 	}
 }
 
-func (h *Hub) addClient(c *client.Client) error {
+func (h *Hub) addClient(c interfaces.Client) error {
 	if err := h.gameBridge.AddPlayer(); err != nil {
 		return err
 	}
 	h.clients = append(h.clients, c)
 
 	if len(h.clients) == 1 {
-		c.Owner = true
+		c.SetOwner(true)
 		msg := struct {
 			Type string `json:"typ"`
 			Role string `json:"rol"`
