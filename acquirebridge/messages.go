@@ -1,5 +1,14 @@
 package acquirebridge
 
+const (
+	messageTypePlayTile         = "ply"
+	messageTypeFoundCorporation = "ncp"
+	messageTypeBuyStock         = "buy"
+	messageTypeSellTrade        = "sel"
+	messageTypeUntieMerge       = "unt"
+	messageTypeEndGame          = "end"
+)
+
 type playTileMessageParams struct {
 	Tile string `json:"til"`
 }

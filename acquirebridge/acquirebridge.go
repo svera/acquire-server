@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/svera/acquire"
+	serverInterfaces "github.com/svera/acquire-server/interfaces"
 	"github.com/svera/acquire/board"
 	"github.com/svera/acquire/corporation"
 	"github.com/svera/acquire/fsm"
@@ -375,4 +376,8 @@ func (b *AcquireBridge) StartGame() error {
 		&fsm.PlayTile{},
 	)
 	return err
+}
+
+func (b *AcquireBridge) AddBot() (serverInterfaces.Client, error) {
+	return NewBot(), nil
 }

@@ -23,11 +23,11 @@ type Hub struct {
 	// Unregister requests
 	Unregister chan interfaces.Client
 
-	gameBridge Bridge
+	gameBridge interfaces.Bridge
 }
 
 // New returns a new Hub instance
-func New(b Bridge) *Hub {
+func New(b interfaces.Bridge) *Hub {
 	return &Hub{
 		Messages:   make(chan *client.Message),
 		Register:   make(chan interfaces.Client),
@@ -67,10 +67,22 @@ func (h *Hub) Run() {
 				if err = h.gameBridge.StartGame(); err != nil {
 					break
 				}
+			} else if m.Content.Type == "bot" {
+				if !m.Author.Owner() {
+					break
+				}
+				if c, err := h.gameBridge.AddBot(); err == nil {
+					h.addClient(c)
+					go c.ReadPump(h.Messages, h.Unregister)
+				} else {
+					break
+				}
+
 			} else if currentPlayer, err := h.currentPlayerClient(); m.Author != currentPlayer || err != nil {
 				break
+			} else {
+				response, err = h.gameBridge.ParseMessage(m.Content.Type, m.Content.Params)
 			}
-			response, err = h.gameBridge.ParseMessage(m.Content.Type, m.Content.Params)
 
 			if err != nil {
 				h.sendMessage(m.Author, response)

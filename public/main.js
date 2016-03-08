@@ -78,6 +78,13 @@ $(function() {
         );
     });
 
+    $("#lobby").on("click", '#addBot', function() {
+        message = {"typ": "bot", "par": "add"}
+        conn.send(
+            JSON.stringify(message)
+        );
+    });
+
     playerControls.on("click", '#playButton', function() {
         tl = $('input[name=tiles]:checked')
         conn.send(
