@@ -2,9 +2,9 @@ package main
 
 import (
 	"github.com/gorilla/mux"
-	"github.com/svera/acquire-server/acquirebridge"
-	"github.com/svera/acquire-server/client"
-	"github.com/svera/acquire-server/hub"
+	"github.com/svera/tbg-server/acquirebridge"
+	"github.com/svera/tbg-server/client"
+	"github.com/svera/tbg-server/hub"
 	"html/template"
 	"log"
 	"net/http"

@@ -2,7 +2,7 @@ package client
 
 import (
 	"encoding/json"
-	"github.com/svera/acquire-server/interfaces"
+	"github.com/svera/tbg-server/interfaces"
 )
 
 type MessageContent struct {

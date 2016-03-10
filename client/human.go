@@ -3,7 +3,7 @@ package client
 import (
 	"encoding/json"
 	"github.com/gorilla/websocket"
-	"github.com/svera/acquire-server/interfaces"
+	"github.com/svera/tbg-server/interfaces"
 	"net/http"
 	"time"
 )

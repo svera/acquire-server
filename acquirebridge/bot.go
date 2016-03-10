@@ -2,9 +2,9 @@ package acquirebridge
 
 import (
 	"encoding/json"
-	"github.com/svera/acquire-server/client"
-	serverInterfaces "github.com/svera/acquire-server/interfaces"
 	acquireInterfaces "github.com/svera/acquire/interfaces"
+	"github.com/svera/tbg-server/client"
+	serverInterfaces "github.com/svera/tbg-server/interfaces"
 	"log"
 )
 
@@ -47,13 +47,13 @@ func (c *Bot) ReadPump(cnl interface{}, unregister chan serverInterfaces.Client)
 					Tile: parsed.PlayerInfo.Hand[0].Coords,
 				}
 				ser, _ := json.Marshal(params)
-				cnt := client.MessageContent{
-					Type:   "ply",
-					Params: ser,
-				}
+
 				msg := &client.Message{
-					Author:  c,
-					Content: cnt,
+					Author: c,
+					Content: client.MessageContent{
+						Type:   messageTypePlayTile,
+						Params: ser,
+					},
 				}
 
 				channel <- msg

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/svera/acquire"
-	serverInterfaces "github.com/svera/acquire-server/interfaces"
 	"github.com/svera/acquire/board"
 	"github.com/svera/acquire/corporation"
 	"github.com/svera/acquire/fsm"
@@ -12,6 +11,7 @@ import (
 	"github.com/svera/acquire/player"
 	"github.com/svera/acquire/tile"
 	"github.com/svera/acquire/tileset"
+	serverInterfaces "github.com/svera/tbg-server/interfaces"
 	"strconv"
 	"strings"
 )

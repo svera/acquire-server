@@ -2,8 +2,8 @@ package hub
 
 import (
 	"encoding/json"
-	"github.com/svera/acquire-server/client"
-	"github.com/svera/acquire-server/interfaces"
+	"github.com/svera/tbg-server/client"
+	"github.com/svera/tbg-server/interfaces"
 )
 
 // Hub is a struct that manage the message flow between client (players)
