@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"github.com/svera/acquire-server/client"
 	serverInterfaces "github.com/svera/acquire-server/interfaces"
-	"github.com/svera/acquire/interfaces"
+	acquireInterfaces "github.com/svera/acquire/interfaces"
 	"log"
 )
 
@@ -17,15 +17,17 @@ const (
 // several functions to send/receive data to/from a client using a websocket
 // connection
 type Bot struct {
-	name     string
-	incoming chan []byte // Channel storing incoming messages
-	owner    bool
+	name       string
+	incoming   chan []byte // Channel storing incoming messages
+	parsedChan chan statusMessage
+	owner      bool
 }
 
 // NewBot returns a new Bot instance
 func NewBot() serverInterfaces.Client {
 	return &Bot{
-		incoming: make(chan []byte, maxMessageSize),
+		incoming:   make(chan []byte, maxMessageSize),
+		parsedChan: make(chan statusMessage),
 	}
 }
 
@@ -39,30 +41,22 @@ func (c *Bot) ReadPump(cnl interface{}, unregister chan serverInterfaces.Client)
 
 	for {
 		select {
-		case message, ok := <-c.incoming:
-			if !ok {
-				return
-			}
-			var parsed statusMessage
-			if err := json.Unmarshal(message, &parsed); err == nil {
-				if parsed.State == interfaces.PlayTileStateName && parsed.PlayerInfo.Enabled {
-					params := playTileMessageParams{
-						Tile: parsed.PlayerInfo.Hand[0].Coords,
-					}
-					ser, _ := json.Marshal(params)
-					cnt := client.MessageContent{
-						Type:   "ply",
-						Params: ser,
-					}
-					msg := &client.Message{
-						Author:  c,
-						Content: cnt,
-					}
-
-					channel <- msg
+		case parsed := <-c.parsedChan:
+			if parsed.State == acquireInterfaces.PlayTileStateName {
+				params := playTileMessageParams{
+					Tile: parsed.PlayerInfo.Hand[0].Coords,
 				}
-			} else {
-				log.Println(err)
+				ser, _ := json.Marshal(params)
+				cnt := client.MessageContent{
+					Type:   "ply",
+					Params: ser,
+				}
+				msg := &client.Message{
+					Author:  c,
+					Content: cnt,
+				}
+
+				channel <- msg
 			}
 		}
 	}
@@ -71,6 +65,22 @@ func (c *Bot) ReadPump(cnl interface{}, unregister chan serverInterfaces.Client)
 
 // WritePump sends data to the user
 func (c *Bot) WritePump() {
+	for {
+		select {
+		case message, ok := <-c.incoming:
+			if !ok {
+				return
+			}
+			var parsed statusMessage
+			if err := json.Unmarshal(message, &parsed); err == nil {
+				if parsed.PlayerInfo.Enabled {
+					c.parsedChan <- parsed
+				}
+			} else {
+				log.Println(err)
+			}
+		}
+	}
 }
 
 func (c *Bot) Incoming() chan []byte {

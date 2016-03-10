@@ -39,11 +39,10 @@ func New(b interfaces.Bridge) *Hub {
 
 // Run listens for messages coming from several channels and acts accordingly
 func (h *Hub) Run() {
-	var err error
 	for {
 		select {
 		case c := <-h.Register:
-			if err = h.addClient(c); err != nil {
+			if err := h.addClient(c); err != nil {
 				break
 			}
 
@@ -57,39 +56,64 @@ func (h *Hub) Run() {
 			break
 
 		case m := <-h.Messages:
-			var response []byte
-
-			if m.Content.Type == "ini" {
-				if !m.Author.Owner() {
-					break
-				}
-
-				if err = h.gameBridge.StartGame(); err != nil {
-					break
-				}
-			} else if m.Content.Type == "bot" {
-				if !m.Author.Owner() {
-					break
-				}
-				if c, err := h.gameBridge.AddBot(); err == nil {
-					h.addClient(c)
-					go c.ReadPump(h.Messages, h.Unregister)
-				} else {
-					break
-				}
-
-			} else if currentPlayer, err := h.currentPlayerClient(); m.Author != currentPlayer || err != nil {
-				break
-			} else {
-				response, err = h.gameBridge.ParseMessage(m.Content.Type, m.Content.Params)
-			}
-
-			if err != nil {
-				h.sendMessage(m.Author, response)
-			} else {
-				h.broadcastUpdate()
-			}
+			h.parseMessage(m)
+			break
 		}
+	}
+}
+
+// parseMessage distinguish the passed message between be a control message (not
+// related to a particular game, but to the server) or a game one (specific to
+// the game)
+func (h *Hub) parseMessage(m *client.Message) {
+	if h.isControlMessage(m) {
+		h.parseControlMessage(m)
+	} else {
+		h.parseGameMessage(m)
+	}
+}
+
+func (h *Hub) isControlMessage(m *client.Message) bool {
+	switch m.Content.Type {
+	case
+		controlMessageTypeAddBot,
+		controlMessageTypeStartGame:
+		return true
+	}
+	return false
+}
+
+func (h *Hub) parseControlMessage(m *client.Message) {
+	if !m.Author.Owner() {
+		return
+	}
+	switch m.Content.Type {
+	case controlMessageTypeStartGame:
+		if err := h.gameBridge.StartGame(); err == nil {
+			h.broadcastUpdate()
+		}
+		break
+	case controlMessageTypeAddBot:
+		if c, err := h.gameBridge.AddBot(); err == nil {
+			h.addClient(c)
+			go c.WritePump()
+			go c.ReadPump(h.Messages, h.Unregister)
+		}
+		break
+	}
+}
+
+func (h *Hub) parseGameMessage(m *client.Message) {
+	var response []byte
+	var err error
+
+	if currentPlayer, err := h.currentPlayerClient(); m.Author == currentPlayer && err == nil {
+		response, err = h.gameBridge.ParseMessage(m.Content.Type, m.Content.Params)
+	}
+	if err != nil {
+		h.sendMessage(m.Author, response)
+	} else {
+		h.broadcastUpdate()
 	}
 }
 
@@ -142,20 +166,14 @@ func (h *Hub) addClient(c interfaces.Client) error {
 
 	if len(h.clients) == 1 {
 		c.SetOwner(true)
-		msg := struct {
-			Type string `json:"typ"`
-			Role string `json:"rol"`
-		}{
+		msg := setOwnerMessage{
 			Type: "ctl",
 			Role: "mng",
 		}
 		response, _ := json.Marshal(msg)
 		h.sendMessage(c, response)
 	}
-	msg := struct {
-		Type   string   `json:"typ"`
-		Values []string `json:"val"`
-	}{
+	msg := currentPlayersMessage{
 		Type:   "add",
 		Values: h.clientNames(),
 	}

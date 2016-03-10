@@ -9,6 +9,8 @@ const (
 	messageTypeEndGame          = "end"
 )
 
+// playTileMessageParams is a struct which defines the format of the params of
+// incoming playTile messages
 type playTileMessageParams struct {
 	Tile string `json:"til"`
 }
@@ -21,27 +23,37 @@ type buyMessageParams struct {
 	Corporations map[string]int `json:"cor"`
 }
 
+type sellTradeMessageParams struct {
+	Corporations map[string]sellTrade `json:"cor"`
+}
+
 type sellTrade struct {
 	Sell  int `json:"sel"`
 	Trade int `json:"tra"`
-}
-
-type sellTradeMessageParams struct {
-	Corporations map[string]sellTrade `json:"cor"`
 }
 
 type untieMergeMessageParams struct {
 	Corporation string `json:"cor"`
 }
 
+// errorMessage is a struct sent to an specific player
+// when he/she does an action that leads to an error.
 type errorMessage struct {
 	Type    string `json:"typ"`
 	Content string `json:"cnt"`
 }
 
-type handData struct {
-	Coords   string `json:"coo"`
-	Playable bool   `json:"pyb"`
+// statusMessage is a struct which contains the status of the game at the moment
+// it is issued. It is sent to each player after every action made by one of them.
+type statusMessage struct {
+	Type       string                `json:"typ"`
+	Board      map[string]string     `json:"brd"`
+	State      string                `json:"sta"`
+	Corps      []corpData            `json:"cor"`
+	TiedCorps  []string              `json:"tie"`
+	PlayerInfo playerData            `json:"ply"`
+	RivalsInfo map[string]playerData `json:"riv"`
+	LastTurn   bool                  `json:"lst"`
 }
 
 type corpData struct {
@@ -61,13 +73,7 @@ type playerData struct {
 	OwnedShares []int      `json:"own"`
 }
 
-type statusMessage struct {
-	Type       string                `json:"typ"`
-	Board      map[string]string     `json:"brd"`
-	State      string                `json:"sta"`
-	Corps      []corpData            `json:"cor"`
-	TiedCorps  []string              `json:"tie"`
-	PlayerInfo playerData            `json:"ply"`
-	RivalsInfo map[string]playerData `json:"riv"`
-	LastTurn   bool                  `json:"lst"`
+type handData struct {
+	Coords   string `json:"coo"`
+	Playable bool   `json:"pyb"`
 }
