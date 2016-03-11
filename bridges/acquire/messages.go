@@ -49,7 +49,7 @@ type statusMessage struct {
 	Type       string                `json:"typ"`
 	Board      map[string]string     `json:"brd"`
 	State      string                `json:"sta"`
-	Corps      []corpData            `json:"cor"`
+	Corps      [7]corpData           `json:"cor"`
 	TiedCorps  []string              `json:"tie"`
 	PlayerInfo playerData            `json:"ply"`
 	RivalsInfo map[string]playerData `json:"riv"`

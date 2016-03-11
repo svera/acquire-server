@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/svera/acquire"
 	"github.com/svera/acquire/board"
+	"github.com/svera/acquire/bots"
 	"github.com/svera/acquire/corporation"
 	"github.com/svera/acquire/fsm"
 	acquireInterfaces "github.com/svera/acquire/interfaces"
@@ -296,10 +297,10 @@ func (b *AcquireBridge) tilesData(pl acquireInterfaces.Player) []handData {
 	return hnd
 }
 
-func (b *AcquireBridge) corpsData() []corpData {
-	var data []corpData
-	for _, corp := range b.corporations {
-		data = append(data, corpData{
+func (b *AcquireBridge) corpsData() [7]corpData {
+	var data [7]corpData
+	for i, corp := range b.corporations {
+		data[i] = corpData{
 			Name:            corp.Name(),
 			Price:           corp.StockPrice(),
 			MajorityBonus:   corp.MajorityBonus(),
@@ -307,7 +308,7 @@ func (b *AcquireBridge) corpsData() []corpData {
 			RemainingShares: corp.Stock(),
 			Size:            corp.Size(),
 			Defunct:         b.game.IsCorporationDefunct(corp),
-		})
+		}
 	}
 	return data
 }
@@ -379,5 +380,6 @@ func (b *AcquireBridge) StartGame() error {
 }
 
 func (b *AcquireBridge) AddBot() (serverInterfaces.Client, error) {
-	return NewBot(), nil
+	bot := bots.NewRandom()
+	return NewBotClient(bot), nil
 }
