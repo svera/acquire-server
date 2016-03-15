@@ -41,7 +41,7 @@ $(function() {
                     playerActive = true;
                     if (msg.hasOwnProperty("sta")) {
                         if (msg.sta == "PlayTile") {
-                            updateHand(msg.ply.hnd);
+                            updateHand(msg.hnd);
                         }
                         if (msg.sta == "FoundCorp") {
                             chooseNewCorporation(msg.cor);

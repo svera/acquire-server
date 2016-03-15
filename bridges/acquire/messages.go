@@ -46,14 +46,15 @@ type errorMessage struct {
 // statusMessage is a struct which contains the status of the game at the moment
 // it is issued. It is sent to each player after every action made by one of them.
 type statusMessage struct {
-	Type       string                `json:"typ"`
-	Board      map[string]string     `json:"brd"`
-	State      string                `json:"sta"`
-	Corps      [7]corpData           `json:"cor"`
-	TiedCorps  []string              `json:"tie"`
-	PlayerInfo playerData            `json:"ply"`
-	RivalsInfo map[string]playerData `json:"riv"`
-	LastTurn   bool                  `json:"lst"`
+	Type       string            `json:"typ"`
+	Board      map[string]string `json:"brd"`
+	State      string            `json:"sta"`
+	Hand       []handData        `json:"hnd"`
+	Corps      [7]corpData       `json:"cor"`
+	TiedCorps  []string          `json:"tie"`
+	PlayerInfo playerData        `json:"ply"`
+	RivalsInfo []playerData      `json:"riv"`
+	LastTurn   bool              `json:"lst"`
 }
 
 type corpData struct {
@@ -67,10 +68,10 @@ type corpData struct {
 }
 
 type playerData struct {
-	Enabled     bool       `json:"ebl"`
-	Hand        []handData `json:"hnd"`
-	Cash        int        `json:"csh"`
-	OwnedShares []int      `json:"own"`
+	Name        string `json:"nam"`
+	Enabled     bool   `json:"ebl"`
+	Cash        int    `json:"csh"`
+	OwnedShares [7]int `json:"own"`
 }
 
 type handData struct {

@@ -39,7 +39,8 @@ const (
 	// GameFull is an error returned when a game already has the maximum number of players
 	GameFull = "game_full"
 	// InexistentPlayer is an error returned when someone tries to get information of a non existent player
-	InexistentPlayer = "inexistent_player"
+	InexistentPlayer    = "inexistent_player"
+	CorporationNotFound = "corporation_not_found"
 )
 
 // New initializes a new AcquireBridge instance
@@ -197,7 +198,7 @@ func (b *AcquireBridge) findCorpByName(name string) (acquireInterfaces.Corporati
 			return corp, nil
 		}
 	}
-	return &corporation.Corporation{}, errors.New("corporation not found")
+	return &corporation.Corporation{}, errors.New(CorporationNotFound)
 }
 
 func (b *AcquireBridge) boardOwnership() map[string]string {
@@ -278,6 +279,7 @@ func (b *AcquireBridge) Status(n int) ([]byte, error) {
 		State:      b.game.GameStateName(),
 		Corps:      b.corpsData(),
 		TiedCorps:  corpNames(b.game.TiedCorps()),
+		Hand:       b.tilesData(b.players[n]),
 		PlayerInfo: playerInfo,
 		RivalsInfo: rivalsInfo,
 		LastTurn:   b.game.IsLastTurn(),
@@ -313,8 +315,8 @@ func (b *AcquireBridge) corpsData() [7]corpData {
 	return data
 }
 
-func (b *AcquireBridge) playersInfo(n int) (playerData, map[string]playerData, error) {
-	rivals := map[string]playerData{}
+func (b *AcquireBridge) playersInfo(n int) (playerData, []playerData, error) {
+	rivals := []playerData{}
 	var ply playerData
 	var err error
 	var number int
@@ -324,14 +326,13 @@ func (b *AcquireBridge) playersInfo(n int) (playerData, map[string]playerData, e
 	}
 	for i, p := range b.players {
 		if n != i {
-			rivals[strconv.Itoa(i)] = playerData{
+			rivals = append(rivals, playerData{
 				Cash:        p.Cash(),
 				OwnedShares: b.playersShares(i),
-			}
+			})
 		} else {
 			ply = playerData{
 				Enabled:     false,
-				Hand:        b.tilesData(p),
 				Cash:        p.Cash(),
 				OwnedShares: b.playersShares(i),
 			}
@@ -343,10 +344,10 @@ func (b *AcquireBridge) playersInfo(n int) (playerData, map[string]playerData, e
 	return ply, rivals, err
 }
 
-func (b *AcquireBridge) playersShares(playerNumber int) []int {
-	var data []int
-	for _, corp := range b.corporations {
-		data = append(data, b.players[playerNumber].Shares(corp))
+func (b *AcquireBridge) playersShares(playerNumber int) [7]int {
+	var data [7]int
+	for i, corp := range b.corporations {
+		data[i] = b.players[playerNumber].Shares(corp)
 	}
 	return data
 }

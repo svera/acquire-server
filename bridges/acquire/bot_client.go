@@ -2,11 +2,11 @@ package acquirebridge
 
 import (
 	"encoding/json"
+	"github.com/svera/acquire/bots"
 	acquireInterfaces "github.com/svera/acquire/interfaces"
 	"github.com/svera/tbg-server/client"
 	serverInterfaces "github.com/svera/tbg-server/interfaces"
 	"log"
-	"strconv"
 )
 
 const (
@@ -21,12 +21,11 @@ type BotClient struct {
 	name     string
 	incoming chan []byte // Channel storing incoming messages
 	botTurn  chan statusMessage
-	owner    bool
-	bot      bot
+	bot      acquireInterfaces.Bot
 }
 
 // NewBot returns a new Bot instance
-func NewBotClient(b bot) serverInterfaces.Client {
+func NewBotClient(b acquireInterfaces.Bot) serverInterfaces.Client {
 	return &BotClient{
 		incoming: make(chan []byte, maxMessageSize),
 		botTurn:  make(chan statusMessage),
@@ -50,6 +49,10 @@ func (c *BotClient) ReadPump(cnl interface{}, unregister chan serverInterfaces.C
 			switch parsed.State {
 			case acquireInterfaces.PlayTileStateName:
 				msg = c.playTile()
+			case acquireInterfaces.FoundCorpStateName:
+				msg = c.foundCorporation()
+			case acquireInterfaces.BuyStockStateName:
+				msg = c.buyStock()
 			}
 		}
 		channel <- msg
@@ -58,19 +61,59 @@ func (c *BotClient) ReadPump(cnl interface{}, unregister chan serverInterfaces.C
 }
 
 func (c *BotClient) updateBot(parsed statusMessage) {
-	var hand []acquireInterfaces.Tile
-	for _, handData := range parsed.PlayerInfo.Hand {
-		tl, _ := coordsToTile(handData.Coords)
-		hand = append(hand, tl)
+	var hand []bots.HandData
+	var corps [7]bots.CorpData
+	var playerInfo bots.PlayerData
+	var rivalsInfo []bots.PlayerData
+
+	for _, tile := range parsed.Hand {
+		hand = append(hand, bots.HandData{
+			Coords:   tile.Coords,
+			Playable: tile.Playable,
+		})
 	}
-	c.bot.SetTiles(hand)
+	for i := range parsed.Corps {
+		corps[i] = bots.CorpData{
+			Name:            parsed.Corps[i].Name,
+			Price:           parsed.Corps[i].Price,
+			MajorityBonus:   parsed.Corps[i].MajorityBonus,
+			MinorityBonus:   parsed.Corps[i].MinorityBonus,
+			RemainingShares: parsed.Corps[i].RemainingShares,
+			Size:            parsed.Corps[i].Size,
+			Defunct:         parsed.Corps[i].Defunct,
+		}
+	}
+	playerInfo = bots.PlayerData{
+		Enabled:     parsed.PlayerInfo.Enabled,
+		Cash:        parsed.PlayerInfo.Cash,
+		OwnedShares: parsed.PlayerInfo.OwnedShares,
+	}
+	for _, rival := range parsed.RivalsInfo {
+		rivalsInfo = append(rivalsInfo, bots.PlayerData{
+			Enabled:     rival.Enabled,
+			Cash:        rival.Cash,
+			OwnedShares: rival.OwnedShares,
+		})
+	}
+
+	st := bots.Status{
+		Board:      parsed.Board,
+		State:      parsed.State,
+		Hand:       hand,
+		Corps:      corps,
+		TiedCorps:  parsed.TiedCorps,
+		PlayerInfo: playerInfo,
+		RivalsInfo: rivalsInfo,
+		LastTurn:   parsed.LastTurn,
+	}
+	c.bot.Update(st)
 }
 
 func (c *BotClient) playTile() *client.Message {
 	tl := c.bot.PlayTile()
-	log.Println(strconv.Itoa(tl.Number()) + tl.Letter())
+	log.Println(tl)
 	params := playTileMessageParams{
-		Tile: strconv.Itoa(tl.Number()) + tl.Letter(),
+		Tile: tl,
 	}
 	ser, _ := json.Marshal(params)
 	return &client.Message{
@@ -82,15 +125,49 @@ func (c *BotClient) playTile() *client.Message {
 	}
 }
 
-// WritePump sends data to the user
+func (c *BotClient) foundCorporation() *client.Message {
+	name := c.bot.FoundCorporation()
+	log.Println(name)
+	params := newCorpMessageParams{
+		Corporation: name,
+	}
+	ser, _ := json.Marshal(params)
+	return &client.Message{
+		Author: c,
+		Content: client.MessageContent{
+			Type:   messageTypeFoundCorporation,
+			Params: ser,
+		},
+	}
+}
+
+func (c *BotClient) buyStock() *client.Message {
+	params := buyMessageParams{
+		Corporations: map[string]int{
+			"sackson": 0,
+		},
+	}
+	ser, _ := json.Marshal(params)
+	return &client.Message{
+		Author: c,
+		Content: client.MessageContent{
+			Type:   messageTypeBuyStock,
+			Params: ser,
+		},
+	}
+}
+
+// WritePump gets updates from the hub
 func (c *BotClient) WritePump() {
+	var parsed statusMessage
+
 	for {
 		select {
 		case message, ok := <-c.incoming:
 			if !ok {
 				return
 			}
-			var parsed statusMessage
+
 			if err := json.Unmarshal(message, &parsed); err == nil {
 				if parsed.PlayerInfo.Enabled {
 					c.botTurn <- parsed
