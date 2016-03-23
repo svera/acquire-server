@@ -3,6 +3,9 @@ package acquirebridge
 import (
 	"encoding/json"
 	"errors"
+	"strconv"
+	"strings"
+
 	"github.com/svera/acquire"
 	"github.com/svera/acquire/board"
 	"github.com/svera/acquire/bots"
@@ -12,9 +15,8 @@ import (
 	"github.com/svera/acquire/player"
 	"github.com/svera/acquire/tile"
 	"github.com/svera/acquire/tileset"
+	"github.com/svera/tbg-server/client"
 	serverInterfaces "github.com/svera/tbg-server/interfaces"
-	"strconv"
-	"strings"
 )
 
 // AcquireBridge implements the bridge interface in order to be able to have
@@ -380,7 +382,13 @@ func (b *AcquireBridge) StartGame() error {
 	return err
 }
 
-func (b *AcquireBridge) AddBot() (serverInterfaces.Client, error) {
-	bot := bots.NewRandom()
-	return NewBotClient(bot), nil
+func (b *AcquireBridge) AddBot(params interface{}) (serverInterfaces.Client, error) {
+	if name, ok := params.(string); ok {
+		if bot, err := bots.Create(name); err == nil {
+			return NewBotClient(bot), nil
+		} else {
+			return &client.NullClient{}, err
+		}
+	}
+	panic("Expecting string in AddBot parameter")
 }

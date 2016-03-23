@@ -11,6 +11,6 @@ type Bridge interface {
 	CurrentPlayerNumber() (int, error)
 	Status(n int) ([]byte, error)
 	AddPlayer() error
-	AddBot() (Client, error)
+	AddBot(params interface{}) (Client, error)
 	StartGame() error
 }

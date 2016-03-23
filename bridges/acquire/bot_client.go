@@ -2,11 +2,12 @@ package acquirebridge
 
 import (
 	"encoding/json"
+	"log"
+
 	"github.com/svera/acquire/bots"
 	acquireInterfaces "github.com/svera/acquire/interfaces"
 	"github.com/svera/tbg-server/client"
 	serverInterfaces "github.com/svera/tbg-server/interfaces"
-	"log"
 )
 
 const (
@@ -37,6 +38,7 @@ func NewBotClient(b acquireInterfaces.Bot) serverInterfaces.Client {
 // with usually belongs to the hub
 func (c *BotClient) ReadPump(cnl interface{}, unregister chan serverInterfaces.Client) {
 	var msg *client.Message
+	var m interface{}
 	channel := cnl.(chan *client.Message)
 	defer func() {
 		unregister <- c
@@ -46,18 +48,27 @@ func (c *BotClient) ReadPump(cnl interface{}, unregister chan serverInterfaces.C
 		select {
 		case parsed := <-c.botTurn:
 			c.updateBot(parsed)
-			switch parsed.State {
-			case acquireInterfaces.PlayTileStateName:
-				msg = c.playTile()
-			case acquireInterfaces.FoundCorpStateName:
-				msg = c.foundCorporation()
-			case acquireInterfaces.BuyStockStateName:
-				msg = c.buyStock()
-			}
+			m = c.bot.Play()
+			bm := m.(bots.Message)
+			msg = c.encodeResponse(bm)
 		}
 		channel <- msg
 	}
 
+}
+
+func (c *BotClient) encodeResponse(m bots.Message) *client.Message {
+	var enc *client.Message
+
+	switch m.Type {
+	case bots.PlayTileResponseType:
+		enc = c.encodePlayTile(m.Params.(string))
+	case bots.NewCorpResponseType:
+		enc = c.encodeFoundCorporation(m.Params.(string))
+	case bots.BuyResponseType:
+		enc = c.encodeBuyStock(m.Params.(map[string]int))
+	}
+	return enc
 }
 
 func (c *BotClient) updateBot(parsed statusMessage) {
@@ -84,13 +95,11 @@ func (c *BotClient) updateBot(parsed statusMessage) {
 		}
 	}
 	playerInfo = bots.PlayerData{
-		Enabled:     parsed.PlayerInfo.Enabled,
 		Cash:        parsed.PlayerInfo.Cash,
 		OwnedShares: parsed.PlayerInfo.OwnedShares,
 	}
 	for _, rival := range parsed.RivalsInfo {
 		rivalsInfo = append(rivalsInfo, bots.PlayerData{
-			Enabled:     rival.Enabled,
 			Cash:        rival.Cash,
 			OwnedShares: rival.OwnedShares,
 		})
@@ -109,11 +118,9 @@ func (c *BotClient) updateBot(parsed statusMessage) {
 	c.bot.Update(st)
 }
 
-func (c *BotClient) playTile() *client.Message {
-	tl := c.bot.PlayTile()
-	log.Println(tl)
+func (c *BotClient) encodePlayTile(m string) *client.Message {
 	params := playTileMessageParams{
-		Tile: tl,
+		Tile: m,
 	}
 	ser, _ := json.Marshal(params)
 	return &client.Message{
@@ -125,11 +132,9 @@ func (c *BotClient) playTile() *client.Message {
 	}
 }
 
-func (c *BotClient) foundCorporation() *client.Message {
-	name := c.bot.FoundCorporation()
-	log.Println(name)
+func (c *BotClient) encodeFoundCorporation(m string) *client.Message {
 	params := newCorpMessageParams{
-		Corporation: name,
+		Corporation: m,
 	}
 	ser, _ := json.Marshal(params)
 	return &client.Message{
@@ -141,11 +146,9 @@ func (c *BotClient) foundCorporation() *client.Message {
 	}
 }
 
-func (c *BotClient) buyStock() *client.Message {
+func (c *BotClient) encodeBuyStock(m map[string]int) *client.Message {
 	params := buyMessageParams{
-		Corporations: map[string]int{
-			"sackson": 0,
-		},
+		Corporations: m,
 	}
 	ser, _ := json.Marshal(params)
 	return &client.Message{

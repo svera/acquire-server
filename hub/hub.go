@@ -2,6 +2,7 @@ package hub
 
 import (
 	"encoding/json"
+
 	"github.com/svera/tbg-server/client"
 	"github.com/svera/tbg-server/interfaces"
 )
@@ -94,7 +95,7 @@ func (h *Hub) parseControlMessage(m *client.Message) {
 		}
 		break
 	case controlMessageTypeAddBot:
-		if c, err := h.gameBridge.AddBot(); err == nil {
+		if c, err := h.gameBridge.AddBot("random"); err == nil {
 			h.addClient(c)
 			go c.WritePump()
 			go c.ReadPump(h.Messages, h.Unregister)
