@@ -62,11 +62,15 @@ func (c *BotClient) encodeResponse(m bots.Message) *client.Message {
 
 	switch m.Type {
 	case bots.PlayTileResponseType:
-		enc = c.encodePlayTile(m.Params.(string))
+		enc = c.encodePlayTile(m.Params.(bots.PlayTileResponseParams))
 	case bots.NewCorpResponseType:
-		enc = c.encodeFoundCorporation(m.Params.(string))
+		enc = c.encodeFoundCorporation(m.Params.(bots.NewCorpResponseParams))
 	case bots.BuyResponseType:
-		enc = c.encodeBuyStock(m.Params.(map[string]int))
+		enc = c.encodeBuyStock(m.Params.(bots.BuyResponseParams))
+	case bots.SellTradeResponseType:
+		enc = c.encodeSellTrade(m.Params.(bots.SellTradeResponseParams))
+	case bots.UntieMergeResponseType:
+		enc = c.encodeUntieMerge(m.Params.(bots.UntieMergeResponseParams))
 	}
 	return enc
 }
@@ -118,9 +122,9 @@ func (c *BotClient) updateBot(parsed statusMessage) {
 	c.bot.Update(st)
 }
 
-func (c *BotClient) encodePlayTile(m string) *client.Message {
+func (c *BotClient) encodePlayTile(response bots.PlayTileResponseParams) *client.Message {
 	params := playTileMessageParams{
-		Tile: m,
+		Tile: response.Tile,
 	}
 	ser, _ := json.Marshal(params)
 	return &client.Message{
@@ -132,9 +136,9 @@ func (c *BotClient) encodePlayTile(m string) *client.Message {
 	}
 }
 
-func (c *BotClient) encodeFoundCorporation(m string) *client.Message {
+func (c *BotClient) encodeFoundCorporation(response bots.NewCorpResponseParams) *client.Message {
 	params := newCorpMessageParams{
-		Corporation: m,
+		Corporation: response.Corporation,
 	}
 	ser, _ := json.Marshal(params)
 	return &client.Message{
@@ -146,9 +150,9 @@ func (c *BotClient) encodeFoundCorporation(m string) *client.Message {
 	}
 }
 
-func (c *BotClient) encodeBuyStock(m map[string]int) *client.Message {
+func (c *BotClient) encodeBuyStock(response bots.BuyResponseParams) *client.Message {
 	params := buyMessageParams{
-		Corporations: m,
+		Corporations: response.Corporations,
 	}
 	ser, _ := json.Marshal(params)
 	return &client.Message{
@@ -160,9 +164,42 @@ func (c *BotClient) encodeBuyStock(m map[string]int) *client.Message {
 	}
 }
 
+func (c *BotClient) encodeSellTrade(response bots.SellTradeResponseParams) *client.Message {
+	params := sellTradeMessageParams{
+		Corporations: map[string]sellTrade{},
+	}
+	for k, v := range response.Corporations {
+		params.Corporations[k] = sellTrade{v.Sell, v.Trade}
+	}
+	ser, _ := json.Marshal(params)
+	return &client.Message{
+		Author: c,
+		Content: client.MessageContent{
+			Type:   messageTypeSellTrade,
+			Params: ser,
+		},
+	}
+}
+
+func (c *BotClient) encodeUntieMerge(response bots.UntieMergeResponseParams) *client.Message {
+	params := untieMergeMessageParams{
+		Corporation: response.Corporation,
+	}
+	log.Println(response.Corporation)
+	ser, _ := json.Marshal(params)
+	return &client.Message{
+		Author: c,
+		Content: client.MessageContent{
+			Type:   messageTypeUntieMerge,
+			Params: ser,
+		},
+	}
+}
+
 // WritePump gets updates from the hub
 func (c *BotClient) WritePump() {
 	var parsed statusMessage
+	var fail errorMessage
 
 	for {
 		select {
@@ -175,8 +212,9 @@ func (c *BotClient) WritePump() {
 				if parsed.PlayerInfo.Enabled {
 					c.botTurn <- parsed
 				}
-			} else {
-				log.Println(err)
+			}
+			if err := json.Unmarshal(message, &fail); err == nil {
+				log.Println(fail.Content)
 			}
 		}
 	}
