@@ -41,7 +41,7 @@ $(function() {
                     playerActive = true;
                     if (msg.hasOwnProperty("sta")) {
                         if (msg.sta == "PlayTile") {
-                            updateHand(msg.ply.hnd);
+                            updateHand(msg.hnd);
                         }
                         if (msg.sta == "FoundCorp") {
                             chooseNewCorporation(msg.cor);
@@ -73,6 +73,13 @@ $(function() {
 
     $("#lobby").on("click", '#startGameButton', function() {
         message = {"typ": "ini", "par": {}}
+        conn.send(
+            JSON.stringify(message)
+        );
+    });
+
+    $("#lobby").on("click", '#addBot', function() {
+        message = {"typ": "bot", "par": "add"}
         conn.send(
             JSON.stringify(message)
         );

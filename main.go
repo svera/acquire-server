@@ -1,14 +1,18 @@
 package main
 
 import (
-	"github.com/gorilla/mux"
-	"github.com/svera/acquire-server/acquirebridge"
-	"github.com/svera/acquire-server/client"
-	"github.com/svera/acquire-server/hub"
 	"html/template"
 	"log"
 	"net/http"
+
+	"github.com/gorilla/mux"
+	"github.com/svera/tbg-server/bridges/acquire"
+	"github.com/svera/tbg-server/client"
+	"github.com/svera/tbg-server/config"
+	"github.com/svera/tbg-server/hub"
 	//"net/url"
+	"fmt"
+	"os"
 )
 
 var hubs map[string]*hub.Hub
@@ -27,7 +31,7 @@ func join(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	c, err := client.New(w, r)
+	c, err := client.NewHuman(w, r)
 	if err != nil {
 		log.Println(err)
 		return
@@ -63,7 +67,9 @@ func create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id := generateID()
-	h := hub.New(acquirebridge.New())
+	ab := acquirebridge.New()
+	ab.NewGameAllCorpsOnBoardTest()
+	h := hub.New(ab)
 	hubs[id] = h
 
 	go hubs[id].Run()
@@ -77,16 +83,25 @@ func index(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	r := mux.NewRouter()
-	hubs = make(map[string]*hub.Hub)
-	r.HandleFunc("/", index)
-	r.HandleFunc("/create", create)
-	r.HandleFunc("/{id:[a-zA-Z]+}/join", join)
-	r.HandleFunc("/{id:[a-zA-Z]+}", room)
-	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./public/")))
-	http.Handle("/", r)
+	f, err := os.Open("./config.yml")
+	if err != nil {
+		fmt.Println("Couldn't load configuration file. Check that config.yml exists and that it can be read. Exiting...")
+		return
+	}
+	if cfg, err := config.Load(f); err != nil {
+		fmt.Println(err.Error())
+	} else {
+		r := mux.NewRouter()
+		hubs = make(map[string]*hub.Hub)
+		r.HandleFunc("/", index)
+		r.HandleFunc("/create", create)
+		r.HandleFunc("/{id:[a-zA-Z]+}/join", join)
+		r.HandleFunc("/{id:[a-zA-Z]+}", room)
+		r.PathPrefix("/").Handler(http.FileServer(http.Dir("./public/")))
+		http.Handle("/", r)
 
-	log.Fatal(http.ListenAndServe(":8000", r))
+		log.Fatal(http.ListenAndServe(cfg.Port, r))
+	}
 }
 
 // TODO Implement proper random string generator

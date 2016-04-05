@@ -1,4 +1,4 @@
-package hub
+package interfaces
 
 import (
 	"encoding/json"
@@ -11,5 +11,6 @@ type Bridge interface {
 	CurrentPlayerNumber() (int, error)
 	Status(n int) ([]byte, error)
 	AddPlayer() error
+	AddBot(params interface{}) (Client, error)
 	StartGame() error
 }

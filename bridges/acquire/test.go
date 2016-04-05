@@ -186,3 +186,60 @@ func (b *AcquireBridge) NewGameEndTest() {
 	b.players[0].AddShares(b.corporations[3], 2)
 	b.players[1].AddShares(b.corporations[3], 2)
 }
+
+func (b *AcquireBridge) NewGameAllCorpsOnBoardTest() {
+	corpsTiles := make(map[int][]interfaces.Tile)
+
+	corpsTiles[0] = []interfaces.Tile{
+		tile.New(1, "A"),
+		tile.New(1, "B"),
+	}
+	corpsTiles[1] = []interfaces.Tile{
+		tile.New(3, "A"),
+		tile.New(3, "B"),
+	}
+	corpsTiles[2] = []interfaces.Tile{
+		tile.New(5, "A"),
+		tile.New(5, "B"),
+	}
+	corpsTiles[3] = []interfaces.Tile{
+		tile.New(7, "A"),
+		tile.New(7, "B"),
+	}
+	corpsTiles[4] = []interfaces.Tile{
+		tile.New(9, "A"),
+		tile.New(9, "B"),
+	}
+	corpsTiles[5] = []interfaces.Tile{
+		tile.New(11, "A"),
+		tile.New(11, "B"),
+	}
+	corpsTiles[6] = []interfaces.Tile{
+		tile.New(1, "D"),
+		tile.New(1, "E"),
+	}
+
+	unincorporatedTiles := []interfaces.Tile{
+		tile.New(3, "D"),
+		tile.New(5, "D"),
+		tile.New(7, "D"),
+		tile.New(9, "D"),
+		tile.New(11, "D"),
+		tile.New(3, "F"),
+		tile.New(5, "F"),
+		tile.New(7, "F"),
+		tile.New(9, "F"),
+		tile.New(11, "F"),
+	}
+
+	for i := range unincorporatedTiles {
+		b.board.PutTile(unincorporatedTiles[i])
+	}
+
+	for i := range corpsTiles {
+		b.tileset.(*tileset.Tileset).DiscardTile(corpsTiles[i][0])
+		b.tileset.(*tileset.Tileset).DiscardTile(corpsTiles[i][1])
+		b.board.SetOwner(b.corporations[i], corpsTiles[i])
+		b.corporations[i].Grow(len(corpsTiles[i]))
+	}
+}

@@ -3,24 +3,31 @@ package acquirebridge
 import (
 	"encoding/json"
 	"errors"
+	"log"
+	"strconv"
+	"strings"
+
 	"github.com/svera/acquire"
 	"github.com/svera/acquire/board"
+	"github.com/svera/acquire/bots"
 	"github.com/svera/acquire/corporation"
 	"github.com/svera/acquire/fsm"
-	"github.com/svera/acquire/interfaces"
+	acquireInterfaces "github.com/svera/acquire/interfaces"
 	"github.com/svera/acquire/player"
 	"github.com/svera/acquire/tile"
 	"github.com/svera/acquire/tileset"
-	"strconv"
-	"strings"
+	"github.com/svera/tbg-server/client"
+	serverInterfaces "github.com/svera/tbg-server/interfaces"
 )
 
 // AcquireBridge implements the bridge interface in order to be able to have
 // and acquire game through the turn based game server
 type AcquireBridge struct {
 	game         *acquire.Game
-	players      []interfaces.Player
-	corporations [7]interfaces.Corporation
+	players      []acquireInterfaces.Player
+	corporations [7]acquireInterfaces.Corporation
+	board        acquireInterfaces.Board
+	tileset      acquireInterfaces.Tileset
 }
 
 const (
@@ -37,13 +44,16 @@ const (
 	// GameFull is an error returned when a game already has the maximum number of players
 	GameFull = "game_full"
 	// InexistentPlayer is an error returned when someone tries to get information of a non existent player
-	InexistentPlayer = "inexistent_player"
+	InexistentPlayer    = "inexistent_player"
+	CorporationNotFound = "corporation_not_found"
 )
 
 // New initializes a new AcquireBridge instance
 func New() *AcquireBridge {
 	return &AcquireBridge{
 		corporations: createCorporations(),
+		board:        board.New(),
+		tileset:      tileset.New(),
 	}
 }
 
@@ -54,38 +64,39 @@ func (b *AcquireBridge) ParseMessage(t string, params json.RawMessage) ([]byte, 
 	var response []byte
 
 	switch t {
-	case "ply":
+	case messageTypePlayTile:
 		var parsed playTileMessageParams
 		if err = json.Unmarshal(params, &parsed); err == nil {
 			err = b.playTile(parsed)
 		}
-	case "ncp":
+	case messageTypeFoundCorporation:
 		var parsed newCorpMessageParams
 		if err = json.Unmarshal(params, &parsed); err == nil {
 			err = b.foundCorporation(parsed)
 		}
-	case "buy":
+	case messageTypeBuyStock:
 		var parsed buyMessageParams
 		if err = json.Unmarshal(params, &parsed); err == nil {
 			err = b.buyStock(parsed)
 		}
-	case "sel":
+	case messageTypeSellTrade:
 		var parsed sellTradeMessageParams
 		if err = json.Unmarshal(params, &parsed); err == nil {
 			err = b.sellTrade(parsed)
 		}
-	case "unt":
+	case messageTypeUntieMerge:
 		var parsed untieMergeMessageParams
 		if err = json.Unmarshal(params, &parsed); err == nil {
 			err = b.untieMerge(parsed)
 		}
-	case "end":
+	case messageTypeEndGame:
 		err = b.claimEndGame()
 	default:
 		err = errors.New(WrongMessage)
 	}
 
 	if err != nil {
+		//log.Println(err)
 		res := &errorMessage{
 			Type:    "err",
 			Content: err.Error(),
@@ -97,10 +108,10 @@ func (b *AcquireBridge) ParseMessage(t string, params json.RawMessage) ([]byte, 
 
 func (b *AcquireBridge) playTile(params playTileMessageParams) error {
 	var err error
-	var tl interfaces.Tile
+	var tl acquireInterfaces.Tile
 
 	if tl, err = coordsToTile(params.Tile); err == nil {
-		if err := b.game.PlayTile(tl); err == nil {
+		if err = b.game.PlayTile(tl); err == nil {
 			return nil
 		}
 	}
@@ -110,7 +121,7 @@ func (b *AcquireBridge) playTile(params playTileMessageParams) error {
 
 func (b *AcquireBridge) foundCorporation(params newCorpMessageParams) error {
 	var err error
-	var corp interfaces.Corporation
+	var corp acquireInterfaces.Corporation
 
 	if corp, err = b.findCorpByName(params.Corporation); err == nil {
 		if err = b.game.FoundCorporation(corp); err == nil {
@@ -122,9 +133,9 @@ func (b *AcquireBridge) foundCorporation(params newCorpMessageParams) error {
 
 func (b *AcquireBridge) buyStock(params buyMessageParams) error {
 	var err error
-	var corp interfaces.Corporation
+	var corp acquireInterfaces.Corporation
 
-	buy := map[interfaces.Corporation]int{}
+	buy := map[acquireInterfaces.Corporation]int{}
 
 	for corpName, amount := range params.Corporations {
 		if corp, err = b.findCorpByName(corpName); err == nil {
@@ -142,10 +153,10 @@ func (b *AcquireBridge) buyStock(params buyMessageParams) error {
 
 func (b *AcquireBridge) sellTrade(params sellTradeMessageParams) error {
 	var err error
-	var corp interfaces.Corporation
+	var corp acquireInterfaces.Corporation
 
-	sell := map[interfaces.Corporation]int{}
-	trade := map[interfaces.Corporation]int{}
+	sell := map[acquireInterfaces.Corporation]int{}
+	trade := map[acquireInterfaces.Corporation]int{}
 
 	for corpName, operation := range params.Corporations {
 		if corp, err = b.findCorpByName(corpName); err == nil {
@@ -164,7 +175,7 @@ func (b *AcquireBridge) sellTrade(params sellTradeMessageParams) error {
 
 func (b *AcquireBridge) untieMerge(params untieMergeMessageParams) error {
 	var err error
-	var corp interfaces.Corporation
+	var corp acquireInterfaces.Corporation
 
 	if corp, err = b.findCorpByName(params.Corporation); err == nil {
 		if err = b.game.UntieMerge(corp); err == nil {
@@ -181,7 +192,7 @@ func (b *AcquireBridge) claimEndGame() error {
 	return nil
 }
 
-func corpNames(corps []interfaces.Corporation) []string {
+func corpNames(corps []acquireInterfaces.Corporation) []string {
 	names := []string{}
 	for _, corp := range corps {
 		names = append(names, corp.Name())
@@ -189,13 +200,14 @@ func corpNames(corps []interfaces.Corporation) []string {
 	return names
 }
 
-func (b *AcquireBridge) findCorpByName(name string) (interfaces.Corporation, error) {
+func (b *AcquireBridge) findCorpByName(name string) (acquireInterfaces.Corporation, error) {
 	for _, corp := range b.corporations {
-		if strings.ToLower(corp.Name()) == name {
+		if strings.ToLower(corp.Name()) == strings.ToLower(name) {
 			return corp, nil
 		}
 	}
-	return &corporation.Corporation{}, errors.New("corporation not found")
+	log.Println(name)
+	return &corporation.Corporation{}, errors.New(CorporationNotFound)
 }
 
 func (b *AcquireBridge) boardOwnership() map[string]string {
@@ -215,7 +227,7 @@ func (b *AcquireBridge) boardOwnership() map[string]string {
 	return cells
 }
 
-func coordsToTile(tl string) (interfaces.Tile, error) {
+func coordsToTile(tl string) (acquireInterfaces.Tile, error) {
 	if len(tl) < 2 {
 		return &tile.Tile{}, errors.New("Not a valid tile")
 	}
@@ -240,8 +252,8 @@ func (b *AcquireBridge) gameStarted() bool {
 	return true
 }
 
-func createCorporations() [7]interfaces.Corporation {
-	var corporations [7]interfaces.Corporation
+func createCorporations() [7]acquireInterfaces.Corporation {
+	var corporations [7]acquireInterfaces.Corporation
 	corpsParams := [7]map[string]int{
 		map[string]int{"Sackson": 0},
 		map[string]int{"Zeta": 0},
@@ -276,6 +288,7 @@ func (b *AcquireBridge) Status(n int) ([]byte, error) {
 		State:      b.game.GameStateName(),
 		Corps:      b.corpsData(),
 		TiedCorps:  corpNames(b.game.TiedCorps()),
+		Hand:       b.tilesData(b.players[n]),
 		PlayerInfo: playerInfo,
 		RivalsInfo: rivalsInfo,
 		LastTurn:   b.game.IsLastTurn(),
@@ -284,7 +297,7 @@ func (b *AcquireBridge) Status(n int) ([]byte, error) {
 	return response, err
 }
 
-func (b *AcquireBridge) tilesData(pl interfaces.Player) []handData {
+func (b *AcquireBridge) tilesData(pl acquireInterfaces.Player) []handData {
 	var hnd []handData
 	for _, tl := range pl.Tiles() {
 		hnd = append(hnd, handData{
@@ -295,10 +308,10 @@ func (b *AcquireBridge) tilesData(pl interfaces.Player) []handData {
 	return hnd
 }
 
-func (b *AcquireBridge) corpsData() []corpData {
-	var data []corpData
-	for _, corp := range b.corporations {
-		data = append(data, corpData{
+func (b *AcquireBridge) corpsData() [7]corpData {
+	var data [7]corpData
+	for i, corp := range b.corporations {
+		data[i] = corpData{
 			Name:            corp.Name(),
 			Price:           corp.StockPrice(),
 			MajorityBonus:   corp.MajorityBonus(),
@@ -306,13 +319,13 @@ func (b *AcquireBridge) corpsData() []corpData {
 			RemainingShares: corp.Stock(),
 			Size:            corp.Size(),
 			Defunct:         b.game.IsCorporationDefunct(corp),
-		})
+		}
 	}
 	return data
 }
 
-func (b *AcquireBridge) playersInfo(n int) (playerData, map[string]playerData, error) {
-	rivals := map[string]playerData{}
+func (b *AcquireBridge) playersInfo(n int) (playerData, []playerData, error) {
+	rivals := []playerData{}
 	var ply playerData
 	var err error
 	var number int
@@ -322,14 +335,18 @@ func (b *AcquireBridge) playersInfo(n int) (playerData, map[string]playerData, e
 	}
 	for i, p := range b.players {
 		if n != i {
-			rivals[strconv.Itoa(i)] = playerData{
+			rivals = append(rivals, playerData{
 				Cash:        p.Cash(),
 				OwnedShares: b.playersShares(i),
-			}
+			})
+			/*
+				if number, err = b.CurrentPlayerNumber(); number == i && err == nil {
+					rivals[i].Enabled = true
+				}
+			*/
 		} else {
 			ply = playerData{
 				Enabled:     false,
-				Hand:        b.tilesData(p),
 				Cash:        p.Cash(),
 				OwnedShares: b.playersShares(i),
 			}
@@ -341,10 +358,10 @@ func (b *AcquireBridge) playersInfo(n int) (playerData, map[string]playerData, e
 	return ply, rivals, err
 }
 
-func (b *AcquireBridge) playersShares(playerNumber int) []int {
-	var data []int
-	for _, corp := range b.corporations {
-		data = append(data, b.players[playerNumber].Shares(corp))
+func (b *AcquireBridge) playersShares(playerNumber int) [7]int {
+	var data [7]int
+	for i, corp := range b.corporations {
+		data[i] = b.players[playerNumber].Shares(corp)
 	}
 	return data
 }
@@ -368,11 +385,22 @@ func (b *AcquireBridge) StartGame() error {
 		err = errors.New(GameAlreadyStarted)
 	}
 	b.game, err = acquire.New(
-		board.New(),
+		b.board,
 		b.players,
 		b.corporations,
-		tileset.New(),
+		b.tileset,
 		&fsm.PlayTile{},
 	)
 	return err
+}
+
+func (b *AcquireBridge) AddBot(params interface{}) (serverInterfaces.Client, error) {
+	if name, ok := params.(string); ok {
+		if bot, err := bots.Create(name); err == nil {
+			return NewBotClient(bot), nil
+		} else {
+			return &client.NullClient{}, err
+		}
+	}
+	panic("Expecting string in AddBot parameter")
 }
