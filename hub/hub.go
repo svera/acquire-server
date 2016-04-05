@@ -2,6 +2,7 @@ package hub
 
 import (
 	"encoding/json"
+	"log"
 
 	"github.com/svera/tbg-server/client"
 	"github.com/svera/tbg-server/interfaces"
@@ -107,11 +108,13 @@ func (h *Hub) parseControlMessage(m *client.Message) {
 func (h *Hub) parseGameMessage(m *client.Message) {
 	var response []byte
 	var err error
+	var currentPlayer interfaces.Client
 
-	if currentPlayer, err := h.currentPlayerClient(); m.Author == currentPlayer && err == nil {
+	if currentPlayer, err = h.currentPlayerClient(); m.Author == currentPlayer && err == nil {
 		response, err = h.gameBridge.ParseMessage(m.Content.Type, m.Content.Params)
 	}
 	if err != nil {
+		log.Println(err)
 		h.sendMessage(m.Author, response)
 	} else {
 		h.broadcastUpdate()

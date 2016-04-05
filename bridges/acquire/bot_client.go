@@ -2,7 +2,6 @@ package acquirebridge
 
 import (
 	"encoding/json"
-	"log"
 
 	"github.com/svera/acquire/bots"
 	acquireInterfaces "github.com/svera/acquire/interfaces"
@@ -185,7 +184,6 @@ func (c *BotClient) encodeUntieMerge(response bots.UntieMergeResponseParams) *cl
 	params := untieMergeMessageParams{
 		Corporation: response.Corporation,
 	}
-	log.Println(response.Corporation)
 	ser, _ := json.Marshal(params)
 	return &client.Message{
 		Author: c,
@@ -199,7 +197,6 @@ func (c *BotClient) encodeUntieMerge(response bots.UntieMergeResponseParams) *cl
 // WritePump gets updates from the hub
 func (c *BotClient) WritePump() {
 	var parsed statusMessage
-	var fail errorMessage
 
 	for {
 		select {
@@ -212,9 +209,6 @@ func (c *BotClient) WritePump() {
 				if parsed.PlayerInfo.Enabled {
 					c.botTurn <- parsed
 				}
-			}
-			if err := json.Unmarshal(message, &fail); err == nil {
-				log.Println(fail.Content)
 			}
 		}
 	}

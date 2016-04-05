@@ -3,6 +3,7 @@ package acquirebridge
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"strconv"
 	"strings"
 
@@ -25,6 +26,8 @@ type AcquireBridge struct {
 	game         *acquire.Game
 	players      []acquireInterfaces.Player
 	corporations [7]acquireInterfaces.Corporation
+	board        acquireInterfaces.Board
+	tileset      acquireInterfaces.Tileset
 }
 
 const (
@@ -49,6 +52,8 @@ const (
 func New() *AcquireBridge {
 	return &AcquireBridge{
 		corporations: createCorporations(),
+		board:        board.New(),
+		tileset:      tileset.New(),
 	}
 }
 
@@ -91,6 +96,7 @@ func (b *AcquireBridge) ParseMessage(t string, params json.RawMessage) ([]byte, 
 	}
 
 	if err != nil {
+		//log.Println(err)
 		res := &errorMessage{
 			Type:    "err",
 			Content: err.Error(),
@@ -105,7 +111,7 @@ func (b *AcquireBridge) playTile(params playTileMessageParams) error {
 	var tl acquireInterfaces.Tile
 
 	if tl, err = coordsToTile(params.Tile); err == nil {
-		if err := b.game.PlayTile(tl); err == nil {
+		if err = b.game.PlayTile(tl); err == nil {
 			return nil
 		}
 	}
@@ -196,10 +202,11 @@ func corpNames(corps []acquireInterfaces.Corporation) []string {
 
 func (b *AcquireBridge) findCorpByName(name string) (acquireInterfaces.Corporation, error) {
 	for _, corp := range b.corporations {
-		if strings.ToLower(corp.Name()) == name {
+		if strings.ToLower(corp.Name()) == strings.ToLower(name) {
 			return corp, nil
 		}
 	}
+	log.Println(name)
 	return &corporation.Corporation{}, errors.New(CorporationNotFound)
 }
 
@@ -332,6 +339,11 @@ func (b *AcquireBridge) playersInfo(n int) (playerData, []playerData, error) {
 				Cash:        p.Cash(),
 				OwnedShares: b.playersShares(i),
 			})
+			/*
+				if number, err = b.CurrentPlayerNumber(); number == i && err == nil {
+					rivals[i].Enabled = true
+				}
+			*/
 		} else {
 			ply = playerData{
 				Enabled:     false,
@@ -373,10 +385,10 @@ func (b *AcquireBridge) StartGame() error {
 		err = errors.New(GameAlreadyStarted)
 	}
 	b.game, err = acquire.New(
-		board.New(),
+		b.board,
 		b.players,
 		b.corporations,
-		tileset.New(),
+		b.tileset,
 		&fsm.PlayTile{},
 	)
 	return err

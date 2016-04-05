@@ -1,14 +1,15 @@
 package main
 
 import (
+	"html/template"
+	"log"
+	"net/http"
+
 	"github.com/gorilla/mux"
 	"github.com/svera/tbg-server/bridges/acquire"
 	"github.com/svera/tbg-server/client"
 	"github.com/svera/tbg-server/config"
 	"github.com/svera/tbg-server/hub"
-	"html/template"
-	"log"
-	"net/http"
 	//"net/url"
 	"fmt"
 	"os"
@@ -66,7 +67,9 @@ func create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id := generateID()
-	h := hub.New(acquirebridge.New())
+	ab := acquirebridge.New()
+	ab.NewGameAllCorpsOnBoardTest()
+	h := hub.New(ab)
 	hubs[id] = h
 
 	go hubs[id].Run()
