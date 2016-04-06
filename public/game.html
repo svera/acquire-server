@@ -22,7 +22,8 @@
         </div>
         <div id="gamePanel">
             <div class="row">
-                <div class="col-sm-12 col-md-7">
+                <div class="col-sm-12 col-md-6">
+                    <div class="row">
                     <table class="table table-bordered table-condensed">
                         <tbody>
                             <tr>
@@ -153,19 +154,52 @@
                             </tr>
                         </tbody>
                     </table>
+                  </div>
+                    <div class="row">
+                        <div class="col-sm-12" id="player-controls">
+                            <div class="btn-group" role="group" aria-label="..." data-toggle="buttons" id="hand">
+                                <label class="btn btn-default">
+                                    <input type="radio" name="tiles">
+                                    <span>&nbsp;&nbsp;</span>
+                                </label>
+                                <label class="btn btn-default">
+                                    <input type="radio" name="tiles">
+                                    <span>&nbsp;&nbsp;</span>
+                                </label>
+                                <label class="btn btn-default">
+                                    <input type="radio" name="tiles">
+                                    <span>&nbsp;&nbsp;</span>
+                                </label>
+                                <label class="btn btn-default">
+                                    <input type="radio" name="tiles">
+                                    <span>&nbsp;&nbsp;</span>
+                                </label>
+                                <label class="btn btn-default">
+                                    <input type="radio" name="tiles">
+                                    <span>&nbsp;&nbsp;</span>
+                                </label>
+                                <label class="btn btn-default">
+                                    <input type="radio" name="tiles">
+                                    <span>&nbsp;&nbsp;</span>
+                                </label>
+                            </div>
+                            <input type="button" id="playButton" class="btn btn-primary" value="Play tile" />
+                        </div>
+                    </div>
                 </div>
-                <div class="col-md-5" id="status-board">
+                <div class="col-md-4 col-md-offset-1" id="status-board">
+                  <div class="row">
                     <table class="table">
                         <thead>
                             <tr>
                                 <th>&nbsp;</th>
-                                <th>Sackson</th>
-                                <th>Zeta</th>
-                                <th>Hydra</th>
-                                <th>Fusion</th>
-                                <th>America</th>
-                                <th>Phoenix</th>
-                                <th>Quantum</th>
+                                <th nowrap="nowrap"><span class="sackson">&nbsp;</span> Sackson</th>
+                                <th nowrap="nowrap"><span class="zeta">&nbsp;</span> Zeta</th>
+                                <th nowrap="nowrap"><span class="hydra">&nbsp;</span> Hydra</th>
+                                <th nowrap="nowrap"><span class="fusion">&nbsp;</span> Fusion</th>
+                                <th nowrap="nowrap"><span class="america">&nbsp;</span> America</th>
+                                <th nowrap="nowrap"><span class="phoenix">&nbsp;</span> Phoenix</th>
+                                <th nowrap="nowrap"><span class="quantum">&nbsp;</span> Quantum</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -211,65 +245,35 @@
                             </tr>
                         </tbody>
                     </table>
-                </div>
-                <div class="col-md-5" id="player-status-board">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Cash</th>
-                                <th>Sackson</th>
-                                <th>Zeta</th>
-                                <th>Hydra</th>
-                                <th>Fusion</th>
-                                <th>America</th>
-                                <th>Phoenix</th>
-                                <th>Quantum</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>6000</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                                <td>0</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-sm-12" id="player-controls">
-                    <div class="btn-group" role="group" aria-label="..." data-toggle="buttons" id="hand">
-                        <label class="btn btn-default">
-                            <input type="radio" name="tiles">
-                            <span>&nbsp;&nbsp;</span>
-                        </label>
-                        <label class="btn btn-default">
-                            <input type="radio" name="tiles">
-                            <span>&nbsp;&nbsp;</span>
-                        </label>
-                        <label class="btn btn-default">
-                            <input type="radio" name="tiles">
-                            <span>&nbsp;&nbsp;</span>
-                        </label>
-                        <label class="btn btn-default">
-                            <input type="radio" name="tiles">
-                            <span>&nbsp;&nbsp;</span>
-                        </label>
-                        <label class="btn btn-default">
-                            <input type="radio" name="tiles">
-                            <span>&nbsp;&nbsp;</span>
-                        </label>
-                        <label class="btn btn-default">
-                            <input type="radio" name="tiles">
-                            <span>&nbsp;&nbsp;</span>
-                        </label>
+                  </div>
+                    <div class="row" id="player-status-board">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Cash</th>
+                                    <th>Sackson</th>
+                                    <th>Zeta</th>
+                                    <th>Hydra</th>
+                                    <th>Fusion</th>
+                                    <th>America</th>
+                                    <th>Phoenix</th>
+                                    <th>Quantum</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>6000</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                    <td>0</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
-                    <input type="button" id="playButton" class="btn btn-primary" value="Play tile" />
                 </div>
             </div>
         </div>

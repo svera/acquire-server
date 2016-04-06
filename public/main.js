@@ -78,11 +78,12 @@ $(function() {
         );
     });
 
-    $("#lobby").on("click", '#addBot', function() {
+    $("#lobby").on("click", '#addBot', function(ev) {
         message = {"typ": "bot", "par": "add"}
         conn.send(
             JSON.stringify(message)
         );
+        ev.preventDefault();
     });
 
     playerControls.on("click", '#playButton', function() {
@@ -230,6 +231,10 @@ $(function() {
         html += "</tr><tr><td>Minority</td>";
         for (var i=0; i < status.cor.length; i++) {
             html += '<td>'+status.cor[i].min+'</td>';
+        }
+        html += "</tr><tr><td>Remaining</td>";
+        for (var i=0; i < status.cor.length; i++) {
+            html += '<td>'+status.cor[i].rem+'</td>';
         }
         html += "</tr>";
         $("#status-board tbody").html(html);

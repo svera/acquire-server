@@ -67,9 +67,8 @@ func create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id := generateID()
-	ab := acquirebridge.New()
-	ab.NewGameAllCorpsOnBoardTest()
-	h := hub.New(ab)
+
+	h := hub.New(acquirebridge.New())
 	hubs[id] = h
 
 	go hubs[id].Run()
