@@ -98,7 +98,6 @@ func main() {
 		r.HandleFunc("/{id:[a-zA-Z]+}", room)
 		r.PathPrefix("/").Handler(http.FileServer(http.Dir("./public/")))
 		http.Handle("/", r)
-
 		log.Fatal(http.ListenAndServe(cfg.Port, r))
 	}
 }

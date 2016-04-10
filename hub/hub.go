@@ -42,6 +42,10 @@ func New(b interfaces.Bridge) *Hub {
 // Run listens for messages coming from several channels and acts accordingly
 func (h *Hub) Run() {
 	for {
+		if h.gameBridge.IsGameOver() {
+			log.Println("Game ended")
+			break
+		}
 		select {
 		case c := <-h.Register:
 			if err := h.addClient(c); err != nil {

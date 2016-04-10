@@ -13,4 +13,5 @@ type Bridge interface {
 	AddPlayer() error
 	AddBot(params interface{}) (Client, error)
 	StartGame() error
+	IsGameOver() bool
 }

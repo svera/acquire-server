@@ -96,7 +96,6 @@ func (b *AcquireBridge) ParseMessage(t string, params json.RawMessage) ([]byte, 
 	}
 
 	if err != nil {
-		//log.Println(err)
 		res := &errorMessage{
 			Type:    "err",
 			Content: err.Error(),
@@ -392,6 +391,13 @@ func (b *AcquireBridge) StartGame() error {
 		&fsm.PlayTile{},
 	)
 	return err
+}
+
+func (b *AcquireBridge) IsGameOver() bool {
+	if b.gameStarted() {
+		return b.game.GameStateName() == acquireInterfaces.EndGameStateName
+	}
+	return false
 }
 
 func (b *AcquireBridge) AddBot(params interface{}) (serverInterfaces.Client, error) {

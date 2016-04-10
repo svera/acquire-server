@@ -70,6 +70,10 @@ func (c *BotClient) encodeResponse(m bots.Message) *client.Message {
 		enc = c.encodeSellTrade(m.Params.(bots.SellTradeResponseParams))
 	case bots.UntieMergeResponseType:
 		enc = c.encodeUntieMerge(m.Params.(bots.UntieMergeResponseParams))
+	case bots.EndGameResponseType:
+		enc = c.encodeEndGame()
+	default:
+		panic("Unrecognized bot response")
 	}
 	return enc
 }
@@ -190,6 +194,15 @@ func (c *BotClient) encodeUntieMerge(response bots.UntieMergeResponseParams) *cl
 		Content: client.MessageContent{
 			Type:   messageTypeUntieMerge,
 			Params: ser,
+		},
+	}
+}
+
+func (c *BotClient) encodeEndGame() *client.Message {
+	return &client.Message{
+		Author: c,
+		Content: client.MessageContent{
+			Type: messageTypeEndGame,
 		},
 	}
 }
