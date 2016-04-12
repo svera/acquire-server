@@ -1,42 +1,8 @@
+// This file specifies messages sent from the hub to the clients, basically notifying
+// about the status of the game after a player action
 package acquirebridge
 
-const (
-	messageTypePlayTile         = "ply"
-	messageTypeFoundCorporation = "ncp"
-	messageTypeBuyStock         = "buy"
-	messageTypeSellTrade        = "sel"
-	messageTypeUntieMerge       = "unt"
-	messageTypeEndGame          = "end"
-)
-
-// playTileMessageParams is a struct which defines the format of the params of
-// incoming playTile messages
-type playTileMessageParams struct {
-	Tile string `json:"til"`
-}
-
-type newCorpMessageParams struct {
-	Corporation string `json:"cor"`
-}
-
-type buyMessageParams struct {
-	Corporations map[string]int `json:"cor"`
-}
-
-type sellTradeMessageParams struct {
-	Corporations map[string]sellTrade `json:"cor"`
-}
-
-type sellTrade struct {
-	Sell  int `json:"sel"`
-	Trade int `json:"tra"`
-}
-
-type untieMergeMessageParams struct {
-	Corporation string `json:"cor"`
-}
-
-// errorMessage is a struct sent to an specific player
+// errorMessage is a struct sent to a specific player
 // when he/she does an action that leads to an error.
 type errorMessage struct {
 	Type    string `json:"typ"`
@@ -54,7 +20,9 @@ type statusMessage struct {
 	TiedCorps  []string          `json:"tie"`
 	PlayerInfo playerData        `json:"ply"`
 	RivalsInfo []playerData      `json:"riv"`
+	TurnNumber int               `json:"trn"`
 	LastTurn   bool              `json:"lst"`
+	History    []string          `json:"his"`
 }
 
 type corpData struct {

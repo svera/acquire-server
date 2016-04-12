@@ -2,10 +2,11 @@ package client
 
 import (
 	"encoding/json"
-	"github.com/gorilla/websocket"
-	"github.com/svera/tbg-server/interfaces"
 	"net/http"
 	"time"
+
+	"github.com/gorilla/websocket"
+	"github.com/svera/tbg-server/interfaces"
 )
 
 const (
@@ -26,7 +27,7 @@ type Human struct {
 	owner    bool
 }
 
-// New returns a new Human instance
+// NewHuman returns a new Human instance
 func NewHuman(w http.ResponseWriter, r *http.Request) (interfaces.Client, error) {
 	var upgrader = websocket.Upgrader{
 		ReadBufferSize:  maxMessageSize,

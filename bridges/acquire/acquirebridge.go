@@ -290,6 +290,7 @@ func (b *AcquireBridge) Status(n int) ([]byte, error) {
 		Hand:       b.tilesData(b.players[n]),
 		PlayerInfo: playerInfo,
 		RivalsInfo: rivalsInfo,
+		TurnNumber: b.game.Turn(),
 		LastTurn:   b.game.IsLastTurn(),
 	}
 	response, _ := json.Marshal(msg)
@@ -327,7 +328,6 @@ func (b *AcquireBridge) playersInfo(n int) (playerData, []playerData, error) {
 	rivals := []playerData{}
 	var ply playerData
 	var err error
-	var number int
 
 	if n < 0 || n >= len(b.players) {
 		err = errors.New(InexistentPlayer)
@@ -337,24 +337,24 @@ func (b *AcquireBridge) playersInfo(n int) (playerData, []playerData, error) {
 			rivals = append(rivals, playerData{
 				Cash:        p.Cash(),
 				OwnedShares: b.playersShares(i),
+				Enabled:     b.isCurrentPlayer(i),
 			})
-			/*
-				if number, err = b.CurrentPlayerNumber(); number == i && err == nil {
-					rivals[i].Enabled = true
-				}
-			*/
 		} else {
 			ply = playerData{
-				Enabled:     false,
 				Cash:        p.Cash(),
-				OwnedShares: b.playersShares(i),
-			}
-			if number, err = b.CurrentPlayerNumber(); number == n && err == nil {
-				ply.Enabled = true
+				OwnedShares: b.playersShares(n),
+				Enabled:     b.isCurrentPlayer(n),
 			}
 		}
 	}
 	return ply, rivals, err
+}
+
+func (b *AcquireBridge) isCurrentPlayer(n int) bool {
+	if number, err := b.CurrentPlayerNumber(); number == n && err == nil {
+		return true
+	}
+	return false
 }
 
 func (b *AcquireBridge) playersShares(playerNumber int) [7]int {

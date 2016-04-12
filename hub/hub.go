@@ -82,8 +82,8 @@ func (h *Hub) parseMessage(m *client.Message) {
 func (h *Hub) isControlMessage(m *client.Message) bool {
 	switch m.Content.Type {
 	case
-		controlMessageTypeAddBot,
-		controlMessageTypeStartGame:
+		client.ControlMessageTypeAddBot,
+		client.ControlMessageTypeStartGame:
 		return true
 	}
 	return false
@@ -94,12 +94,12 @@ func (h *Hub) parseControlMessage(m *client.Message) {
 		return
 	}
 	switch m.Content.Type {
-	case controlMessageTypeStartGame:
+	case client.ControlMessageTypeStartGame:
 		if err := h.gameBridge.StartGame(); err == nil {
 			h.broadcastUpdate()
 		}
 		break
-	case controlMessageTypeAddBot:
+	case client.ControlMessageTypeAddBot:
 		if c, err := h.gameBridge.AddBot("random"); err == nil {
 			h.addClient(c)
 			go c.WritePump()
