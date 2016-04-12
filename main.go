@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/svera/tbg-server/bridges/acquire"
+	"github.com/svera/tbg-server/bridges"
 	"github.com/svera/tbg-server/client"
 	"github.com/svera/tbg-server/config"
 	"github.com/svera/tbg-server/hub"
@@ -68,12 +68,17 @@ func create(w http.ResponseWriter, r *http.Request) {
 
 	id := generateID()
 
-	h := hub.New(acquirebridge.New())
-	hubs[id] = h
+	r.ParseForm()
+	if bridge, err := bridges.Create(r.FormValue("game")); err != nil {
+		panic("Game bridge not found")
+	} else {
+		h := hub.New(bridge)
+		hubs[id] = h
 
-	go hubs[id].Run()
+		go hubs[id].Run()
 
-	http.Redirect(w, r, "/"+id, 302)
+		http.Redirect(w, r, "/"+id, 302)
+	}
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
