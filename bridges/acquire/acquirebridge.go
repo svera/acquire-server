@@ -3,19 +3,15 @@ package acquirebridge
 import (
 	"encoding/json"
 	"errors"
-	"log"
 	"strconv"
 	"strings"
 
 	"github.com/svera/acquire"
-	"github.com/svera/acquire/board"
 	"github.com/svera/acquire/bots"
 	"github.com/svera/acquire/corporation"
-	"github.com/svera/acquire/fsm"
 	acquireInterfaces "github.com/svera/acquire/interfaces"
 	"github.com/svera/acquire/player"
 	"github.com/svera/acquire/tile"
-	"github.com/svera/acquire/tileset"
 	"github.com/svera/tbg-server/client"
 	serverInterfaces "github.com/svera/tbg-server/interfaces"
 )
@@ -23,11 +19,8 @@ import (
 // AcquireBridge implements the bridge interface in order to be able to have
 // and acquire game through the turn based game server
 type AcquireBridge struct {
-	game         *acquire.Game
-	players      []acquireInterfaces.Player
-	corporations [7]acquireInterfaces.Corporation
-	board        acquireInterfaces.Board
-	tileset      acquireInterfaces.Tileset
+	game    *acquire.Game
+	players []acquireInterfaces.Player
 }
 
 const (
@@ -50,11 +43,7 @@ const (
 
 // New initializes a new AcquireBridge instance
 func New() *AcquireBridge {
-	return &AcquireBridge{
-		corporations: createCorporations(),
-		board:        board.New(),
-		tileset:      tileset.New(),
-	}
+	return &AcquireBridge{}
 }
 
 // ParseMessage gets an input JSON-encoded message and parses it, executing
@@ -200,12 +189,11 @@ func corpNames(corps []acquireInterfaces.Corporation) []string {
 }
 
 func (b *AcquireBridge) findCorpByName(name string) (acquireInterfaces.Corporation, error) {
-	for _, corp := range b.corporations {
+	for _, corp := range b.game.Corporations() {
 		if strings.ToLower(corp.Name()) == strings.ToLower(name) {
 			return corp, nil
 		}
 	}
-	log.Println(name)
 	return &corporation.Corporation{}, errors.New(CorporationNotFound)
 }
 
@@ -251,30 +239,6 @@ func (b *AcquireBridge) gameStarted() bool {
 	return true
 }
 
-func createCorporations() [7]acquireInterfaces.Corporation {
-	var corporations [7]acquireInterfaces.Corporation
-	corpsParams := [7]map[string]int{
-		map[string]int{"Sackson": 0},
-		map[string]int{"Zeta": 0},
-		map[string]int{"Hydra": 1},
-		map[string]int{"Fusion": 1},
-		map[string]int{"America": 1},
-		map[string]int{"Phoenix": 2},
-		map[string]int{"Quantum": 2},
-	}
-
-	for i, corpData := range corpsParams {
-		for corpName, corpClass := range corpData {
-			if corp, err := corporation.New(corpName, corpClass); err == nil {
-				corporations[i] = corp
-			} else {
-				panic(err)
-			}
-		}
-	}
-	return corporations
-}
-
 // Status return a JSON string with the current status of the game
 func (b *AcquireBridge) Status(n int) ([]byte, error) {
 	playerInfo, rivalsInfo, err := b.playersInfo(n)
@@ -310,7 +274,7 @@ func (b *AcquireBridge) tilesData(pl acquireInterfaces.Player) []handData {
 
 func (b *AcquireBridge) corpsData() [7]corpData {
 	var data [7]corpData
-	for i, corp := range b.corporations {
+	for i, corp := range b.game.Corporations() {
 		data[i] = corpData{
 			Name:            corp.Name(),
 			Price:           corp.StockPrice(),
@@ -359,7 +323,7 @@ func (b *AcquireBridge) isCurrentPlayer(n int) bool {
 
 func (b *AcquireBridge) playersShares(playerNumber int) [7]int {
 	var data [7]int
-	for i, corp := range b.corporations {
+	for i, corp := range b.game.Corporations() {
 		data[i] = b.players[playerNumber].Shares(corp)
 	}
 	return data
@@ -383,13 +347,7 @@ func (b *AcquireBridge) StartGame() error {
 	if b.gameStarted() {
 		err = errors.New(GameAlreadyStarted)
 	}
-	b.game, err = acquire.New(
-		b.board,
-		b.players,
-		b.corporations,
-		b.tileset,
-		&fsm.PlayTile{},
-	)
+	b.game, err = acquire.New(b.players, acquire.Optional{})
 	return err
 }
 

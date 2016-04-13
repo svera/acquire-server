@@ -103,6 +103,7 @@ func main() {
 		r.HandleFunc("/{id:[a-zA-Z]+}", room)
 		r.PathPrefix("/").Handler(http.FileServer(http.Dir("./public/")))
 		http.Handle("/", r)
+		fmt.Printf("TBG Server listening on port %s\n", cfg.Port)
 		log.Fatal(http.ListenAndServe(cfg.Port, r))
 	}
 }
