@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/svera/tbg-server/bridges/acquire"
-	"github.com/svera/tbg-server/bridges/null"
 	"github.com/svera/tbg-server/interfaces"
 )
 
@@ -17,6 +16,6 @@ func Create(name string) (interfaces.Bridge, error) {
 	case "acquire":
 		return acquirebridge.New(), nil
 	default:
-		return &null.NullBridge{}, errors.New(BridgeNotFound)
+		return nil, errors.New(BridgeNotFound)
 	}
 }
