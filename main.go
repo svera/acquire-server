@@ -31,16 +31,15 @@ func join(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	c, err := client.NewHuman(w, r)
-	if err != nil {
+	if c, err := client.NewHuman(w, r); err == nil {
+		c.SetName(fmt.Sprintf("Player %d", hubs[id].NumberClients()+1))
+		hubs[id].Register <- c
+		go c.WritePump()
+		c.ReadPump(hubs[id].Messages, hubs[id].Unregister)
+	} else {
 		log.Println(err)
 		return
 	}
-
-	hubs[id].Register <- c
-
-	go c.WritePump()
-	c.ReadPump(hubs[id].Messages, hubs[id].Unregister)
 }
 
 func room(w http.ResponseWriter, r *http.Request) {

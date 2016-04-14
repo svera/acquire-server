@@ -2,6 +2,7 @@ package hub
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 
 	"github.com/svera/tbg-server/client"
@@ -101,6 +102,7 @@ func (h *Hub) parseControlMessage(m *client.Message) {
 		break
 	case client.ControlMessageTypeAddBot:
 		if c, err := h.gameBridge.AddBot("random"); err == nil {
+			c.SetName(fmt.Sprintf("Player %d", h.NumberClients()+1))
 			h.addClient(c)
 			go c.WritePump()
 			go c.ReadPump(h.Messages, h.Unregister)
@@ -190,4 +192,9 @@ func (h *Hub) addClient(c interfaces.Client) error {
 		h.sendMessage(c, response)
 	}
 	return nil
+}
+
+// NumberClients returns the number of connected clients
+func (h *Hub) NumberClients() int {
+	return len(h.clients)
 }

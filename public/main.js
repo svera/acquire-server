@@ -27,7 +27,7 @@ $(function() {
             case "add":
                 $("#playerList").html("");
                 for (var i=0; i < msg.val.length; i++) {
-                    $("#playerList").append("<li>Player</li>");
+                    $("#playerList").append("<li>"+ msg.val[i] +"</li>");
                 }
                 break;
             case "upd":
