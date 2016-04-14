@@ -70,14 +70,13 @@ func create(w http.ResponseWriter, r *http.Request) {
 
 	r.ParseForm()
 	if bridge, err := bridges.Create(r.FormValue("game")); err != nil {
-		panic("Game bridge not found")
+		http.Error(w, "Game bridge not found", 404)
 	} else {
 		h := hub.New(bridge)
 		hubs[id] = h
 
 		go hubs[id].Run()
-
-		http.Redirect(w, r, "/"+id, 302)
+		fmt.Fprint(w, id)
 	}
 }
 
