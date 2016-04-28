@@ -2,13 +2,6 @@
 // about the status of the game after a player action
 package acquirebridge
 
-// errorMessage is a struct sent to a specific player
-// when he/she does an action that leads to an error.
-type errorMessage struct {
-	Type    string `json:"typ"`
-	Content string `json:"cnt"`
-}
-
 // statusMessage is a struct which contains the status of the game at the moment
 // it is issued. It is sent to each player after every action made by one of them.
 type statusMessage struct {
