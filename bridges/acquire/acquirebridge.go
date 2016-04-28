@@ -12,7 +12,6 @@ import (
 	acquireInterfaces "github.com/svera/acquire/interfaces"
 	"github.com/svera/acquire/player"
 	"github.com/svera/acquire/tile"
-	"github.com/svera/tbg-server/client"
 	serverInterfaces "github.com/svera/tbg-server/interfaces"
 )
 
@@ -84,13 +83,6 @@ func (b *AcquireBridge) ParseMessage(t string, params json.RawMessage) ([]byte, 
 		err = errors.New(WrongMessage)
 	}
 
-	if err != nil {
-		res := &errorMessage{
-			Type:    "err",
-			Content: err.Error(),
-		}
-		response, _ = json.Marshal(res)
-	}
 	return response, err
 }
 
@@ -363,7 +355,7 @@ func (b *AcquireBridge) AddBot(params interface{}) (serverInterfaces.Client, err
 		if bot, err := bots.Create(name); err == nil {
 			return NewBotClient(bot), nil
 		} else {
-			return &client.NullClient{}, err
+			return nil, err
 		}
 	}
 	panic("Expecting string in AddBot parameter")

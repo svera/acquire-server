@@ -98,8 +98,14 @@ func (h *Hub) parseControlMessage(m *client.Message) {
 	case client.ControlMessageTypeStartGame:
 		if err := h.gameBridge.StartGame(); err == nil {
 			h.broadcastUpdate()
+		} else {
+			res := &errorMessage{
+				Type:    "err",
+				Content: err.Error(),
+			}
+			response, _ := json.Marshal(res)
+			h.sendMessage(m.Author, response)
 		}
-		break
 	case client.ControlMessageTypeAddBot:
 		if c, err := h.gameBridge.AddBot("random"); err == nil {
 			c.SetName(fmt.Sprintf("Player %d", h.NumberClients()+1))
@@ -107,7 +113,6 @@ func (h *Hub) parseControlMessage(m *client.Message) {
 			go c.WritePump()
 			go c.ReadPump(h.Messages, h.Unregister)
 		}
-		break
 	}
 }
 
@@ -121,6 +126,11 @@ func (h *Hub) parseGameMessage(m *client.Message) {
 	}
 	if err != nil {
 		log.Println(err)
+		res := &errorMessage{
+			Type:    "err",
+			Content: err.Error(),
+		}
+		response, _ = json.Marshal(res)
 		h.sendMessage(m.Author, response)
 	} else {
 		h.broadcastUpdate()

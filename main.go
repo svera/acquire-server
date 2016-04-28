@@ -1,7 +1,6 @@
 package main
 
 import (
-	"html/template"
 	"log"
 	"net/http"
 
@@ -42,25 +41,8 @@ func join(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func room(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		http.Error(w, "Method not allowed", 405)
-		return
-	}
-
-	vars := mux.Vars(r)
-	id := vars["id"]
-
-	if _, ok := hubs[id]; !ok {
-		http.Error(w, "Game doesn't exist", 404)
-		return
-	}
-
-	t, _ := template.ParseFiles("./public/game.html")
-	t.Execute(w, nil)
-}
-
 func create(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	if r.Method != "POST" {
 		http.Error(w, "Method not allowed", 405)
 	}
@@ -79,11 +61,6 @@ func create(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func index(w http.ResponseWriter, r *http.Request) {
-	t, _ := template.ParseFiles("./public/index.html")
-	t.Execute(w, nil)
-}
-
 func main() {
 	f, err := os.Open("./config.yml")
 	if err != nil {
@@ -95,13 +72,10 @@ func main() {
 	} else {
 		r := mux.NewRouter()
 		hubs = make(map[string]*hub.Hub)
-		r.HandleFunc("/", index)
 		r.HandleFunc("/create", create)
 		r.HandleFunc("/{id:[a-zA-Z]+}/join", join)
-		r.HandleFunc("/{id:[a-zA-Z]+}", room)
-		r.PathPrefix("/").Handler(http.FileServer(http.Dir("./public/")))
 		http.Handle("/", r)
-		fmt.Printf("TBG Server listening on port %s\n", cfg.Port)
+		log.Printf("TBG Server listening on port %s\n", cfg.Port)
 		log.Fatal(http.ListenAndServe(cfg.Port, r))
 	}
 }

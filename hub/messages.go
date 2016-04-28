@@ -12,3 +12,10 @@ type currentPlayersMessage struct {
 	Type   string   `json:"typ"`
 	Values []string `json:"val"`
 }
+
+// errorMessage is a struct sent to a specific player
+// when he/she does an action that leads to an error.
+type errorMessage struct {
+	Type    string `json:"typ"`
+	Content string `json:"cnt"`
+}
