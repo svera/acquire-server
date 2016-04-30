@@ -8,7 +8,7 @@ type statusMessage struct {
 	Type       string            `json:"typ"`
 	Board      map[string]string `json:"brd"`
 	State      string            `json:"sta"`
-	Hand       []handData        `json:"hnd"`
+	Hand       map[string]bool   `json:"hnd"`
 	Corps      [7]corpData       `json:"cor"`
 	TiedCorps  []string          `json:"tie"`
 	PlayerInfo playerData        `json:"ply"`
@@ -33,9 +33,4 @@ type playerData struct {
 	Enabled     bool   `json:"ebl"`
 	Cash        int    `json:"csh"`
 	OwnedShares [7]int `json:"own"`
-}
-
-type handData struct {
-	Coords   string `json:"coo"`
-	Playable bool   `json:"pyb"`
 }

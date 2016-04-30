@@ -253,13 +253,13 @@ func (b *AcquireBridge) Status(n int) ([]byte, error) {
 	return response, err
 }
 
-func (b *AcquireBridge) tilesData(pl acquireInterfaces.Player) []handData {
-	var hnd []handData
+func (b *AcquireBridge) tilesData(pl acquireInterfaces.Player) map[string]bool {
+	hnd := map[string]bool{}
+	var coords string
+
 	for _, tl := range pl.Tiles() {
-		hnd = append(hnd, handData{
-			Coords:   strconv.Itoa(tl.Number()) + tl.Letter(),
-			Playable: b.game.IsTilePlayable(tl),
-		})
+		coords = strconv.Itoa(tl.Number()) + tl.Letter()
+		hnd[coords] = b.game.IsTilePlayable(tl)
 	}
 	return hnd
 }

@@ -79,16 +79,13 @@ func (c *BotClient) encodeResponse(m bots.Message) *client.Message {
 }
 
 func (c *BotClient) updateBot(parsed statusMessage) {
-	var hand []bots.HandData
+	hand := map[string]bool{}
 	var corps [7]bots.CorpData
 	var playerInfo bots.PlayerData
 	var rivalsInfo []bots.PlayerData
 
-	for _, tile := range parsed.Hand {
-		hand = append(hand, bots.HandData{
-			Coords:   tile.Coords,
-			Playable: tile.Playable,
-		})
+	for coords, playable := range parsed.Hand {
+		hand[coords] = playable
 	}
 	for i := range parsed.Corps {
 		corps[i] = bots.CorpData{
