@@ -206,7 +206,6 @@ func (c *BotClient) encodeEndGame() *client.Message {
 
 // WritePump gets updates from the hub
 func (c *BotClient) WritePump() {
-
 	for {
 		select {
 		case message, ok := <-c.incoming:
