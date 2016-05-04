@@ -206,11 +206,11 @@ func (c *BotClient) encodeEndGame() *client.Message {
 
 // WritePump gets updates from the hub
 func (c *BotClient) WritePump() {
-	var parsed statusMessage
 
 	for {
 		select {
 		case message, ok := <-c.incoming:
+			var parsed statusMessage
 			if !ok {
 				return
 			}

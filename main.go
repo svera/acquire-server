@@ -55,6 +55,7 @@ func create(w http.ResponseWriter, r *http.Request) {
 	} else {
 		h := hub.New(bridge)
 		hubs[id] = h
+		fmt.Printf("Number of running games: %d\n", len(hubs))
 
 		go hubs[id].Run()
 		fmt.Fprint(w, id)

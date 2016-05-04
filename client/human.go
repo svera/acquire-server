@@ -32,6 +32,7 @@ func NewHuman(w http.ResponseWriter, r *http.Request) (interfaces.Client, error)
 	var upgrader = websocket.Upgrader{
 		ReadBufferSize:  maxMessageSize,
 		WriteBufferSize: maxMessageSize,
+		// This line needs to be changed to make it more restrictive
 		CheckOrigin: func(r *http.Request) bool {
 			return true
 		},
