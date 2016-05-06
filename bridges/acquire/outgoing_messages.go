@@ -1,6 +1,7 @@
+package acquirebridge
+
 // This file specifies messages sent from the hub to the clients, basically notifying
 // about the status of the game after a player action
-package acquirebridge
 
 // statusMessage is a struct which contains the status of the game at the moment
 // it is issued. It is sent to each player after every action made by one of them.
