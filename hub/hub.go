@@ -84,7 +84,8 @@ func (h *Hub) isControlMessage(m *client.Message) bool {
 	switch m.Content.Type {
 	case
 		client.ControlMessageTypeAddBot,
-		client.ControlMessageTypeStartGame:
+		client.ControlMessageTypeStartGame,
+		client.ControlMessageTypeKickPlayer:
 		return true
 	}
 	return false
@@ -98,14 +99,25 @@ func (h *Hub) parseControlMessage(m *client.Message) {
 	case client.ControlMessageTypeStartGame:
 		if err := h.gameBridge.StartGame(); err == nil {
 			h.broadcastUpdate()
+		} else {
+			res := &errorMessage{
+				Type:    "err",
+				Content: err.Error(),
+			}
+			response, _ := json.Marshal(res)
+			h.sendMessage(m.Author, response)
 		}
-
 	case client.ControlMessageTypeAddBot:
 		if c, err := h.gameBridge.AddBot("random"); err == nil {
 			c.SetName(fmt.Sprintf("Player %d", h.NumberClients()+1))
 			h.addClient(c)
 			go c.WritePump()
 			go c.ReadPump(h.Messages, h.Unregister)
+		}
+	case client.ControlMessageTypeKickPlayer:
+		var parsed client.KickPlayerMessageParams
+		if err := json.Unmarshal(m.Content.Params, &parsed); err == nil {
+			h.kickPlayer(parsed.PlayerNumber)
 		}
 	}
 }
@@ -120,6 +132,11 @@ func (h *Hub) parseGameMessage(m *client.Message) {
 	}
 	if err != nil {
 		log.Println(err)
+		res := &errorMessage{
+			Type:    "err",
+			Content: err.Error(),
+		}
+		response, _ = json.Marshal(res)
 		h.sendMessage(m.Author, response)
 	} else {
 		h.broadcastUpdate()
@@ -182,15 +199,27 @@ func (h *Hub) addClient(c interfaces.Client) error {
 		response, _ := json.Marshal(msg)
 		h.sendMessage(c, response)
 	}
+	h.sendUpdatedPlayersList()
+	return nil
+}
+
+func (h *Hub) kickPlayer(number int) {
+	if number < 0 || number > len(h.clients) {
+		return
+	}
+	h.removeClient(h.clients[number])
+	h.sendUpdatedPlayersList()
+}
+
+func (h *Hub) sendUpdatedPlayersList() {
 	msg := currentPlayersMessage{
-		Type:   "add",
+		Type:   "pls",
 		Values: h.clientNames(),
 	}
 	response, _ := json.Marshal(msg)
 	for _, c := range h.clients {
 		h.sendMessage(c, response)
 	}
-	return nil
 }
 
 // NumberClients returns the number of connected clients

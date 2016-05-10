@@ -9,8 +9,9 @@ import (
 // Control messages types, common to all games.
 // Game-specific messages are defined at game bridge level.
 const (
-	ControlMessageTypeStartGame = "ini"
-	ControlMessageTypeAddBot    = "bot"
+	ControlMessageTypeStartGame  = "ini"
+	ControlMessageTypeAddBot     = "bot"
+	ControlMessageTypeKickPlayer = "kck"
 )
 
 type MessageContent struct {
@@ -23,4 +24,8 @@ type MessageContent struct {
 type Message struct {
 	Author  interfaces.Client
 	Content MessageContent
+}
+
+type KickPlayerMessageParams struct {
+	PlayerNumber int `json:"ply"`
 }
