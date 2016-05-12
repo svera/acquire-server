@@ -29,3 +29,7 @@ type Message struct {
 type KickPlayerMessageParams struct {
 	PlayerNumber int `json:"ply"`
 }
+
+type AddBotMessageParams struct {
+	BotName string `json:"nam"`
+}

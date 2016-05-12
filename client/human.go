@@ -109,23 +109,28 @@ func (c *Human) WritePump() {
 	}
 }
 
+// Incoming returns the client's incoming channel
 func (c *Human) Incoming() chan []byte {
 	return c.incoming
 }
 
+// Owner returns true if the client is owner of the game, false otherwise
 func (c *Human) Owner() bool {
 	return c.owner
 }
 
+// SetOwner sets the client as game owner
 func (c *Human) SetOwner(v bool) interfaces.Client {
 	c.owner = v
 	return c
 }
 
+// Name returns the client's name
 func (c *Human) Name() string {
 	return c.name
 }
 
+// SetName sets a name for the client
 func (c *Human) SetName(v string) interfaces.Client {
 	c.name = v
 	return c
@@ -134,4 +139,9 @@ func (c *Human) SetName(v string) interfaces.Client {
 func (c *Human) write(mt int, message []byte) error {
 	c.ws.SetWriteDeadline(time.Now().Add(writeWait))
 	return c.ws.WriteMessage(mt, message)
+}
+
+// Close closes connection through the websocket
+func (c *Human) Close() {
+	c.ws.Close()
 }

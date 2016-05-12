@@ -8,4 +8,5 @@ type Client interface {
 	SetOwner(v bool) Client
 	Name() string
 	SetName(v string) Client
+	Close()
 }

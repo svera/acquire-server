@@ -2,6 +2,7 @@ package acquirebridge
 
 import (
 	"encoding/json"
+	"log"
 
 	"github.com/svera/acquire/bots"
 	acquireInterfaces "github.com/svera/acquire/interfaces"
@@ -13,28 +14,33 @@ const (
 	maxMessageSize = 1024 * 1024
 )
 
-// Bot is a struct that implements the client interface,
+// BotClient is a struct that implements the client interface,
 // storing data related to a specific user and provides
 // several functions to send/receive data to/from a client using a websocket
 // connection
 type BotClient struct {
-	name     string
-	incoming chan []byte // Channel storing incoming messages
-	botTurn  chan statusMessage
-	bot      acquireInterfaces.Bot
+	name         string
+	incoming     chan []byte // Channel storing incoming messages
+	endReadPump  chan bool
+	endWritePump chan bool
+	botTurn      chan statusMessage
+	bot          acquireInterfaces.Bot
 }
 
-// NewBot returns a new Bot instance
+// NewBotClient returns a new Bot instance
 func NewBotClient(b acquireInterfaces.Bot) serverInterfaces.Client {
 	return &BotClient{
-		incoming: make(chan []byte, maxMessageSize),
-		botTurn:  make(chan statusMessage),
-		bot:      b,
+		incoming:     make(chan []byte, maxMessageSize),
+		endReadPump:  make(chan bool),
+		endWritePump: make(chan bool),
+		botTurn:      make(chan statusMessage),
+		bot:          b,
 	}
 }
 
-// ReadPump reads input from the user and writes it to the passed channel,
-// with usually belongs to the hub
+// ReadPump listens to the botTurn channel (see the WritePump function) and, when
+// an update message comes this way, updates the bot game status information
+// and gets its next play, sending it back to the hub
 func (c *BotClient) ReadPump(cnl interface{}, unregister chan serverInterfaces.Client) {
 	var msg *client.Message
 	var m interface{}
@@ -45,6 +51,10 @@ func (c *BotClient) ReadPump(cnl interface{}, unregister chan serverInterfaces.C
 
 	for {
 		select {
+		case <-c.endReadPump:
+			log.Println("ReadPump ended")
+			return
+
 		case parsed := <-c.botTurn:
 			c.updateBot(parsed)
 			m = c.bot.Play()
@@ -208,12 +218,15 @@ func (c *BotClient) encodeEndGame() *client.Message {
 func (c *BotClient) WritePump() {
 	for {
 		select {
+		case <-c.endWritePump:
+			log.Println("WritePump ended")
+			return
+
 		case message, ok := <-c.incoming:
 			var parsed statusMessage
 			if !ok {
 				return
 			}
-
 			if err := json.Unmarshal(message, &parsed); err == nil {
 				if parsed.PlayerInfo.Enabled {
 					c.botTurn <- parsed
@@ -244,4 +257,11 @@ func (c *BotClient) Name() string {
 func (c *BotClient) SetName(v string) serverInterfaces.Client {
 	c.name = v
 	return c
+}
+
+// Close sends a quitting signal that will end the ReadPump() and WritePump()
+// goroutines of this instance
+func (c *BotClient) Close() {
+	c.endReadPump <- true
+	c.endWritePump <- true
 }

@@ -2,11 +2,17 @@ package hub
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 
 	"github.com/svera/tbg-server/client"
 	"github.com/svera/tbg-server/interfaces"
+)
+
+const (
+	InexistentClient  = "inexistent_client"
+	OwnerNotRemovable = "owner_not_removable"
 )
 
 // Hub is a struct that manage the message flow between client (players)
@@ -100,44 +106,41 @@ func (h *Hub) parseControlMessage(m *client.Message) {
 		if err := h.gameBridge.StartGame(); err == nil {
 			h.broadcastUpdate()
 		} else {
-			res := &errorMessage{
-				Type:    "err",
-				Content: err.Error(),
-			}
-			response, _ := json.Marshal(res)
-			h.sendMessage(m.Author, response)
+			h.sendErrorMessage(err, m.Author)
 		}
 	case client.ControlMessageTypeAddBot:
-		if c, err := h.gameBridge.AddBot("random"); err == nil {
-			c.SetName(fmt.Sprintf("Player %d", h.NumberClients()+1))
-			h.addClient(c)
-			go c.WritePump()
-			go c.ReadPump(h.Messages, h.Unregister)
+		var parsed client.AddBotMessageParams
+		if err := json.Unmarshal(m.Content.Params, &parsed); err == nil {
+			if c, err := h.gameBridge.AddBot(parsed.BotName); err == nil {
+				c.SetName(fmt.Sprintf("Player %d", h.NumberClients()+1))
+				if err := h.addClient(c); err == nil {
+					go c.WritePump()
+					go c.ReadPump(h.Messages, h.Unregister)
+				} else {
+					h.sendErrorMessage(err, m.Author)
+				}
+			}
 		}
 	case client.ControlMessageTypeKickPlayer:
 		var parsed client.KickPlayerMessageParams
 		if err := json.Unmarshal(m.Content.Params, &parsed); err == nil {
-			h.kickPlayer(parsed.PlayerNumber)
+			if err := h.kickClient(parsed.PlayerNumber); err != nil {
+				h.sendErrorMessage(err, m.Author)
+			}
 		}
 	}
 }
 
 func (h *Hub) parseGameMessage(m *client.Message) {
-	var response []byte
 	var err error
 	var currentPlayer interfaces.Client
 
 	if currentPlayer, err = h.currentPlayerClient(); m.Author == currentPlayer && err == nil {
-		response, err = h.gameBridge.ParseMessage(m.Content.Type, m.Content.Params)
+		err = h.gameBridge.ParseMessage(m.Content.Type, m.Content.Params)
 	}
 	if err != nil {
 		log.Println(err)
-		res := &errorMessage{
-			Type:    "err",
-			Content: err.Error(),
-		}
-		response, _ = json.Marshal(res)
-		h.sendMessage(m.Author, response)
+		h.sendErrorMessage(err, m.Author)
 	} else {
 		h.broadcastUpdate()
 	}
@@ -200,15 +203,22 @@ func (h *Hub) addClient(c interfaces.Client) error {
 		h.sendMessage(c, response)
 	}
 	h.sendUpdatedPlayersList()
+	log.Printf("Numero de clientes: %d\n", len(h.clients))
 	return nil
 }
 
-func (h *Hub) kickPlayer(number int) {
+func (h *Hub) kickClient(number int) error {
 	if number < 0 || number > len(h.clients) {
-		return
+		return errors.New(InexistentClient)
 	}
+	if h.clients[number].Owner() {
+		return errors.New(OwnerNotRemovable)
+	}
+	h.clients[number].Close()
 	h.removeClient(h.clients[number])
+	h.gameBridge.RemovePlayer(number)
 	h.sendUpdatedPlayersList()
+	return nil
 }
 
 func (h *Hub) sendUpdatedPlayersList() {
@@ -225,4 +235,13 @@ func (h *Hub) sendUpdatedPlayersList() {
 // NumberClients returns the number of connected clients
 func (h *Hub) NumberClients() int {
 	return len(h.clients)
+}
+
+func (h *Hub) sendErrorMessage(err error, author interfaces.Client) {
+	res := &errorMessage{
+		Type:    "err",
+		Content: err.Error(),
+	}
+	response, _ := json.Marshal(res)
+	h.sendMessage(author, response)
 }

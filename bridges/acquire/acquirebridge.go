@@ -35,7 +35,7 @@ const (
 	GameNotStarted = "game_not_started"
 	// GameFull is an error returned when a game already has the maximum number of players
 	GameFull = "game_full"
-	// InexistentPlayer is an error returned when someone tries to get information of a non existent player
+	// InexistentPlayer is an error returned when someone tries to remove or get information of a non existent player
 	InexistentPlayer    = "inexistent_player"
 	CorporationNotFound = "corporation_not_found"
 )
@@ -47,9 +47,8 @@ func New() *AcquireBridge {
 
 // ParseMessage gets an input JSON-encoded message and parses it, executing
 // whatever actions are required by it
-func (b *AcquireBridge) ParseMessage(t string, params json.RawMessage) ([]byte, error) {
+func (b *AcquireBridge) ParseMessage(t string, params json.RawMessage) error {
 	var err error
-	var response []byte
 
 	switch t {
 	case messageTypePlayTile:
@@ -83,7 +82,7 @@ func (b *AcquireBridge) ParseMessage(t string, params json.RawMessage) ([]byte, 
 		err = errors.New(WrongMessage)
 	}
 
-	return response, err
+	return err
 }
 
 func (b *AcquireBridge) playTile(params playTileMessageParams) error {
@@ -330,6 +329,15 @@ func (b *AcquireBridge) AddPlayer() error {
 		return errors.New(GameAlreadyStarted)
 	}
 	b.players = append(b.players, player.New())
+	return nil
+}
+
+// RemovePlayer removes a player from the game
+func (b *AcquireBridge) RemovePlayer(number int) error {
+	if number < 0 || number > len(b.players) {
+		return errors.New(InexistentPlayer)
+	}
+	b.players = append(b.players[:number], b.players[number+1:]...)
 	return nil
 }
 
