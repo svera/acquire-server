@@ -32,6 +32,9 @@ type Hub struct {
 	// Unregister requests
 	Unregister chan interfaces.Client
 
+	// Stops hub server
+	Quit chan bool
+
 	gameBridge interfaces.Bridge
 }
 
@@ -41,6 +44,7 @@ func New(b interfaces.Bridge) *Hub {
 		Messages:   make(chan *client.Message),
 		Register:   make(chan interfaces.Client),
 		Unregister: make(chan interfaces.Client),
+		Quit:       make(chan bool),
 		clients:    []interfaces.Client{},
 		gameBridge: b,
 	}
@@ -67,6 +71,13 @@ func (h *Hub) Run() {
 				}
 			}
 			break
+
+		case <-h.Quit:
+			for _, client := range h.clients {
+				h.removeClient(client)
+				close(client.Incoming())
+			}
+			return
 
 		case m := <-h.Messages:
 			h.parseMessage(m)

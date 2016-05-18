@@ -53,13 +53,30 @@ func create(w http.ResponseWriter, r *http.Request) {
 	if bridge, err := bridges.Create(r.FormValue("game")); err != nil {
 		http.Error(w, "Game bridge not found", 404)
 	} else {
-		h := hub.New(bridge)
-		hubs[id] = h
+		hubs[id] = hub.New(bridge)
 		fmt.Printf("Number of running games: %d\n", len(hubs))
 
 		go hubs[id].Run()
 		fmt.Fprint(w, id)
 	}
+}
+
+func destroy(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", 405)
+	}
+	r.ParseForm()
+	id := r.FormValue("id")
+
+	if _, ok := hubs[id]; !ok {
+		http.Error(w, "Game doesn't exist", 404)
+		return
+	}
+
+	hubs[id].Quit <- true
+	delete(hubs, id)
+	fmt.Printf("Number of running games: %d\n", len(hubs))
 }
 
 func main() {
@@ -74,6 +91,7 @@ func main() {
 		r := mux.NewRouter()
 		hubs = make(map[string]*hub.Hub)
 		r.HandleFunc("/create", create)
+		r.HandleFunc("/destroy", destroy)
 		r.HandleFunc("/{id:[a-zA-Z]+}/join", join)
 		http.Handle("/", r)
 		log.Printf("TBG Server listening on port %s\n", cfg.Port)

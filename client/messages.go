@@ -14,6 +14,9 @@ const (
 	ControlMessageTypeKickPlayer = "kck"
 )
 
+// MessageContent is a struct that goes inside Message struct, acting
+// as a container for the different kind of parameters needed for each type
+// of message
 type MessageContent struct {
 	Type   string          `json:"typ"`
 	Params json.RawMessage `json:"par"`
@@ -26,10 +29,14 @@ type Message struct {
 	Content MessageContent
 }
 
+// KickPlayerMessageParams contains the needed parameters for a kick player
+// message
 type KickPlayerMessageParams struct {
 	PlayerNumber int `json:"ply"`
 }
 
+// AddBotMessageParams contains the needed parameters for a add bot
+// message
 type AddBotMessageParams struct {
 	BotName string `json:"nam"`
 }
