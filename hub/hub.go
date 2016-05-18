@@ -75,7 +75,7 @@ func (h *Hub) Run() {
 		case <-h.Quit:
 			for _, client := range h.clients {
 				h.removeClient(client)
-				close(client.Incoming())
+				client.Close(interfaces.HubDestroyed)
 			}
 			return
 
@@ -225,7 +225,7 @@ func (h *Hub) kickClient(number int) error {
 	if h.clients[number].Owner() {
 		return errors.New(OwnerNotRemovable)
 	}
-	h.clients[number].Close()
+	h.clients[number].Close(interfaces.PlayerKicked)
 	h.removeClient(h.clients[number])
 	h.gameBridge.RemovePlayer(number)
 	h.sendUpdatedPlayersList()
