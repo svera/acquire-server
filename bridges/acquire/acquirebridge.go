@@ -216,14 +216,14 @@ func coordsToTile(tl string) (acquireInterfaces.Tile, error) {
 
 // CurrentPlayerNumber returns the number of the player currently in turn
 func (b *AcquireBridge) CurrentPlayerNumber() (int, error) {
-	if !b.gameStarted() {
+	if !b.GameStarted() {
 		return 0, errors.New(GameNotStarted)
 	}
 	return b.game.CurrentPlayerNumber(), nil
 }
 
-// gameStarted returns true if there's a game in progress, false otherwise
-func (b *AcquireBridge) gameStarted() bool {
+// GameStarted returns true if there's a game in progress, false otherwise
+func (b *AcquireBridge) GameStarted() bool {
 	if b.game == nil {
 		return false
 	}
@@ -290,12 +290,14 @@ func (b *AcquireBridge) playersInfo(n int) (playerData, []playerData, error) {
 	for i, p := range b.players {
 		if n != i {
 			rivals = append(rivals, playerData{
+				Active:      p.Active(),
 				Cash:        p.Cash(),
 				OwnedShares: b.playersShares(i),
 				Enabled:     b.isCurrentPlayer(i),
 			})
 		} else {
 			ply = playerData{
+				Active:      p.Active(),
 				Cash:        p.Cash(),
 				OwnedShares: b.playersShares(n),
 				Enabled:     b.isCurrentPlayer(n),
@@ -325,7 +327,7 @@ func (b *AcquireBridge) AddPlayer() error {
 	if len(b.players) == maximumPlayers {
 		return errors.New(GameFull)
 	}
-	if b.gameStarted() {
+	if b.GameStarted() {
 		return errors.New(GameAlreadyStarted)
 	}
 	b.players = append(b.players, player.New())
@@ -341,10 +343,19 @@ func (b *AcquireBridge) RemovePlayer(number int) error {
 	return nil
 }
 
+// RemovePlayer removes a player from the game
+func (b *AcquireBridge) DeactivatePlayer(number int) error {
+	if number < 0 || number > len(b.players) {
+		return errors.New(InexistentPlayer)
+	}
+	b.game.DeactivatePlayer(b.players[number])
+	return nil
+}
+
 // StartGame starts a new Acquire game
 func (b *AcquireBridge) StartGame() error {
 	var err error
-	if b.gameStarted() {
+	if b.GameStarted() {
 		err = errors.New(GameAlreadyStarted)
 	}
 	b.game, err = acquire.New(b.players, acquire.Optional{})
@@ -352,7 +363,7 @@ func (b *AcquireBridge) StartGame() error {
 }
 
 func (b *AcquireBridge) IsGameOver() bool {
-	if b.gameStarted() {
+	if b.GameStarted() {
 		return b.game.GameStateName() == acquireInterfaces.EndGameStateName
 	}
 	return false

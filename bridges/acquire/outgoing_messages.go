@@ -30,6 +30,7 @@ type corpData struct {
 }
 
 type playerData struct {
+	Active      bool   `json:"atv"`
 	Name        string `json:"nam"`
 	Enabled     bool   `json:"ebl"`
 	Cash        int    `json:"csh"`

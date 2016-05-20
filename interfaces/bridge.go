@@ -12,7 +12,9 @@ type Bridge interface {
 	Status(n int) ([]byte, error)
 	AddPlayer() error
 	RemovePlayer(number int) error
+	DeactivatePlayer(number int) error
 	AddBot(params interface{}) (Client, error)
 	StartGame() error
+	GameStarted() bool
 	IsGameOver() bool
 }

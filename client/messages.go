@@ -9,9 +9,10 @@ import (
 // Control messages types, common to all games.
 // Game-specific messages are defined at game bridge level.
 const (
-	ControlMessageTypeStartGame  = "ini"
-	ControlMessageTypeAddBot     = "bot"
-	ControlMessageTypeKickPlayer = "kck"
+	ControlMessageTypeStartGame   = "ini"
+	ControlMessageTypeAddBot      = "bot"
+	ControlMessageTypeKickPlayer  = "kck"
+	ControlMessageTypePlayerQuits = "qui"
 )
 
 // MessageContent is a struct that goes inside Message struct, acting
