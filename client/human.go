@@ -142,6 +142,7 @@ func (c *Human) write(mt int, message []byte) error {
 }
 
 // Close closes connection through the websocket
-func (c *Human) Close() {
+func (c *Human) Close(code int) {
+	c.write(websocket.CloseMessage, websocket.FormatCloseMessage(code, "woops"))
 	c.ws.Close()
 }
