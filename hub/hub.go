@@ -33,9 +33,6 @@ type Hub struct {
 	// Unregister requests
 	Unregister chan interfaces.Client
 
-	// Stops hub server
-	Quit chan bool
-
 	gameBridge interfaces.Bridge
 
 	selfDestructCallBack func()
@@ -47,7 +44,6 @@ func New(b interfaces.Bridge, callBack func()) *Hub {
 		Messages:             make(chan *client.Message),
 		Register:             make(chan interfaces.Client),
 		Unregister:           make(chan interfaces.Client),
-		Quit:                 make(chan bool),
 		clients:              []interfaces.Client{},
 		gameBridge:           b,
 		selfDestructCallBack: callBack,
