@@ -33,6 +33,9 @@ type Hub struct {
 	// Unregister requests
 	Unregister chan interfaces.Client
 
+	// Stops hub server
+	stop chan bool
+
 	gameBridge interfaces.Bridge
 
 	selfDestructCallBack func()
@@ -44,6 +47,7 @@ func New(b interfaces.Bridge, callBack func()) *Hub {
 		Messages:             make(chan *client.Message),
 		Register:             make(chan interfaces.Client),
 		Unregister:           make(chan interfaces.Client),
+		stop:                 make(chan bool),
 		clients:              []interfaces.Client{},
 		gameBridge:           b,
 		selfDestructCallBack: callBack,
@@ -70,6 +74,9 @@ func (h *Hub) Run() {
 					close(c.Incoming())
 				}
 			}
+			break
+
+		case <-h.stop:
 			break
 
 		case m := <-h.Messages:
@@ -196,27 +203,6 @@ func (h *Hub) sendMessage(c interfaces.Client, message []byte) {
 	}
 }
 
-// Removes /sets as nil a client and removes / deactivates its player
-// depending wheter the game has already started or not.
-// Note that we don't remove a client if a game has already started, as client
-// indexes must not change once a game has started.
-func (h *Hub) removeClient(c interfaces.Client) {
-	for i := range h.clients {
-		if h.clients[i] == c {
-			if h.gameBridge.GameStarted() {
-				h.clients[i] = nil
-				h.gameBridge.DeactivatePlayer(i)
-			} else {
-				h.clients = append(h.clients[:i], h.clients[i+1:]...)
-				h.gameBridge.RemovePlayer(i)
-			}
-			h.broadcastUpdate()
-			log.Printf("Cliente eliminado, Numero de clientes: %d\n", len(h.clients))
-			return
-		}
-	}
-}
-
 func (h *Hub) addClient(c interfaces.Client) error {
 	if err := h.gameBridge.AddPlayer(); err != nil {
 		return err
@@ -267,11 +253,33 @@ func (h *Hub) terminateGame(client interfaces.Client) error {
 	for _, cl := range h.clients {
 		if cl != nil {
 			h.removeClient(cl)
-			client.Close(interfaces.HubDestroyed)
+			cl.Close(interfaces.HubDestroyed)
 		}
 	}
+	h.stop <- true
 	h.selfDestructCallBack()
 	return nil
+}
+
+// Removes /sets as nil a client and removes / deactivates its player
+// depending wheter the game has already started or not.
+// Note that we don't remove a client if a game has already started, as client
+// indexes must not change once a game has started.
+func (h *Hub) removeClient(c interfaces.Client) {
+	for i := range h.clients {
+		if h.clients[i] == c {
+			if h.gameBridge.GameStarted() {
+				h.clients[i] = nil
+				h.gameBridge.DeactivatePlayer(i)
+			} else {
+				h.clients = append(h.clients[:i], h.clients[i+1:]...)
+				h.gameBridge.RemovePlayer(i)
+			}
+			h.broadcastUpdate()
+			log.Printf("Cliente eliminado, Numero de clientes: %d\n", len(h.clients))
+			return
+		}
+	}
 }
 
 func (h *Hub) sendUpdatedPlayersList() {
