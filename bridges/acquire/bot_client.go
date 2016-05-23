@@ -120,14 +120,14 @@ func (c *BotClient) updateBot(parsed statusMessage) {
 	}
 
 	st := bots.Status{
-		Board:      parsed.Board,
-		State:      parsed.State,
-		Hand:       hand,
-		Corps:      corps,
-		TiedCorps:  parsed.TiedCorps,
-		PlayerInfo: playerInfo,
-		RivalsInfo: rivalsInfo,
-		LastTurn:   parsed.LastTurn,
+		Board:       parsed.Board,
+		State:       parsed.State,
+		Hand:        hand,
+		Corps:       corps,
+		TiedCorps:   parsed.TiedCorps,
+		PlayerInfo:  playerInfo,
+		RivalsInfo:  rivalsInfo,
+		IsLastRound: parsed.IsLastRound,
 	}
 	c.bot.Update(st)
 }
@@ -228,7 +228,7 @@ func (c *BotClient) WritePump() {
 				return
 			}
 			if err := json.Unmarshal(message, &parsed); err == nil {
-				if parsed.PlayerInfo.Enabled {
+				if parsed.PlayerInfo.InTurn {
 					c.botTurn <- parsed
 				}
 			}

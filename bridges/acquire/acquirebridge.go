@@ -165,7 +165,7 @@ func (b *AcquireBridge) untieMerge(params untieMergeMessageParams) error {
 }
 
 func (b *AcquireBridge) claimEndGame() error {
-	if !b.game.ClaimEndGame().IsLastTurn() {
+	if !b.game.ClaimEndGame().IsLastRound() {
 		return errors.New(NotEndGame)
 	}
 	return nil
@@ -237,16 +237,16 @@ func (b *AcquireBridge) Status(n int) ([]byte, error) {
 		return json.RawMessage{}, err
 	}
 	msg := statusMessage{
-		Type:       "upd",
-		Board:      b.boardOwnership(),
-		State:      b.game.GameStateName(),
-		Corps:      b.corpsData(),
-		TiedCorps:  corpNames(b.game.TiedCorps()),
-		Hand:       b.tilesData(b.players[n]),
-		PlayerInfo: playerInfo,
-		RivalsInfo: rivalsInfo,
-		TurnNumber: b.game.Turn(),
-		LastTurn:   b.game.IsLastTurn(),
+		Type:        "upd",
+		Board:       b.boardOwnership(),
+		State:       b.game.GameStateName(),
+		Corps:       b.corpsData(),
+		TiedCorps:   corpNames(b.game.TiedCorps()),
+		Hand:        b.tilesData(b.players[n]),
+		PlayerInfo:  playerInfo,
+		RivalsInfo:  rivalsInfo,
+		RoundNumber: b.game.Round(),
+		IsLastRound: b.game.IsLastRound(),
 	}
 	response, _ := json.Marshal(msg)
 	return response, err
@@ -293,14 +293,14 @@ func (b *AcquireBridge) playersInfo(n int) (playerData, []playerData, error) {
 				Active:      p.Active(),
 				Cash:        p.Cash(),
 				OwnedShares: b.playersShares(i),
-				Enabled:     b.isCurrentPlayer(i),
+				InTurn:      b.isCurrentPlayer(i),
 			})
 		} else {
 			ply = playerData{
 				Active:      p.Active(),
 				Cash:        p.Cash(),
 				OwnedShares: b.playersShares(n),
-				Enabled:     b.isCurrentPlayer(n),
+				InTurn:      b.isCurrentPlayer(n),
 			}
 		}
 	}
@@ -343,7 +343,7 @@ func (b *AcquireBridge) RemovePlayer(number int) error {
 	return nil
 }
 
-// RemovePlayer removes a player from the game
+// DeactivatePlayer removes a player from the game
 func (b *AcquireBridge) DeactivatePlayer(number int) error {
 	if number < 0 || number > len(b.players) {
 		return errors.New(InexistentPlayer)

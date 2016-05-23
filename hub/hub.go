@@ -214,7 +214,9 @@ func (h *Hub) removeClient(c interfaces.Client) {
 				h.clients = append(h.clients[:i], h.clients[i+1:]...)
 				h.gameBridge.RemovePlayer(i)
 			}
-			break
+			h.broadcastUpdate()
+			log.Printf("Cliente eliminado, Numero de clientes: %d\n", len(h.clients))
+			return
 		}
 	}
 }

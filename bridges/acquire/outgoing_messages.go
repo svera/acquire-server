@@ -6,17 +6,17 @@ package acquirebridge
 // statusMessage is a struct which contains the status of the game at the moment
 // it is issued. It is sent to each player after every action made by one of them.
 type statusMessage struct {
-	Type       string            `json:"typ"`
-	Board      map[string]string `json:"brd"`
-	State      string            `json:"sta"`
-	Hand       map[string]bool   `json:"hnd"`
-	Corps      [7]corpData       `json:"cor"`
-	TiedCorps  []string          `json:"tie"`
-	PlayerInfo playerData        `json:"ply"`
-	RivalsInfo []playerData      `json:"riv"`
-	TurnNumber int               `json:"trn"`
-	LastTurn   bool              `json:"lst"`
-	History    []string          `json:"his"`
+	Type        string            `json:"typ"`
+	Board       map[string]string `json:"brd"`
+	State       string            `json:"sta"`
+	Hand        map[string]bool   `json:"hnd"`
+	Corps       [7]corpData       `json:"cor"`
+	TiedCorps   []string          `json:"tie"`
+	PlayerInfo  playerData        `json:"ply"`
+	RivalsInfo  []playerData      `json:"riv"`
+	RoundNumber int               `json:"rnd"`
+	IsLastRound bool              `json:"lst"`
+	History     []string          `json:"his"`
 }
 
 type corpData struct {
@@ -32,7 +32,7 @@ type corpData struct {
 type playerData struct {
 	Active      bool   `json:"atv"`
 	Name        string `json:"nam"`
-	Enabled     bool   `json:"ebl"`
+	InTurn      bool   `json:"trn"`
 	Cash        int    `json:"csh"`
 	OwnedShares [7]int `json:"own"`
 }
