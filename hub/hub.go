@@ -13,6 +13,7 @@ import (
 const (
 	InexistentClient  = "inexistent_client"
 	OwnerNotRemovable = "owner_not_removable"
+	Forbidden         = "forbidden"
 )
 
 // Hub is a struct that manage the message flow between client (players)
@@ -36,17 +37,20 @@ type Hub struct {
 	Quit chan bool
 
 	gameBridge interfaces.Bridge
+
+	selfDestructCallBack func()
 }
 
 // New returns a new Hub instance
-func New(b interfaces.Bridge) *Hub {
+func New(b interfaces.Bridge, callBack func()) *Hub {
 	return &Hub{
-		Messages:   make(chan *client.Message),
-		Register:   make(chan interfaces.Client),
-		Unregister: make(chan interfaces.Client),
-		Quit:       make(chan bool),
-		clients:    []interfaces.Client{},
-		gameBridge: b,
+		Messages:             make(chan *client.Message),
+		Register:             make(chan interfaces.Client),
+		Unregister:           make(chan interfaces.Client),
+		Quit:                 make(chan bool),
+		clients:              []interfaces.Client{},
+		gameBridge:           b,
+		selfDestructCallBack: callBack,
 	}
 }
 
@@ -72,15 +76,6 @@ func (h *Hub) Run() {
 			}
 			break
 
-		case <-h.Quit:
-			for _, client := range h.clients {
-				if client != nil {
-					h.removeClient(client)
-					client.Close(interfaces.HubDestroyed)
-				}
-			}
-			return
-
 		case m := <-h.Messages:
 			h.parseMessage(m)
 			break
@@ -105,6 +100,7 @@ func (h *Hub) isControlMessage(m *client.Message) bool {
 		client.ControlMessageTypeAddBot,
 		client.ControlMessageTypeStartGame,
 		client.ControlMessageTypeKickPlayer,
+		client.ControlMessageTypeTerminateGame,
 		client.ControlMessageTypePlayerQuits:
 		return true
 	}
@@ -144,6 +140,10 @@ func (h *Hub) parseControlMessage(m *client.Message) {
 		}
 	case client.ControlMessageTypePlayerQuits:
 		if err := h.quitClient(m.Author); err != nil {
+			h.sendErrorMessage(err, m.Author)
+		}
+	case client.ControlMessageTypeTerminateGame:
+		if err := h.terminateGame(m.Author); err != nil {
 			h.sendErrorMessage(err, m.Author)
 		}
 	}
@@ -261,6 +261,20 @@ func (h *Hub) quitClient(client interfaces.Client) error {
 	client.Close(interfaces.PlayerQuit)
 	h.removeClient(client)
 	h.sendUpdatedPlayersList()
+	return nil
+}
+
+func (h *Hub) terminateGame(client interfaces.Client) error {
+	if !client.Owner() {
+		return errors.New(Forbidden)
+	}
+	for _, cl := range h.clients {
+		if cl != nil {
+			h.removeClient(cl)
+			client.Close(interfaces.HubDestroyed)
+		}
+	}
+	h.selfDestructCallBack()
 	return nil
 }
 
