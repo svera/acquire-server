@@ -13,6 +13,7 @@ import (
 const (
 	InexistentClient  = "inexistent_client"
 	OwnerNotRemovable = "owner_not_removable"
+	Forbidden         = "forbidden"
 )
 
 // Hub is a struct that manage the message flow between client (players)
@@ -33,29 +34,34 @@ type Hub struct {
 	Unregister chan interfaces.Client
 
 	// Stops hub server
-	Quit chan bool
+	stop chan struct{}
 
 	gameBridge interfaces.Bridge
+
+	selfDestructCallBack func()
 }
 
 // New returns a new Hub instance
-func New(b interfaces.Bridge) *Hub {
+func New(b interfaces.Bridge, callBack func()) *Hub {
 	return &Hub{
-		Messages:   make(chan *client.Message),
-		Register:   make(chan interfaces.Client),
-		Unregister: make(chan interfaces.Client),
-		Quit:       make(chan bool),
-		clients:    []interfaces.Client{},
-		gameBridge: b,
+		Messages:             make(chan *client.Message),
+		Register:             make(chan interfaces.Client),
+		Unregister:           make(chan interfaces.Client),
+		stop:                 make(chan struct{}),
+		clients:              []interfaces.Client{},
+		gameBridge:           b,
+		selfDestructCallBack: callBack,
 	}
 }
 
 // Run listens for messages coming from several channels and acts accordingly
 func (h *Hub) Run() {
+	defer h.selfDestructCallBack()
+
 	for {
 		if h.gameBridge.IsGameOver() {
 			log.Println("Game ended")
-			break
+			return
 		}
 		select {
 		case c := <-h.Register:
@@ -68,15 +74,15 @@ func (h *Hub) Run() {
 				if val == c {
 					h.removeClient(c)
 					close(c.Incoming())
+					if c.Owner() {
+						h.stopHub()
+						return
+					}
 				}
 			}
 			break
 
-		case <-h.Quit:
-			for _, client := range h.clients {
-				h.removeClient(client)
-				client.Close(interfaces.HubDestroyed)
-			}
+		case <-h.stop:
 			return
 
 		case m := <-h.Messages:
@@ -102,7 +108,9 @@ func (h *Hub) isControlMessage(m *client.Message) bool {
 	case
 		client.ControlMessageTypeAddBot,
 		client.ControlMessageTypeStartGame,
-		client.ControlMessageTypeKickPlayer:
+		client.ControlMessageTypeKickPlayer,
+		client.ControlMessageTypeTerminateGame,
+		client.ControlMessageTypePlayerQuits:
 		return true
 	}
 	return false
@@ -139,6 +147,14 @@ func (h *Hub) parseControlMessage(m *client.Message) {
 				h.sendErrorMessage(err, m.Author)
 			}
 		}
+	case client.ControlMessageTypePlayerQuits:
+		if err := h.quitClient(m.Author); err != nil {
+			h.sendErrorMessage(err, m.Author)
+		}
+	case client.ControlMessageTypeTerminateGame:
+		if err := h.terminateGame(m.Author); err != nil {
+			h.sendErrorMessage(err, m.Author)
+		}
 	}
 }
 
@@ -160,15 +176,19 @@ func (h *Hub) parseGameMessage(m *client.Message) {
 func (h *Hub) clientNames() []string {
 	names := []string{}
 	for _, c := range h.clients {
-		names = append(names, c.Name())
+		if c != nil {
+			names = append(names, c.Name())
+		}
 	}
 	return names
 }
 
 func (h *Hub) broadcastUpdate() {
 	for n, c := range h.clients {
-		response, _ := h.gameBridge.Status(n)
-		h.sendMessage(c, response)
+		if c != nil {
+			response, _ := h.gameBridge.Status(n)
+			h.sendMessage(c, response)
+		}
 	}
 }
 
@@ -186,15 +206,6 @@ func (h *Hub) sendMessage(c interfaces.Client, message []byte) {
 	default:
 		close(c.Incoming())
 		h.removeClient(c)
-	}
-}
-
-func (h *Hub) removeClient(c interfaces.Client) {
-	for i := range h.clients {
-		if h.clients[i] == c {
-			h.clients = append(h.clients[:i], h.clients[i+1:]...)
-			break
-		}
 	}
 }
 
@@ -227,9 +238,55 @@ func (h *Hub) kickClient(number int) error {
 	}
 	h.clients[number].Close(interfaces.PlayerKicked)
 	h.removeClient(h.clients[number])
-	h.gameBridge.RemovePlayer(number)
-	h.sendUpdatedPlayersList()
 	return nil
+}
+
+func (h *Hub) quitClient(client interfaces.Client) error {
+	if client.Owner() {
+		return errors.New(OwnerNotRemovable)
+	}
+	client.Close(interfaces.PlayerQuit)
+	h.removeClient(client)
+	return nil
+}
+
+func (h *Hub) terminateGame(client interfaces.Client) error {
+	if !client.Owner() {
+		return errors.New(Forbidden)
+	}
+	h.stopHub()
+	return nil
+}
+
+func (h *Hub) stopHub() {
+	for _, cl := range h.clients {
+		if cl != nil {
+			cl.Close(interfaces.HubDestroyed)
+		}
+	}
+
+	close(h.stop)
+}
+
+// Removes /sets as nil a client and removes / deactivates its player
+// depending wheter the game has already started or not.
+// Note that we don't remove a client if a game has already started, as client
+// indexes must not change once a game has started.
+func (h *Hub) removeClient(c interfaces.Client) {
+	for i := range h.clients {
+		if h.clients[i] == c {
+			if h.gameBridge.GameStarted() {
+				h.clients[i] = nil
+				h.gameBridge.DeactivatePlayer(i)
+			} else {
+				h.clients = append(h.clients[:i], h.clients[i+1:]...)
+				h.gameBridge.RemovePlayer(i)
+				h.sendUpdatedPlayersList()
+			}
+			log.Printf("Cliente eliminado, Numero de clientes: %d\n", len(h.clients))
+			return
+		}
+	}
 }
 
 func (h *Hub) sendUpdatedPlayersList() {
@@ -239,7 +296,9 @@ func (h *Hub) sendUpdatedPlayersList() {
 	}
 	response, _ := json.Marshal(msg)
 	for _, c := range h.clients {
-		h.sendMessage(c, response)
+		if c != nil {
+			h.sendMessage(c, response)
+		}
 	}
 }
 

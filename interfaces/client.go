@@ -8,6 +8,7 @@ const (
 	HubDestroyed = 4000
 	PlayerQuit   = 4001
 	PlayerKicked = 4002
+	PlayerLeft   = 4003
 )
 
 type Client interface {
