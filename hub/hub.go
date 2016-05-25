@@ -34,7 +34,7 @@ type Hub struct {
 	Unregister chan interfaces.Client
 
 	// Stops hub server
-	stop chan bool
+	stop chan struct{}
 
 	gameBridge interfaces.Bridge
 
@@ -47,7 +47,7 @@ func New(b interfaces.Bridge, callBack func()) *Hub {
 		Messages:             make(chan *client.Message),
 		Register:             make(chan interfaces.Client),
 		Unregister:           make(chan interfaces.Client),
-		stop:                 make(chan bool),
+		stop:                 make(chan struct{}),
 		clients:              []interfaces.Client{},
 		gameBridge:           b,
 		selfDestructCallBack: callBack,
@@ -56,10 +56,12 @@ func New(b interfaces.Bridge, callBack func()) *Hub {
 
 // Run listens for messages coming from several channels and acts accordingly
 func (h *Hub) Run() {
+	defer h.selfDestructCallBack()
+
 	for {
 		if h.gameBridge.IsGameOver() {
 			log.Println("Game ended")
-			break
+			return
 		}
 		select {
 		case c := <-h.Register:
@@ -72,12 +74,16 @@ func (h *Hub) Run() {
 				if val == c {
 					h.removeClient(c)
 					close(c.Incoming())
+					if c.Owner() {
+						h.stopHub()
+						return
+					}
 				}
 			}
 			break
 
 		case <-h.stop:
-			break
+			return
 
 		case m := <-h.Messages:
 			h.parseMessage(m)
@@ -232,7 +238,6 @@ func (h *Hub) kickClient(number int) error {
 	}
 	h.clients[number].Close(interfaces.PlayerKicked)
 	h.removeClient(h.clients[number])
-	h.sendUpdatedPlayersList()
 	return nil
 }
 
@@ -242,7 +247,6 @@ func (h *Hub) quitClient(client interfaces.Client) error {
 	}
 	client.Close(interfaces.PlayerQuit)
 	h.removeClient(client)
-	h.sendUpdatedPlayersList()
 	return nil
 }
 
@@ -250,15 +254,18 @@ func (h *Hub) terminateGame(client interfaces.Client) error {
 	if !client.Owner() {
 		return errors.New(Forbidden)
 	}
+	h.stopHub()
+	return nil
+}
+
+func (h *Hub) stopHub() {
 	for _, cl := range h.clients {
 		if cl != nil {
-			h.removeClient(cl)
 			cl.Close(interfaces.HubDestroyed)
 		}
 	}
-	h.stop <- true
-	h.selfDestructCallBack()
-	return nil
+
+	close(h.stop)
 }
 
 // Removes /sets as nil a client and removes / deactivates its player
@@ -274,8 +281,8 @@ func (h *Hub) removeClient(c interfaces.Client) {
 			} else {
 				h.clients = append(h.clients[:i], h.clients[i+1:]...)
 				h.gameBridge.RemovePlayer(i)
+				h.sendUpdatedPlayersList()
 			}
-			h.broadcastUpdate()
 			log.Printf("Cliente eliminado, Numero de clientes: %d\n", len(h.clients))
 			return
 		}

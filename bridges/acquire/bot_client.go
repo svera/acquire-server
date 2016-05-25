@@ -2,7 +2,7 @@ package acquirebridge
 
 import (
 	"encoding/json"
-	"log"
+	"fmt"
 
 	"github.com/svera/acquire/bots"
 	acquireInterfaces "github.com/svera/acquire/interfaces"
@@ -52,7 +52,6 @@ func (c *BotClient) ReadPump(cnl interface{}, unregister chan serverInterfaces.C
 	for {
 		select {
 		case <-c.endReadPump:
-			log.Println("ReadPump ended")
 			return
 
 		case parsed := <-c.botTurn:
@@ -83,7 +82,7 @@ func (c *BotClient) encodeResponse(m bots.Message) *client.Message {
 	case bots.EndGameResponseType:
 		enc = c.encodeEndGame()
 	default:
-		panic("Unrecognized bot response")
+		panic(fmt.Sprintf("Unrecognized bot response: %s", m.Type))
 	}
 	return enc
 }
@@ -219,7 +218,6 @@ func (c *BotClient) WritePump() {
 	for {
 		select {
 		case <-c.endWritePump:
-			log.Println("WritePump ended")
 			return
 
 		case message, ok := <-c.incoming:
