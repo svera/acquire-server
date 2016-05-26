@@ -20,4 +20,5 @@ type Client interface {
 	Name() string
 	SetName(v string) Client
 	Close(code int)
+	IsBot() bool
 }

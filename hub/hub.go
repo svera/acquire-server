@@ -1,3 +1,6 @@
+// Package hub contains the Hub class, which manages communication between clients and game,
+// passing messages back and forth which describe actions and results,
+// as well as the connections to it.
 package hub
 
 import (
@@ -38,6 +41,7 @@ type Hub struct {
 
 	gameBridge interfaces.Bridge
 
+	// This callBack is executed when the hub stops running to remove it from memory
 	selfDestructCallBack func()
 }
 
@@ -59,10 +63,6 @@ func (h *Hub) Run() {
 	defer h.selfDestructCallBack()
 
 	for {
-		if h.gameBridge.IsGameOver() {
-			log.Println("Game ended")
-			return
-		}
 		select {
 		case c := <-h.Register:
 			if err := h.addClient(c); err != nil {
@@ -98,7 +98,7 @@ func (h *Hub) Run() {
 func (h *Hub) parseMessage(m *client.Message) {
 	if h.isControlMessage(m) {
 		h.parseControlMessage(m)
-	} else {
+	} else if !h.gameBridge.IsGameOver() {
 		h.parseGameMessage(m)
 	}
 }
@@ -186,6 +186,9 @@ func (h *Hub) clientNames() []string {
 func (h *Hub) broadcastUpdate() {
 	for n, c := range h.clients {
 		if c != nil {
+			if c.IsBot() && h.gameBridge.IsGameOver() {
+				continue
+			}
 			response, _ := h.gameBridge.Status(n)
 			h.sendMessage(c, response)
 		}

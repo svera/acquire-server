@@ -146,3 +146,8 @@ func (c *Human) Close(code int) {
 	c.write(websocket.CloseMessage, websocket.FormatCloseMessage(code, "woops"))
 	c.ws.Close()
 }
+
+// IsBot returns false because this client is not managed by a bot
+func (c *Human) IsBot() bool {
+	return false
+}

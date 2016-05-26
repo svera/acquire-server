@@ -263,3 +263,8 @@ func (c *BotClient) Close(code int) {
 	c.endReadPump <- true
 	c.endWritePump <- true
 }
+
+// IsBot returns true because this client is managed by a bot
+func (c *BotClient) IsBot() bool {
+	return true
+}
