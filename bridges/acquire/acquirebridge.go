@@ -364,7 +364,8 @@ func (b *AcquireBridge) StartGame() error {
 
 func (b *AcquireBridge) IsGameOver() bool {
 	if b.GameStarted() {
-		return b.game.GameStateName() == acquireInterfaces.EndGameStateName
+		return b.game.GameStateName() == acquireInterfaces.EndGameStateName ||
+			b.game.GameStateName() == acquireInterfaces.InsufficientPlayersStateName
 	}
 	return false
 }

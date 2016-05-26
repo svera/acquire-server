@@ -30,10 +30,10 @@ type Hub struct {
 	// Inbound messages
 	Messages chan *client.Message
 
-	// Register requests
+	// Registration requests
 	Register chan interfaces.Client
 
-	// Unregister requests
+	// Unregistration requests
 	Unregister chan interfaces.Client
 
 	// Stops hub server
@@ -281,6 +281,7 @@ func (h *Hub) removeClient(c interfaces.Client) {
 			if h.gameBridge.GameStarted() {
 				h.clients[i] = nil
 				h.gameBridge.DeactivatePlayer(i)
+				h.broadcastUpdate()
 			} else {
 				h.clients = append(h.clients[:i], h.clients[i+1:]...)
 				h.gameBridge.RemovePlayer(i)
