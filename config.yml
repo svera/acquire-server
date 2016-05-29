@@ -1,1 +1,3 @@
 port: ":8001"
+# hub live time in minutes
+timeout: 1

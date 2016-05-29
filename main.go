@@ -41,23 +41,25 @@ func join(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func create(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	if r.Method != "POST" {
-		http.Error(w, "Method not allowed", 405)
-	}
+func create(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		if r.Method != "POST" {
+			http.Error(w, "Method not allowed", 405)
+		}
 
-	id := generateID()
+		id := generateID()
 
-	r.ParseForm()
-	if bridge, err := bridges.Create(r.FormValue("game")); err != nil {
-		http.Error(w, "Game bridge not found", 404)
-	} else {
-		hubs[id] = hub.New(bridge, func() { delete(hubs, id); fmt.Printf("Number of running games: %d\n", len(hubs)) })
-		fmt.Printf("Number of running games: %d\n", len(hubs))
+		r.ParseForm()
+		if bridge, err := bridges.Create(r.FormValue("game")); err != nil {
+			http.Error(w, "Game bridge not found", 404)
+		} else {
+			hubs[id] = hub.New(bridge, func() { delete(hubs, id); fmt.Printf("Number of running games: %d\n", len(hubs)) }, cfg)
+			fmt.Printf("Number of running games: %d\n", len(hubs))
 
-		go hubs[id].Run()
-		fmt.Fprint(w, id)
+			go hubs[id].Run()
+			fmt.Fprint(w, id)
+		}
 	}
 }
 
@@ -72,7 +74,7 @@ func main() {
 	} else {
 		r := mux.NewRouter()
 		hubs = make(map[string]*hub.Hub)
-		r.HandleFunc("/create", create)
+		r.HandleFunc("/create", create(cfg))
 		r.HandleFunc("/{id:[a-zA-Z]+}/join", join)
 		http.Handle("/", r)
 		log.Printf("TBG Server listening on port %s\n", cfg.Port)

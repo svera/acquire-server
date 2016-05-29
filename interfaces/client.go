@@ -5,10 +5,11 @@ package interfaces
 // WS standard, all codes goes from 4000 onwards
 // https://developer.mozilla.org/es/docs/Web/API/CloseEvent
 const (
-	HubDestroyed = 4000
-	PlayerQuit   = 4001
-	PlayerKicked = 4002
-	PlayerLeft   = 4003
+	EndOk        = 4000
+	HubDestroyed = 4001
+	PlayerQuit   = 4002
+	PlayerKicked = 4003
+	HubTimeout   = 4004
 )
 
 type Client interface {

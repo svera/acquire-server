@@ -8,8 +8,10 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/svera/tbg-server/client"
+	"github.com/svera/tbg-server/config"
 	"github.com/svera/tbg-server/interfaces"
 )
 
@@ -43,10 +45,15 @@ type Hub struct {
 
 	// This callBack is executed when the hub stops running to remove it from memory
 	selfDestructCallBack func()
+
+	// Maximum time this hub instance will be kept alive
+	timeout time.Duration
+
+	wasClosedByTimeout bool
 }
 
 // New returns a new Hub instance
-func New(b interfaces.Bridge, callBack func()) *Hub {
+func New(b interfaces.Bridge, callBack func(), cfg *config.Config) *Hub {
 	return &Hub{
 		Messages:             make(chan *client.Message),
 		Register:             make(chan interfaces.Client),
@@ -55,6 +62,8 @@ func New(b interfaces.Bridge, callBack func()) *Hub {
 		clients:              []interfaces.Client{},
 		gameBridge:           b,
 		selfDestructCallBack: callBack,
+		timeout:              cfg.Timeout,
+		wasClosedByTimeout:   false,
 	}
 }
 
@@ -62,8 +71,14 @@ func New(b interfaces.Bridge, callBack func()) *Hub {
 func (h *Hub) Run() {
 	defer h.selfDestructCallBack()
 
+	time.AfterFunc(time.Minute*h.timeout, func() {
+		h.wasClosedByTimeout = true
+		h.stopHub()
+	})
+
 	for {
 		select {
+
 		case c := <-h.Register:
 			if err := h.addClient(c); err != nil {
 				break
@@ -88,6 +103,7 @@ func (h *Hub) Run() {
 		case m := <-h.Messages:
 			h.parseMessage(m)
 			break
+
 		}
 	}
 }
@@ -264,7 +280,13 @@ func (h *Hub) terminateGame(client interfaces.Client) error {
 func (h *Hub) stopHub() {
 	for _, cl := range h.clients {
 		if cl != nil {
-			cl.Close(interfaces.HubDestroyed)
+			if h.wasClosedByTimeout {
+				cl.Close(interfaces.HubTimeout)
+			} else if h.gameBridge.IsGameOver() {
+				cl.Close(interfaces.EndOk)
+			} else {
+				cl.Close(interfaces.HubDestroyed)
+			}
 		}
 	}
 

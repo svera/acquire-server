@@ -2,14 +2,17 @@ package config
 
 import (
 	"errors"
-	"gopkg.in/yaml.v2"
 	"io"
 	"io/ioutil"
+	"time"
+
+	"gopkg.in/yaml.v2"
 )
 
 // Config holds data needed to run a TBG server instance
 type Config struct {
-	Port string
+	Port    string
+	Timeout time.Duration
 }
 
 // Load reads configuration from config.yml and parses it
