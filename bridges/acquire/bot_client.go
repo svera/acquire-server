@@ -147,7 +147,7 @@ func (c *BotClient) encodePlayTile(response bots.PlayTileResponseParams) *client
 
 func (c *BotClient) encodeFoundCorporation(response bots.NewCorpResponseParams) *client.Message {
 	params := newCorpMessageParams{
-		Corporation: response.Corporation,
+		CorporationIndex: response.CorporationIndex,
 	}
 	ser, _ := json.Marshal(params)
 	return &client.Message{
@@ -161,7 +161,7 @@ func (c *BotClient) encodeFoundCorporation(response bots.NewCorpResponseParams) 
 
 func (c *BotClient) encodeBuyStock(response bots.BuyResponseParams) *client.Message {
 	params := buyMessageParams{
-		Corporations: response.Corporations,
+		CorporationsIndexes: response.CorporationsIndexes,
 	}
 	ser, _ := json.Marshal(params)
 	return &client.Message{
@@ -175,10 +175,10 @@ func (c *BotClient) encodeBuyStock(response bots.BuyResponseParams) *client.Mess
 
 func (c *BotClient) encodeSellTrade(response bots.SellTradeResponseParams) *client.Message {
 	params := sellTradeMessageParams{
-		Corporations: map[string]sellTrade{},
+		CorporationsIndexes: map[string]sellTrade{},
 	}
-	for k, v := range response.Corporations {
-		params.Corporations[k] = sellTrade{v.Sell, v.Trade}
+	for k, v := range response.CorporationsIndexes {
+		params.CorporationsIndexes[k] = sellTrade{v.Sell, v.Trade}
 	}
 	ser, _ := json.Marshal(params)
 	return &client.Message{
@@ -192,7 +192,7 @@ func (c *BotClient) encodeSellTrade(response bots.SellTradeResponseParams) *clie
 
 func (c *BotClient) encodeUntieMerge(response bots.UntieMergeResponseParams) *client.Message {
 	params := untieMergeMessageParams{
-		Corporation: response.Corporation,
+		CorporationIndex: response.CorporationIndex,
 	}
 	ser, _ := json.Marshal(params)
 	return &client.Message{
