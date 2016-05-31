@@ -147,7 +147,6 @@ func (h *Hub) parseControlMessage(m *client.Message) {
 		var parsed client.AddBotMessageParams
 		if err := json.Unmarshal(m.Content.Params, &parsed); err == nil {
 			if c, err := h.gameBridge.AddBot(parsed.BotName); err == nil {
-				c.SetName(fmt.Sprintf("Player %d", h.NumberClients()+1))
 				if err := h.addClient(c); err == nil {
 					go c.WritePump()
 					go c.ReadPump(h.Messages, h.Unregister)
@@ -229,7 +228,10 @@ func (h *Hub) sendMessage(c interfaces.Client, message []byte) {
 }
 
 func (h *Hub) addClient(c interfaces.Client) error {
-	if err := h.gameBridge.AddPlayer(); err != nil {
+	name := fmt.Sprintf("Player %d", h.NumberClients()+1)
+	c.SetName(name)
+
+	if err := h.gameBridge.AddPlayer(name); err != nil {
 		return err
 	}
 	h.clients = append(h.clients, c)

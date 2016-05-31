@@ -9,9 +9,9 @@ import (
 	"github.com/svera/acquire"
 	"github.com/svera/acquire/bots"
 	acquireInterfaces "github.com/svera/acquire/interfaces"
-	"github.com/svera/acquire/player"
 	"github.com/svera/acquire/tile"
 	"github.com/svera/tbg-server/bridges/acquire/corporation"
+	"github.com/svera/tbg-server/bridges/acquire/player"
 	serverInterfaces "github.com/svera/tbg-server/interfaces"
 )
 
@@ -282,6 +282,7 @@ func (b *AcquireBridge) playersInfo(n int) (playerData, []playerData, error) {
 	for i, p := range b.players {
 		if n != i {
 			rivals = append(rivals, playerData{
+				Name:        p.(*player.Player).Name(),
 				Active:      p.Active(),
 				Cash:        p.Cash(),
 				OwnedShares: b.playersShares(i),
@@ -289,6 +290,7 @@ func (b *AcquireBridge) playersInfo(n int) (playerData, []playerData, error) {
 			})
 		} else {
 			ply = playerData{
+				Name:        p.(*player.Player).Name(),
 				Active:      p.Active(),
 				Cash:        p.Cash(),
 				OwnedShares: b.playersShares(n),
@@ -315,14 +317,14 @@ func (b *AcquireBridge) playersShares(playerNumber int) [7]int {
 }
 
 // AddPlayer adds a new player to the game
-func (b *AcquireBridge) AddPlayer() error {
+func (b *AcquireBridge) AddPlayer(name string) error {
 	if len(b.players) == maximumPlayers {
 		return errors.New(GameFull)
 	}
 	if b.GameStarted() {
 		return errors.New(GameAlreadyStarted)
 	}
-	b.players = append(b.players, player.New())
+	b.players = append(b.players, player.New(name))
 	return nil
 }
 
