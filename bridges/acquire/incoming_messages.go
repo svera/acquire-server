@@ -18,15 +18,15 @@ type playTileMessageParams struct {
 }
 
 type newCorpMessageParams struct {
-	Corporation string `json:"cor"`
+	CorporationIndex int `json:"cor"`
 }
 
 type buyMessageParams struct {
-	Corporations map[string]int `json:"cor"`
+	CorporationsIndexes map[string]int `json:"cor"`
 }
 
 type sellTradeMessageParams struct {
-	Corporations map[string]sellTrade `json:"cor"`
+	CorporationsIndexes map[string]sellTrade `json:"cor"`
 }
 
 type sellTrade struct {
@@ -35,5 +35,5 @@ type sellTrade struct {
 }
 
 type untieMergeMessageParams struct {
-	Corporation string `json:"cor"`
+	CorporationIndex int `json:"cor"`
 }

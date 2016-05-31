@@ -11,7 +11,7 @@ type statusMessage struct {
 	State       string            `json:"sta"`
 	Hand        map[string]bool   `json:"hnd"`
 	Corps       [7]corpData       `json:"cor"`
-	TiedCorps   []string          `json:"tie"`
+	TiedCorps   []int             `json:"tie"`
 	PlayerInfo  playerData        `json:"ply"`
 	RivalsInfo  []playerData      `json:"riv"`
 	RoundNumber int               `json:"rnd"`
