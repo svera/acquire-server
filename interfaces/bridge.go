@@ -10,7 +10,7 @@ type Bridge interface {
 	ParseMessage(t string, content json.RawMessage) error
 	CurrentPlayerNumber() (int, error)
 	Status(n int) ([]byte, error)
-	AddPlayer() error
+	AddPlayer(name string) error
 	RemovePlayer(number int) error
 	DeactivatePlayer(number int) error
 	AddBot(params interface{}) (Client, error)
