@@ -7,7 +7,7 @@ import (
 
 func TestParseNonExistingTypeMessage(t *testing.T) {
 	bridge := New()
-	_, err := bridge.ParseMessage("err", json.RawMessage{})
+	err := bridge.ParseMessage("err", json.RawMessage{})
 	if err == nil {
 		t.Errorf("Bridge must return an error when receiving a non-existing message type")
 	}
@@ -16,38 +16,38 @@ func TestParseNonExistingTypeMessage(t *testing.T) {
 func TestParseWrongTypeMessage(t *testing.T) {
 	bridge := New()
 	for i := 0; i < 3; i++ {
-		bridge.AddPlayer()
+		bridge.AddPlayer("test")
 	}
 	bridge.StartGame()
 	data := []byte(`{"aaa": "bbb"}`)
 	raw := (json.RawMessage)(data)
 
-	_, err := bridge.ParseMessage("ply", raw)
+	err := bridge.ParseMessage("ply", raw)
 	if err == nil {
 		t.Errorf("Bridge must return an error when receiving a malformed message")
 	}
 
-	_, err = bridge.ParseMessage("ncp", raw)
+	err = bridge.ParseMessage("ncp", raw)
 	if err == nil {
 		t.Errorf("Bridge must return an error when receiving a malformed message")
 	}
 
-	_, err = bridge.ParseMessage("buy", raw)
+	err = bridge.ParseMessage("buy", raw)
 	if err == nil {
 		t.Errorf("Bridge must return an error when receiving a malformed message")
 	}
 
-	_, err = bridge.ParseMessage("sel", raw)
+	err = bridge.ParseMessage("sel", raw)
 	if err == nil {
 		t.Errorf("Bridge must return an error when receiving a malformed message")
 	}
 
-	_, err = bridge.ParseMessage("unt", raw)
+	err = bridge.ParseMessage("unt", raw)
 	if err == nil {
 		t.Errorf("Bridge must return an error when receiving a malformed message")
 	}
 
-	_, err = bridge.ParseMessage("end", raw)
+	err = bridge.ParseMessage("end", raw)
 	if err == nil {
 		t.Errorf("Bridge must return an error when receiving a malformed message")
 	}
@@ -63,7 +63,7 @@ func TestCurrentPlayerNumberWithoutGameStarted(t *testing.T) {
 func TestCurrentPlayerNumberWithGameStarted(t *testing.T) {
 	bridge := New()
 	for i := 0; i < 3; i++ {
-		bridge.AddPlayer()
+		bridge.AddPlayer("test")
 	}
 	bridge.StartGame()
 	if _, err := bridge.CurrentPlayerNumber(); err != nil {
@@ -81,7 +81,7 @@ func TestStartGameWithNotEnoughPlayers(t *testing.T) {
 func TestStartGameWithEnoughPlayers(t *testing.T) {
 	bridge := New()
 	for i := 0; i < 3; i++ {
-		bridge.AddPlayer()
+		bridge.AddPlayer("test")
 	}
 	if err := bridge.StartGame(); err != nil {
 		t.Errorf("Bridge must not return an error when trying to start a game with enough players")
@@ -91,7 +91,7 @@ func TestStartGameWithEnoughPlayers(t *testing.T) {
 func TestStatusWithGameStarted(t *testing.T) {
 	bridge := New()
 	for i := 0; i < 3; i++ {
-		bridge.AddPlayer()
+		bridge.AddPlayer("test")
 	}
 	bridge.StartGame()
 	if _, err := bridge.Status(0); err != nil {
@@ -102,7 +102,7 @@ func TestStatusWithGameStarted(t *testing.T) {
 func TestStatusWithGameNotStarted(t *testing.T) {
 	bridge := New()
 	for i := 0; i < 3; i++ {
-		bridge.AddPlayer()
+		bridge.AddPlayer("test")
 	}
 	if _, err := bridge.Status(0); err == nil {
 		t.Errorf("Bridge must return an error when trying to get the status of a non started game")
@@ -112,7 +112,7 @@ func TestStatusWithGameNotStarted(t *testing.T) {
 func TestStatusForInexistentPlayer(t *testing.T) {
 	bridge := New()
 	for i := 0; i < 3; i++ {
-		bridge.AddPlayer()
+		bridge.AddPlayer("test")
 	}
 	bridge.StartGame()
 	if _, err := bridge.Status(9); err == nil {
@@ -123,9 +123,9 @@ func TestStatusForInexistentPlayer(t *testing.T) {
 func TestAddPlayerToAFullGame(t *testing.T) {
 	bridge := New()
 	for i := 0; i < 7; i++ {
-		bridge.AddPlayer()
+		bridge.AddPlayer("test")
 	}
-	if err := bridge.AddPlayer(); err == nil {
+	if err := bridge.AddPlayer("test2"); err == nil {
 		t.Errorf("Bridge must return an error when trying to add a player to an already full game")
 	}
 }
@@ -133,10 +133,10 @@ func TestAddPlayerToAFullGame(t *testing.T) {
 func TestAddPlayerToARunningGame(t *testing.T) {
 	bridge := New()
 	for i := 0; i < 3; i++ {
-		bridge.AddPlayer()
+		bridge.AddPlayer("test")
 	}
 	bridge.StartGame()
-	if err := bridge.AddPlayer(); err == nil {
+	if err := bridge.AddPlayer("test2"); err == nil {
 		t.Errorf("Bridge must return an error when trying to add a player to a running game")
 	}
 }

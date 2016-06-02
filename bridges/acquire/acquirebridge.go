@@ -224,6 +224,10 @@ func (b *AcquireBridge) GameStarted() bool {
 
 // Status return a JSON string with the current status of the game
 func (b *AcquireBridge) Status(n int) ([]byte, error) {
+	if !b.GameStarted() {
+		return nil, errors.New(GameNotStarted)
+	}
+
 	playerInfo, rivalsInfo, err := b.playersInfo(n)
 	if err != nil {
 		return json.RawMessage{}, err
