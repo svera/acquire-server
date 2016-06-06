@@ -21,6 +21,7 @@ type AcquireBridge struct {
 	game         *acquire.Game
 	players      []acquireInterfaces.Player
 	corporations [7]acquireInterfaces.Corporation
+	history      []string
 }
 
 const (
@@ -53,6 +54,7 @@ func New() *AcquireBridge {
 // whatever actions are required by it
 func (b *AcquireBridge) ParseMessage(t string, params json.RawMessage) error {
 	var err error
+	b.history = nil
 
 	switch t {
 	case messageTypePlayTile:
@@ -95,6 +97,7 @@ func (b *AcquireBridge) playTile(params playTileMessageParams) error {
 
 	if tl, err = coordsToTile(params.Tile); err == nil {
 		if err = b.game.PlayTile(tl); err == nil {
+			b.history = append(b.history, fmt.Sprintf("%s played tile %s", b.currentPlayerName(), params.Tile))
 			return nil
 		}
 	}
@@ -243,6 +246,7 @@ func (b *AcquireBridge) Status(n int) ([]byte, error) {
 		RivalsInfo:  rivalsInfo,
 		RoundNumber: b.game.Round(),
 		IsLastRound: b.game.IsLastRound(),
+		History:     b.history,
 	}
 	response, _ := json.Marshal(msg)
 	return response, err
@@ -358,7 +362,15 @@ func (b *AcquireBridge) StartGame() error {
 	}
 
 	b.game, err = acquire.New(b.players, acquire.Optional{Corporations: b.corporations})
+	if err == nil {
+		b.history = append(b.history, fmt.Sprintf("%s is the starting player", b.currentPlayerName()))
+	}
 	return err
+}
+
+func (b *AcquireBridge) currentPlayerName() string {
+	currentPlayerNumber, _ := b.CurrentPlayerNumber()
+	return b.players[currentPlayerNumber].(*player.Player).Name()
 }
 
 // IsGameOver returns true if the game has reached its end or there are not

@@ -1,7 +1,6 @@
 package mocks
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/svera/tbg-server/interfaces"
@@ -29,8 +28,7 @@ func (c *Client) WritePump() {
 	for {
 		select {
 
-		case msg := <-c.FakeIncoming:
-			fmt.Println(msg)
+		case <-c.FakeIncoming:
 		}
 	}
 }
