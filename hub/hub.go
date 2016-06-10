@@ -6,19 +6,21 @@ package hub
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
-	"time"
 
+	"github.com/svera/tbg-server/bridges"
 	"github.com/svera/tbg-server/client"
 	"github.com/svera/tbg-server/config"
 	"github.com/svera/tbg-server/interfaces"
+	"github.com/svera/tbg-server/room"
 )
 
 const (
 	InexistentClient  = "inexistent_client"
 	OwnerNotRemovable = "owner_not_removable"
 	Forbidden         = "forbidden"
+	InexistentRoom    = "inexistent_room"
+	InexistentBridge  = "inexistent_bridge"
 )
 
 // Hub is a struct that manage the message flow between client (players)
@@ -29,8 +31,10 @@ type Hub struct {
 	// Registered clients
 	clients []interfaces.Client
 
+	rooms map[string]interfaces.Room
+
 	// Inbound messages
-	Messages chan *client.Message
+	Messages chan *interfaces.ClientMessage
 
 	// Registration requests
 	Register chan interfaces.Client
@@ -38,67 +42,39 @@ type Hub struct {
 	// Unregistration requests
 	Unregister chan interfaces.Client
 
-	// Stops hub server
-	stop chan struct{}
-
-	gameBridge interfaces.Bridge
-
-	// This callBack is executed when the hub stops running to remove it from memory
-	selfDestructCallBack func()
-
-	// Maximum time this hub instance will be kept alive
-	timeout time.Duration
-
-	wasClosedByTimeout bool
+	// Configuration
+	configuration *config.Config
 }
 
 // New returns a new Hub instance
-func New(b interfaces.Bridge, callBack func(), cfg *config.Config) *Hub {
+func New(cfg *config.Config) *Hub {
 	return &Hub{
-		Messages:             make(chan *client.Message),
-		Register:             make(chan interfaces.Client),
-		Unregister:           make(chan interfaces.Client),
-		stop:                 make(chan struct{}),
-		clients:              []interfaces.Client{},
-		gameBridge:           b,
-		selfDestructCallBack: callBack,
-		timeout:              cfg.Timeout,
-		wasClosedByTimeout:   false,
+		Messages:      make(chan *interfaces.ClientMessage),
+		Register:      make(chan interfaces.Client),
+		Unregister:    make(chan interfaces.Client),
+		clients:       []interfaces.Client{},
+		rooms:         make(map[string]interfaces.Room),
+		configuration: cfg,
 	}
 }
 
 // Run listens for messages coming from several channels and acts accordingly
 func (h *Hub) Run() {
-	defer h.selfDestructCallBack()
-
-	time.AfterFunc(time.Minute*h.timeout, func() {
-		h.wasClosedByTimeout = true
-		h.stopHub()
-	})
 
 	for {
 		select {
 
 		case c := <-h.Register:
-			if err := h.addClient(c); err != nil {
-				break
-			}
+			h.clients = append(h.clients, c)
 
 		case c := <-h.Unregister:
 			for _, val := range h.clients {
 				if val == c {
 					h.removeClient(c)
 					close(c.Incoming())
-					if c.Owner() {
-						h.stopHub()
-						return
-					}
 				}
 			}
 			break
-
-		case <-h.stop:
-			return
 
 		case m := <-h.Messages:
 			h.parseMessage(m)
@@ -111,80 +87,72 @@ func (h *Hub) Run() {
 // parseMessage distinguish the passed message between be a control message (not
 // related to a particular game, but to the server) or a game one (specific to
 // the game)
-func (h *Hub) parseMessage(m *client.Message) {
+func (h *Hub) parseMessage(m *interfaces.ClientMessage) {
 	if h.isControlMessage(m) {
 		h.parseControlMessage(m)
-	} else if !h.gameBridge.IsGameOver() {
-		h.parseGameMessage(m)
+	} else {
+		if room, ok := h.rooms[m.Content.Room]; ok {
+			if err := room.ParseMessage(m); err != nil {
+				h.sendErrorMessage(err, m.Author)
+			} else {
+				h.broadcastUpdate()
+			}
+		} else {
+			h.sendErrorMessage(errors.New(InexistentRoom), m.Author)
+		}
 	}
 }
 
-func (h *Hub) isControlMessage(m *client.Message) bool {
+func (h *Hub) isControlMessage(m *interfaces.ClientMessage) bool {
 	switch m.Content.Type {
 	case
-		client.ControlMessageTypeAddBot,
-		client.ControlMessageTypeStartGame,
-		client.ControlMessageTypeKickPlayer,
-		client.ControlMessageTypeTerminateGame,
-		client.ControlMessageTypePlayerQuits:
+		client.ControlMessageTypeCreateRoom,
+		client.ControlMessageTypeTerminateRoom:
 		return true
 	}
 	return false
 }
 
-func (h *Hub) parseControlMessage(m *client.Message) {
-	if !m.Author.Owner() {
-		return
-	}
+func (h *Hub) parseControlMessage(m *interfaces.ClientMessage) {
+
 	switch m.Content.Type {
-	case client.ControlMessageTypeStartGame:
-		if err := h.gameBridge.StartGame(); err == nil {
-			h.broadcastUpdate()
-		} else {
-			h.sendErrorMessage(err, m.Author)
-		}
-	case client.ControlMessageTypeAddBot:
-		var parsed client.AddBotMessageParams
+
+	case client.ControlMessageTypeCreateRoom:
+		var parsed client.CreateRoomMessageParams
 		if err := json.Unmarshal(m.Content.Params, &parsed); err == nil {
-			if c, err := h.gameBridge.AddBot(parsed.BotName); err == nil {
-				if err := h.addClient(c); err == nil {
-					go c.WritePump()
-					go c.ReadPump(h.Messages, h.Unregister)
-				} else {
+			if bridge, err := bridges.Create(parsed.BridgeName); err != nil {
+				log.Println(parsed.BridgeName)
+				h.sendErrorMessage(errors.New(InexistentBridge), m.Author)
+			} else {
+				id := h.createRoom(bridge, h.configuration)
+				msg := newRoomCreatedMessage{
+					Type: "new",
+					ID:   id,
+				}
+				response, _ := json.Marshal(msg)
+				h.sendMessage(m.Author, response)
+				h.sendUpdatedPlayersList()
+			}
+		}
+
+		/*
+			case client.ControlMessageTypeKickPlayer:
+				var parsed client.KickPlayerMessageParams
+				if err := json.Unmarshal(m.Content.Params, &parsed); err == nil {
+					if err := h.kickClient(parsed.PlayerNumber); err != nil {
+						h.sendErrorMessage(err, m.Author)
+					}
+				}
+
+			case client.ControlMessageTypePlayerQuits:
+				if err := h.quitClient(m.Author); err != nil {
 					h.sendErrorMessage(err, m.Author)
 				}
-			}
-		}
-	case client.ControlMessageTypeKickPlayer:
-		var parsed client.KickPlayerMessageParams
-		if err := json.Unmarshal(m.Content.Params, &parsed); err == nil {
-			if err := h.kickClient(parsed.PlayerNumber); err != nil {
-				h.sendErrorMessage(err, m.Author)
-			}
-		}
-	case client.ControlMessageTypePlayerQuits:
-		if err := h.quitClient(m.Author); err != nil {
-			h.sendErrorMessage(err, m.Author)
-		}
-	case client.ControlMessageTypeTerminateGame:
-		if err := h.terminateGame(m.Author); err != nil {
-			h.sendErrorMessage(err, m.Author)
-		}
-	}
-}
-
-func (h *Hub) parseGameMessage(m *client.Message) {
-	var err error
-	var currentPlayer interfaces.Client
-
-	if currentPlayer, err = h.currentPlayerClient(); m.Author == currentPlayer && err == nil {
-		err = h.gameBridge.ParseMessage(m.Content.Type, m.Content.Params)
-	}
-	if err != nil {
-		log.Println(err)
-		h.sendErrorMessage(err, m.Author)
-	} else {
-		h.broadcastUpdate()
+			case client.ControlMessageTypeTerminateGame:
+				if err := h.terminateGame(m.Author); err != nil {
+					h.sendErrorMessage(err, m.Author)
+				}
+		*/
 	}
 }
 
@@ -201,18 +169,13 @@ func (h *Hub) clientNames() []string {
 func (h *Hub) broadcastUpdate() {
 	for n, c := range h.clients {
 		if c != nil {
-			if c.IsBot() && h.gameBridge.IsGameOver() {
+			if c.IsBot() && c.Room().IsGameOver() {
 				continue
 			}
-			response, _ := h.gameBridge.Status(n)
+			response, _ := c.Room().Status(n)
 			h.sendMessage(c, response)
 		}
 	}
-}
-
-func (h *Hub) currentPlayerClient() (interfaces.Client, error) {
-	number, err := h.gameBridge.CurrentPlayerNumber()
-	return h.clients[number], err
 }
 
 func (h *Hub) sendMessage(c interfaces.Client, message []byte) {
@@ -227,74 +190,6 @@ func (h *Hub) sendMessage(c interfaces.Client, message []byte) {
 	}
 }
 
-func (h *Hub) addClient(c interfaces.Client) error {
-	name := fmt.Sprintf("Player %d", h.NumberClients()+1)
-	c.SetName(name)
-
-	if err := h.gameBridge.AddPlayer(name); err != nil {
-		return err
-	}
-	h.clients = append(h.clients, c)
-
-	if len(h.clients) == 1 {
-		c.SetOwner(true)
-		msg := setOwnerMessage{
-			Type: "ctl",
-			Role: "mng",
-		}
-		response, _ := json.Marshal(msg)
-		h.sendMessage(c, response)
-	}
-	h.sendUpdatedPlayersList()
-	log.Printf("Numero de clientes: %d\n", len(h.clients))
-	return nil
-}
-
-func (h *Hub) kickClient(number int) error {
-	if number < 0 || number > len(h.clients) {
-		return errors.New(InexistentClient)
-	}
-	if h.clients[number].Owner() {
-		return errors.New(OwnerNotRemovable)
-	}
-	h.clients[number].Close(interfaces.PlayerKicked)
-	h.removeClient(h.clients[number])
-	return nil
-}
-
-func (h *Hub) quitClient(client interfaces.Client) error {
-	if client.Owner() {
-		return errors.New(OwnerNotRemovable)
-	}
-	client.Close(interfaces.PlayerQuit)
-	h.removeClient(client)
-	return nil
-}
-
-func (h *Hub) terminateGame(client interfaces.Client) error {
-	if !client.Owner() {
-		return errors.New(Forbidden)
-	}
-	h.stopHub()
-	return nil
-}
-
-func (h *Hub) stopHub() {
-	for _, cl := range h.clients {
-		if cl != nil {
-			if h.wasClosedByTimeout {
-				cl.Close(interfaces.HubTimeout)
-			} else if h.gameBridge.IsGameOver() {
-				cl.Close(interfaces.EndOk)
-			} else {
-				cl.Close(interfaces.HubDestroyed)
-			}
-		}
-	}
-
-	close(h.stop)
-}
-
 // Removes /sets as nil a client and removes / deactivates its player
 // depending wheter the game has already started or not.
 // Note that we don't remove a client if a game has already started, as client
@@ -302,13 +197,13 @@ func (h *Hub) stopHub() {
 func (h *Hub) removeClient(c interfaces.Client) {
 	for i := range h.clients {
 		if h.clients[i] == c {
-			if h.gameBridge.GameStarted() {
+			if c.Room().GameStarted() {
 				h.clients[i] = nil
-				h.gameBridge.DeactivatePlayer(i)
+				//h.gameBridge.DeactivatePlayer(i)
 				h.broadcastUpdate()
 			} else {
 				h.clients = append(h.clients[:i], h.clients[i+1:]...)
-				h.gameBridge.RemovePlayer(i)
+				//h.gameBridge.RemovePlayer(i)
 				h.sendUpdatedPlayersList()
 			}
 			log.Printf("Cliente eliminado, Numero de clientes: %d\n", len(h.clients))
@@ -325,6 +220,7 @@ func (h *Hub) sendUpdatedPlayersList() {
 	response, _ := json.Marshal(msg)
 	for _, c := range h.clients {
 		if c != nil {
+			log.Printf("sent message %s", response)
 			h.sendMessage(c, response)
 		}
 	}
@@ -342,4 +238,15 @@ func (h *Hub) sendErrorMessage(err error, author interfaces.Client) {
 	}
 	response, _ := json.Marshal(res)
 	h.sendMessage(author, response)
+}
+
+func (h *Hub) createRoom(b interfaces.Bridge, cfg *config.Config) string {
+	id := generateID()
+	h.rooms[id] = room.New(b, cfg)
+	return id
+}
+
+// TODO Implement proper random string generator
+func generateID() string {
+	return "a"
 }

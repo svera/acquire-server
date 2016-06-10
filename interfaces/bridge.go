@@ -7,7 +7,7 @@ import (
 // Bridge is an interface that defines the minimum set of functions needed
 // to implement a game bridge which can be used within a hub instance
 type Bridge interface {
-	ParseMessage(t string, content json.RawMessage) error
+	Execute(t string, content json.RawMessage) error
 	CurrentPlayerNumber() (int, error)
 	Status(n int) ([]byte, error)
 	AddPlayer(name string) error

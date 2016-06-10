@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/svera/tbg-server/bridges"
 	"github.com/svera/tbg-server/client"
 	"github.com/svera/tbg-server/config"
 	"github.com/svera/tbg-server/hub"
@@ -14,52 +13,22 @@ import (
 	"os"
 )
 
-var hubs map[string]*hub.Hub
+var hb *hub.Hub
 
-func join(w http.ResponseWriter, r *http.Request) {
+func newClient(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		http.Error(w, "Method not allowed", 405)
 		return
 	}
 
-	vars := mux.Vars(r)
-	id := vars["id"]
-
-	if _, ok := hubs[id]; !ok {
-		http.Error(w, "Game doesn't exist", 404)
-		return
-	}
-
 	if c, err := client.NewHuman(w, r); err == nil {
-		c.SetName(fmt.Sprintf("Player %d", hubs[id].NumberClients()+1))
-		hubs[id].Register <- c
+		c.SetName(fmt.Sprintf("Player %d", hb.NumberClients()+1))
+		hb.Register <- c
 		go c.WritePump()
-		c.ReadPump(hubs[id].Messages, hubs[id].Unregister)
+		c.ReadPump(hb.Messages, hb.Unregister)
 	} else {
 		log.Println(err)
 		return
-	}
-}
-
-func create(cfg *config.Config) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		if r.Method != "POST" {
-			http.Error(w, "Method not allowed", 405)
-		}
-
-		id := generateID()
-
-		r.ParseForm()
-		if bridge, err := bridges.Create(r.FormValue("game")); err != nil {
-			http.Error(w, "Game bridge not found", 404)
-		} else {
-			hubs[id] = hub.New(bridge, func() { delete(hubs, id); fmt.Printf("Number of running games: %d\n", len(hubs)) }, cfg)
-			fmt.Printf("Number of running games: %d\n", len(hubs))
-
-			go hubs[id].Run()
-			fmt.Fprint(w, id)
-		}
 	}
 }
 
@@ -73,16 +42,12 @@ func main() {
 		fmt.Println(err.Error())
 	} else {
 		r := mux.NewRouter()
-		hubs = make(map[string]*hub.Hub)
-		r.HandleFunc("/create", create(cfg))
-		r.HandleFunc("/{id:[a-zA-Z]+}/join", join)
+		hb = hub.New(cfg)
+		go hb.Run()
+
+		r.HandleFunc("/", newClient)
 		http.Handle("/", r)
 		log.Printf("TBG Server listening on port %s\n", cfg.Port)
 		log.Fatal(http.ListenAndServe(cfg.Port, r))
 	}
-}
-
-// TODO Implement proper random string generator
-func generateID() string {
-	return "a"
 }

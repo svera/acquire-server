@@ -50,9 +50,9 @@ func New() *AcquireBridge {
 	}
 }
 
-// ParseMessage gets an input JSON-encoded message and parses it, executing
+// Execute gets an input JSON-encoded message and parses it, executing
 // whatever actions are required by it
-func (b *AcquireBridge) ParseMessage(t string, params json.RawMessage) error {
+func (b *AcquireBridge) Execute(t string, params json.RawMessage) error {
 	var err error
 	b.history = nil
 

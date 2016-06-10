@@ -1,17 +1,7 @@
-package hub
+package room
 
-// Control messages sent from the hub to the different players.
+// Control messages sent from the room to the different players.
 // These messages are common to all games.
-
-type newRoomCreatedMessage struct {
-	Type string `json:"typ"`
-	ID   string `json:"id"`
-}
-
-type joinRoomAcceptedMessage struct {
-	Type string `json:"ack"`
-	ID   string `json:"id"`
-}
 
 type setOwnerMessage struct {
 	Type string `json:"typ"`
