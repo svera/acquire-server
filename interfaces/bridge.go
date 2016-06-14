@@ -13,7 +13,7 @@ type Bridge interface {
 	AddPlayer(name string) error
 	RemovePlayer(number int) error
 	DeactivatePlayer(number int) error
-	AddBot(params interface{}) (Client, error)
+	AddBot(params interface{}, room Room) (Client, error)
 	StartGame() error
 	GameStarted() bool
 	IsGameOver() bool

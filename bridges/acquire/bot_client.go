@@ -28,13 +28,14 @@ type BotClient struct {
 }
 
 // NewBotClient returns a new Bot instance
-func NewBotClient(b acquireInterfaces.Bot) serverInterfaces.Client {
+func NewBotClient(b acquireInterfaces.Bot, room serverInterfaces.Room) serverInterfaces.Client {
 	return &BotClient{
 		incoming:     make(chan []byte, maxMessageSize),
 		endReadPump:  make(chan bool),
 		endWritePump: make(chan bool),
 		botTurn:      make(chan statusMessage),
 		bot:          b,
+		room:         room,
 	}
 }
 
@@ -140,6 +141,7 @@ func (c *BotClient) encodePlayTile(response bots.PlayTileResponseParams) *server
 		Author: c,
 		Content: serverInterfaces.ClientMessageContent{
 			Type:   messageTypePlayTile,
+			Room:   c.room.ID(),
 			Params: ser,
 		},
 	}
@@ -154,6 +156,7 @@ func (c *BotClient) encodeFoundCorporation(response bots.NewCorpResponseParams) 
 		Author: c,
 		Content: serverInterfaces.ClientMessageContent{
 			Type:   messageTypeFoundCorporation,
+			Room:   c.room.ID(),
 			Params: ser,
 		},
 	}
@@ -168,6 +171,7 @@ func (c *BotClient) encodeBuyStock(response bots.BuyResponseParams) *serverInter
 		Author: c,
 		Content: serverInterfaces.ClientMessageContent{
 			Type:   messageTypeBuyStock,
+			Room:   c.room.ID(),
 			Params: ser,
 		},
 	}
@@ -185,6 +189,7 @@ func (c *BotClient) encodeSellTrade(response bots.SellTradeResponseParams) *serv
 		Author: c,
 		Content: serverInterfaces.ClientMessageContent{
 			Type:   messageTypeSellTrade,
+			Room:   c.room.ID(),
 			Params: ser,
 		},
 	}
@@ -199,6 +204,7 @@ func (c *BotClient) encodeUntieMerge(response bots.UntieMergeResponseParams) *se
 		Author: c,
 		Content: serverInterfaces.ClientMessageContent{
 			Type:   messageTypeUntieMerge,
+			Room:   c.room.ID(),
 			Params: ser,
 		},
 	}
@@ -209,6 +215,7 @@ func (c *BotClient) encodeEndGame() *serverInterfaces.ClientMessage {
 		Author: c,
 		Content: serverInterfaces.ClientMessageContent{
 			Type: messageTypeEndGame,
+			Room: c.room.ID(),
 		},
 	}
 }

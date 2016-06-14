@@ -85,17 +85,17 @@ func (h *Hub) Run() {
 }
 
 // parseMessage distinguish the passed message between be a control message (not
-// related to a particular game, but to the server) or a game one (specific to
-// the game)
+// related to a particular game, but to the server) or a room one (specific to
+// a particular room)
 func (h *Hub) parseMessage(m *interfaces.ClientMessage) {
 	if h.isControlMessage(m) {
 		h.parseControlMessage(m)
 	} else {
 		if room, ok := h.rooms[m.Content.Room]; ok {
-			if err := room.ParseMessage(m); err != nil {
+			if response, err := room.ParseMessage(m); err != nil {
 				h.sendErrorMessage(err, m.Author)
 			} else {
-				h.broadcastUpdate()
+				h.broadcast(response)
 			}
 		} else {
 			h.sendErrorMessage(errors.New(InexistentRoom), m.Author)
@@ -121,17 +121,24 @@ func (h *Hub) parseControlMessage(m *interfaces.ClientMessage) {
 		var parsed client.CreateRoomMessageParams
 		if err := json.Unmarshal(m.Content.Params, &parsed); err == nil {
 			if bridge, err := bridges.Create(parsed.BridgeName); err != nil {
-				log.Println(parsed.BridgeName)
 				h.sendErrorMessage(errors.New(InexistentBridge), m.Author)
 			} else {
-				id := h.createRoom(bridge, h.configuration)
+				id := h.createRoom(bridge, m.Author)
 				msg := newRoomCreatedMessage{
 					Type: "new",
 					ID:   id,
 				}
 				response, _ := json.Marshal(msg)
 				h.sendMessage(m.Author, response)
-				h.sendUpdatedPlayersList()
+				joinMsg := &interfaces.ClientMessage{
+					Author: m.Author,
+					Content: interfaces.ClientMessageContent{
+						Type: "joi",
+						Room: id,
+					},
+				}
+				joinResponse, _ := h.rooms[id].ParseMessage(joinMsg)
+				h.broadcast(joinResponse)
 			}
 		}
 
@@ -156,25 +163,10 @@ func (h *Hub) parseControlMessage(m *interfaces.ClientMessage) {
 	}
 }
 
-func (h *Hub) clientNames() []string {
-	names := []string{}
-	for _, c := range h.clients {
-		if c != nil {
-			names = append(names, c.Name())
-		}
-	}
-	return names
-}
-
-func (h *Hub) broadcastUpdate() {
-	for n, c := range h.clients {
-		if c != nil {
-			if c.IsBot() && c.Room().IsGameOver() {
-				continue
-			}
-			response, _ := c.Room().Status(n)
-			h.sendMessage(c, response)
-		}
+func (h *Hub) broadcast(response map[interfaces.Client][]byte) {
+	log.Printf("numero clientes respuesta: %d", len(response))
+	for cl, msg := range response {
+		h.sendMessage(cl, msg)
 	}
 }
 
@@ -197,31 +189,18 @@ func (h *Hub) sendMessage(c interfaces.Client, message []byte) {
 func (h *Hub) removeClient(c interfaces.Client) {
 	for i := range h.clients {
 		if h.clients[i] == c {
-			if c.Room().GameStarted() {
-				h.clients[i] = nil
+			if c.Room() != nil {
+				response := c.Room().RemoveClient(c)
+				h.broadcast(response)
 				//h.gameBridge.DeactivatePlayer(i)
-				h.broadcastUpdate()
-			} else {
-				h.clients = append(h.clients[:i], h.clients[i+1:]...)
-				//h.gameBridge.RemovePlayer(i)
-				h.sendUpdatedPlayersList()
-			}
-			log.Printf("Cliente eliminado, Numero de clientes: %d\n", len(h.clients))
+				//h.broadcastUpdate()
+			} //else {
+			h.clients = append(h.clients[:i], h.clients[i+1:]...)
+			//h.gameBridge.RemovePlayer(i)
+			//h.sendUpdatedPlayersList()
+			//}
+			log.Printf("Cliente eliminado del hub, Numero de clientes: %d\n", len(h.clients))
 			return
-		}
-	}
-}
-
-func (h *Hub) sendUpdatedPlayersList() {
-	msg := currentPlayersMessage{
-		Type:   "pls",
-		Values: h.clientNames(),
-	}
-	response, _ := json.Marshal(msg)
-	for _, c := range h.clients {
-		if c != nil {
-			log.Printf("sent message %s", response)
-			h.sendMessage(c, response)
 		}
 	}
 }
@@ -240,9 +219,9 @@ func (h *Hub) sendErrorMessage(err error, author interfaces.Client) {
 	h.sendMessage(author, response)
 }
 
-func (h *Hub) createRoom(b interfaces.Bridge, cfg *config.Config) string {
+func (h *Hub) createRoom(b interfaces.Bridge, owner interfaces.Client) string {
 	id := generateID()
-	h.rooms[id] = room.New(b, cfg)
+	h.rooms[id] = room.New(id, b, owner, h.Messages, h.Unregister, h.configuration)
 	return id
 }
 

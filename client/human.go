@@ -2,6 +2,7 @@ package client
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"time"
 
@@ -78,6 +79,8 @@ func (c *Human) ReadPump(cnl interface{}, unregister chan interfaces.Client) {
 			}
 
 			channel <- msg
+		} else {
+			log.Println("error decoding message content")
 		}
 	}
 }

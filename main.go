@@ -47,7 +47,7 @@ func main() {
 
 		r.HandleFunc("/", newClient)
 		http.Handle("/", r)
-		log.Printf("TBG Server listening on port %s\n", cfg.Port)
+		log.Printf("Sackson server listening on port %s\n", cfg.Port)
 		log.Fatal(http.ListenAndServe(cfg.Port, r))
 	}
 }
