@@ -60,6 +60,11 @@ func New(cfg *config.Config) *Hub {
 
 // Run listens for messages coming from several channels and acts accordingly
 func (h *Hub) Run() {
+	defer func() {
+		for _, cl := range h.clients {
+			cl.Close()
+		}
+	}()
 
 	for {
 		select {
