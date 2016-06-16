@@ -9,7 +9,6 @@ import (
 	"log"
 
 	"github.com/svera/tbg-server/bridges"
-	"github.com/svera/tbg-server/client"
 	"github.com/svera/tbg-server/config"
 	"github.com/svera/tbg-server/interfaces"
 	"github.com/svera/tbg-server/room"
@@ -34,7 +33,7 @@ type Hub struct {
 	rooms map[string]interfaces.Room
 
 	// Inbound messages
-	Messages chan *interfaces.ClientMessage
+	Messages chan *interfaces.MessageFromClient
 
 	// Registration requests
 	Register chan interfaces.Client
@@ -49,7 +48,7 @@ type Hub struct {
 // New returns a new Hub instance
 func New(cfg *config.Config) *Hub {
 	return &Hub{
-		Messages:      make(chan *interfaces.ClientMessage),
+		Messages:      make(chan *interfaces.MessageFromClient),
 		Register:      make(chan interfaces.Client),
 		Unregister:    make(chan interfaces.Client),
 		clients:       []interfaces.Client{},
@@ -87,84 +86,76 @@ func (h *Hub) Run() {
 // parseMessage distinguish the passed message between be a control message (not
 // related to a particular game, but to the server) or a room one (specific to
 // a particular room)
-func (h *Hub) parseMessage(m *interfaces.ClientMessage) {
+func (h *Hub) parseMessage(m *interfaces.MessageFromClient) {
 	if h.isControlMessage(m) {
 		h.parseControlMessage(m)
 	} else {
-		if room, ok := h.rooms[m.Content.Room]; ok {
-			if response, err := room.ParseMessage(m); err != nil {
-				h.sendErrorMessage(err, m.Author)
-			} else {
-				h.broadcast(response)
-			}
-		} else {
-			h.sendErrorMessage(errors.New(InexistentRoom), m.Author)
-		}
+		h.passMessageToRoom(m)
 	}
 }
 
-func (h *Hub) isControlMessage(m *interfaces.ClientMessage) bool {
+func (h *Hub) isControlMessage(m *interfaces.MessageFromClient) bool {
 	switch m.Content.Type {
 	case
-		client.ControlMessageTypeCreateRoom,
-		client.ControlMessageTypeTerminateRoom:
+		interfaces.ControlMessageTypeCreateRoom,
+		interfaces.ControlMessageTypeJoinRoom,
+		interfaces.ControlMessageTypeTerminateRoom:
 		return true
 	}
 	return false
 }
 
-func (h *Hub) parseControlMessage(m *interfaces.ClientMessage) {
+func (h *Hub) parseControlMessage(m *interfaces.MessageFromClient) {
 
 	switch m.Content.Type {
 
-	case client.ControlMessageTypeCreateRoom:
-		var parsed client.CreateRoomMessageParams
+	case interfaces.ControlMessageTypeCreateRoom:
+		var parsed interfaces.MessageCreateRoomParams
 		if err := json.Unmarshal(m.Content.Params, &parsed); err == nil {
 			if bridge, err := bridges.Create(parsed.BridgeName); err != nil {
 				h.sendErrorMessage(errors.New(InexistentBridge), m.Author)
 			} else {
 				id := h.createRoom(bridge, m.Author)
-				msg := newRoomCreatedMessage{
-					Type: "new",
-					ID:   id,
+				if response, err := h.rooms[id].AddClient(m.Author); err != nil {
+					h.sendErrorMessage(err, m.Author)
+				} else {
+					h.broadcast(response)
 				}
-				response, _ := json.Marshal(msg)
-				h.sendMessage(m.Author, response)
-				joinMsg := &interfaces.ClientMessage{
-					Author: m.Author,
-					Content: interfaces.ClientMessageContent{
-						Type: "joi",
-						Room: id,
-					},
-				}
-				joinResponse, _ := h.rooms[id].ParseMessage(joinMsg)
-				h.broadcast(joinResponse)
 			}
 		}
 
-		/*
-			case client.ControlMessageTypeKickPlayer:
-				var parsed client.KickPlayerMessageParams
-				if err := json.Unmarshal(m.Content.Params, &parsed); err == nil {
-					if err := h.kickClient(parsed.PlayerNumber); err != nil {
-						h.sendErrorMessage(err, m.Author)
-					}
+	case interfaces.ControlMessageTypeJoinRoom:
+		var parsed interfaces.MessageJoinRoomParams
+		if err := json.Unmarshal(m.Content.Params, &parsed); err == nil {
+			if room, ok := h.rooms[parsed.Room]; ok {
+				if response, err := room.AddClient(m.Author); err != nil {
+					h.sendErrorMessage(err, m.Author)
+				} else {
+					h.broadcast(response)
 				}
+			} else {
+				h.sendErrorMessage(errors.New(InexistentRoom), m.Author)
+			}
 
-			case client.ControlMessageTypePlayerQuits:
-				if err := h.quitClient(m.Author); err != nil {
-					h.sendErrorMessage(err, m.Author)
-				}
-			case client.ControlMessageTypeTerminateGame:
-				if err := h.terminateGame(m.Author); err != nil {
-					h.sendErrorMessage(err, m.Author)
-				}
-		*/
+		}
+
+	case interfaces.ControlMessageTypeTerminateRoom:
+		if m.Author != m.Author.Room().Owner() {
+			return
+		}
+		h.destroyRoom(m.Author.Room().ID())
+	}
+}
+
+func (h *Hub) passMessageToRoom(m *interfaces.MessageFromClient) {
+	if response, err := m.Author.Room().ParseMessage(m); err != nil {
+		h.sendErrorMessage(err, m.Author)
+	} else {
+		h.broadcast(response)
 	}
 }
 
 func (h *Hub) broadcast(response map[interfaces.Client][]byte) {
-	log.Printf("numero clientes respuesta: %d", len(response))
 	for cl, msg := range response {
 		h.sendMessage(cl, msg)
 	}
@@ -192,13 +183,8 @@ func (h *Hub) removeClient(c interfaces.Client) {
 			if c.Room() != nil {
 				response := c.Room().RemoveClient(c)
 				h.broadcast(response)
-				//h.gameBridge.DeactivatePlayer(i)
-				//h.broadcastUpdate()
-			} //else {
+			}
 			h.clients = append(h.clients[:i], h.clients[i+1:]...)
-			//h.gameBridge.RemovePlayer(i)
-			//h.sendUpdatedPlayersList()
-			//}
 			log.Printf("Cliente eliminado del hub, Numero de clientes: %d\n", len(h.clients))
 			return
 		}
@@ -211,7 +197,7 @@ func (h *Hub) NumberClients() int {
 }
 
 func (h *Hub) sendErrorMessage(err error, author interfaces.Client) {
-	res := &errorMessage{
+	res := &interfaces.MessageError{
 		Type:    "err",
 		Content: err.Error(),
 	}
@@ -222,7 +208,29 @@ func (h *Hub) sendErrorMessage(err error, author interfaces.Client) {
 func (h *Hub) createRoom(b interfaces.Bridge, owner interfaces.Client) string {
 	id := generateID()
 	h.rooms[id] = room.New(id, b, owner, h.Messages, h.Unregister, h.configuration)
+
+	msg := interfaces.MessageRoomCreated{
+		Type: "new",
+		ID:   id,
+	}
+	response, _ := json.Marshal(msg)
+	h.sendMessage(owner, response)
+
 	return id
+}
+
+func (h *Hub) destroyRoom(roomID string) {
+	msg := interfaces.MessageRoomDestroyed{
+		Type:   "out",
+		Reason: "ter",
+	}
+	response, _ := json.Marshal(msg)
+	for _, cl := range h.rooms[roomID].Clients() {
+		if cl != nil {
+			h.sendMessage(cl, response)
+		}
+	}
+	delete(h.rooms, roomID)
 }
 
 // TODO Implement proper random string generator

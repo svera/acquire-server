@@ -43,9 +43,9 @@ func NewBotClient(b acquireInterfaces.Bot, room serverInterfaces.Room) serverInt
 // an update message comes this way, updates the bot game status information
 // and gets its next play, sending it back to the hub
 func (c *BotClient) ReadPump(cnl interface{}, unregister chan serverInterfaces.Client) {
-	var msg *serverInterfaces.ClientMessage
+	var msg *serverInterfaces.MessageFromClient
 	var m interface{}
-	channel := cnl.(chan *serverInterfaces.ClientMessage)
+	channel := cnl.(chan *serverInterfaces.MessageFromClient)
 	defer func() {
 		unregister <- c
 	}()
@@ -66,8 +66,8 @@ func (c *BotClient) ReadPump(cnl interface{}, unregister chan serverInterfaces.C
 
 }
 
-func (c *BotClient) encodeResponse(m bots.Message) *serverInterfaces.ClientMessage {
-	var enc *serverInterfaces.ClientMessage
+func (c *BotClient) encodeResponse(m bots.Message) *serverInterfaces.MessageFromClient {
+	var enc *serverInterfaces.MessageFromClient
 
 	switch m.Type {
 	case bots.PlayTileResponseType:
@@ -132,52 +132,49 @@ func (c *BotClient) updateBot(parsed statusMessage) {
 	c.bot.Update(st)
 }
 
-func (c *BotClient) encodePlayTile(response bots.PlayTileResponseParams) *serverInterfaces.ClientMessage {
+func (c *BotClient) encodePlayTile(response bots.PlayTileResponseParams) *serverInterfaces.MessageFromClient {
 	params := playTileMessageParams{
 		Tile: response.Tile,
 	}
 	ser, _ := json.Marshal(params)
-	return &serverInterfaces.ClientMessage{
+	return &serverInterfaces.MessageFromClient{
 		Author: c,
-		Content: serverInterfaces.ClientMessageContent{
+		Content: serverInterfaces.MessageFromClientContent{
 			Type:   messageTypePlayTile,
-			Room:   c.room.ID(),
 			Params: ser,
 		},
 	}
 }
 
-func (c *BotClient) encodeFoundCorporation(response bots.NewCorpResponseParams) *serverInterfaces.ClientMessage {
+func (c *BotClient) encodeFoundCorporation(response bots.NewCorpResponseParams) *serverInterfaces.MessageFromClient {
 	params := newCorpMessageParams{
 		CorporationIndex: response.CorporationIndex,
 	}
 	ser, _ := json.Marshal(params)
-	return &serverInterfaces.ClientMessage{
+	return &serverInterfaces.MessageFromClient{
 		Author: c,
-		Content: serverInterfaces.ClientMessageContent{
+		Content: serverInterfaces.MessageFromClientContent{
 			Type:   messageTypeFoundCorporation,
-			Room:   c.room.ID(),
 			Params: ser,
 		},
 	}
 }
 
-func (c *BotClient) encodeBuyStock(response bots.BuyResponseParams) *serverInterfaces.ClientMessage {
+func (c *BotClient) encodeBuyStock(response bots.BuyResponseParams) *serverInterfaces.MessageFromClient {
 	params := buyMessageParams{
 		CorporationsIndexes: response.CorporationsIndexes,
 	}
 	ser, _ := json.Marshal(params)
-	return &serverInterfaces.ClientMessage{
+	return &serverInterfaces.MessageFromClient{
 		Author: c,
-		Content: serverInterfaces.ClientMessageContent{
+		Content: serverInterfaces.MessageFromClientContent{
 			Type:   messageTypeBuyStock,
-			Room:   c.room.ID(),
 			Params: ser,
 		},
 	}
 }
 
-func (c *BotClient) encodeSellTrade(response bots.SellTradeResponseParams) *serverInterfaces.ClientMessage {
+func (c *BotClient) encodeSellTrade(response bots.SellTradeResponseParams) *serverInterfaces.MessageFromClient {
 	params := sellTradeMessageParams{
 		CorporationsIndexes: map[string]sellTrade{},
 	}
@@ -185,37 +182,34 @@ func (c *BotClient) encodeSellTrade(response bots.SellTradeResponseParams) *serv
 		params.CorporationsIndexes[k] = sellTrade{v.Sell, v.Trade}
 	}
 	ser, _ := json.Marshal(params)
-	return &serverInterfaces.ClientMessage{
+	return &serverInterfaces.MessageFromClient{
 		Author: c,
-		Content: serverInterfaces.ClientMessageContent{
+		Content: serverInterfaces.MessageFromClientContent{
 			Type:   messageTypeSellTrade,
-			Room:   c.room.ID(),
 			Params: ser,
 		},
 	}
 }
 
-func (c *BotClient) encodeUntieMerge(response bots.UntieMergeResponseParams) *serverInterfaces.ClientMessage {
+func (c *BotClient) encodeUntieMerge(response bots.UntieMergeResponseParams) *serverInterfaces.MessageFromClient {
 	params := untieMergeMessageParams{
 		CorporationIndex: response.CorporationIndex,
 	}
 	ser, _ := json.Marshal(params)
-	return &serverInterfaces.ClientMessage{
+	return &serverInterfaces.MessageFromClient{
 		Author: c,
-		Content: serverInterfaces.ClientMessageContent{
+		Content: serverInterfaces.MessageFromClientContent{
 			Type:   messageTypeUntieMerge,
-			Room:   c.room.ID(),
 			Params: ser,
 		},
 	}
 }
 
-func (c *BotClient) encodeEndGame() *serverInterfaces.ClientMessage {
-	return &serverInterfaces.ClientMessage{
+func (c *BotClient) encodeEndGame() *serverInterfaces.MessageFromClient {
+	return &serverInterfaces.MessageFromClient{
 		Author: c,
-		Content: serverInterfaces.ClientMessageContent{
+		Content: serverInterfaces.MessageFromClientContent{
 			Type: messageTypeEndGame,
-			Room: c.room.ID(),
 		},
 	}
 }
