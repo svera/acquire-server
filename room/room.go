@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/svera/tbg-server/config"
@@ -44,20 +43,20 @@ type Room struct {
 	// Maximum time this room instance will be kept alive
 	timeout time.Duration
 
-	wasClosedByTimeout bool
+	// timer function that will close the room after X minutes
+	timer *time.Timer
 }
 
 // New returns a new Room instance
 func New(id string, b interfaces.Bridge, owner interfaces.Client, messages chan *interfaces.MessageFromClient, unregister chan interfaces.Client, cfg *config.Config) *Room {
 	return &Room{
-		id:                 id,
-		clients:            []interfaces.Client{},
-		gameBridge:         b,
-		timeout:            cfg.Timeout,
-		wasClosedByTimeout: false,
-		owner:              owner,
-		messages:           messages,
-		unregister:         unregister,
+		id:         id,
+		clients:    []interfaces.Client{},
+		gameBridge: b,
+		timeout:    cfg.Timeout,
+		owner:      owner,
+		messages:   messages,
+		unregister: unregister,
 	}
 }
 
@@ -116,25 +115,10 @@ func (r *Room) parseControlMessage(m *interfaces.MessageFromClient) (map[interfa
 		}
 		var parsed interfaces.MessageKickPlayerParams
 		if err := json.Unmarshal(m.Content.Params, &parsed); err == nil {
-			if err := r.kickClient(parsed.PlayerNumber); err != nil {
-				return nil, err
-			} else {
-				for _, cl := range r.clients {
-					response[cl] = r.updatedPlayersList()
-				}
-			}
+			return r.kickClient(parsed.PlayerNumber)
 		}
-		/*
-			case interfaces.ControlMessageTypePlayerQuits:
-				if err := h.quitClient(m.Author); err != nil {
-					h.sendErrorMessage(err, m.Author)
-				}
-			case interfaces.ControlMessageTypeTerminateGame:
-				if err := h.terminateGame(m.Author); err != nil {
-					h.sendErrorMessage(err, m.Author)
-				}
-		*/
 	}
+
 	return response, nil
 }
 
@@ -221,24 +205,25 @@ func (r *Room) AddClient(c interfaces.Client) (map[interfaces.Client][]byte, err
 	return response, nil
 }
 
-func (r *Room) kickClient(number int) error {
-	if number < 0 || number > len(r.clients) {
-		return errors.New(InexistentClient)
-	}
-	if r.clients[number] == r.owner {
-		return errors.New(OwnerNotRemovable)
-	}
-	r.clients[number].SetRoom(nil)
-	r.RemoveClient(r.clients[number])
-	return nil
-}
+func (r *Room) kickClient(number int) (map[interfaces.Client][]byte, error) {
+	response := map[interfaces.Client][]byte{}
 
-func (r *Room) quitClient(client interfaces.Client) error {
-	if client == r.owner {
-		return errors.New(OwnerNotRemovable)
+	if number < 0 || number >= len(r.clients) {
+		return nil, errors.New(InexistentClient)
 	}
-	r.RemoveClient(client)
-	return nil
+	cl := r.clients[number]
+	if cl == r.owner {
+		return nil, errors.New(OwnerNotRemovable)
+	}
+	cl.SetRoom(nil)
+	response = r.RemoveClient(r.clients[number])
+	msg := interfaces.MessageRoomDestroyed{
+		Type:   "out",
+		Reason: "kck",
+	}
+	encodedMsg, _ := json.Marshal(msg)
+	response[cl] = encodedMsg
+	return response, nil
 }
 
 // Removes /sets as nil a client and removes / deactivates its player
@@ -258,14 +243,12 @@ func (r *Room) RemoveClient(c interfaces.Client) map[interfaces.Client][]byte {
 				r.clients = append(r.clients[:i], r.clients[i+1:]...)
 				r.gameBridge.RemovePlayer(i)
 			}
-			for _, cl := range r.clients {
-				if cl != nil {
-					response[cl] = r.updatedPlayersList()
-				}
-			}
-
-			log.Printf("Cliente eliminado de la habitacion, Numero de clientes: %d\n", len(r.clients))
 			break
+		}
+	}
+	for i := range r.clients {
+		if cl := r.clients[i]; cl != nil {
+			response[cl] = r.updatedPlayersList()
 		}
 	}
 	return response
@@ -289,4 +272,12 @@ func (r *Room) Owner() interfaces.Client {
 
 func (r *Room) Clients() []interfaces.Client {
 	return r.clients
+}
+
+func (r *Room) SetTimer(t *time.Timer) {
+	r.timer = t
+}
+
+func (r *Room) Timer() *time.Timer {
+	return r.timer
 }

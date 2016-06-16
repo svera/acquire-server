@@ -6,7 +6,7 @@ type Client interface {
 	Incoming() chan []byte
 	Name() string
 	SetName(v string) Client
-	Close(code int)
+	Close()
 	IsBot() bool
 	Room() Room
 	SetRoom(r Room)

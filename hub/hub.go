@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+	"time"
 
 	"github.com/svera/tbg-server/bridges"
 	"github.com/svera/tbg-server/config"
@@ -113,11 +114,11 @@ func (h *Hub) parseControlMessage(m *interfaces.MessageFromClient) {
 		var parsed interfaces.MessageCreateRoomParams
 		if err := json.Unmarshal(m.Content.Params, &parsed); err == nil {
 			if bridge, err := bridges.Create(parsed.BridgeName); err != nil {
-				h.sendErrorMessage(errors.New(InexistentBridge), m.Author)
+				h.sendErrorMessage(m.Author, errors.New(InexistentBridge))
 			} else {
 				id := h.createRoom(bridge, m.Author)
 				if response, err := h.rooms[id].AddClient(m.Author); err != nil {
-					h.sendErrorMessage(err, m.Author)
+					h.sendErrorMessage(m.Author, err)
 				} else {
 					h.broadcast(response)
 				}
@@ -129,12 +130,12 @@ func (h *Hub) parseControlMessage(m *interfaces.MessageFromClient) {
 		if err := json.Unmarshal(m.Content.Params, &parsed); err == nil {
 			if room, ok := h.rooms[parsed.Room]; ok {
 				if response, err := room.AddClient(m.Author); err != nil {
-					h.sendErrorMessage(err, m.Author)
+					h.sendErrorMessage(m.Author, err)
 				} else {
 					h.broadcast(response)
 				}
 			} else {
-				h.sendErrorMessage(errors.New(InexistentRoom), m.Author)
+				h.sendErrorMessage(m.Author, errors.New(InexistentRoom))
 			}
 
 		}
@@ -143,13 +144,13 @@ func (h *Hub) parseControlMessage(m *interfaces.MessageFromClient) {
 		if m.Author != m.Author.Room().Owner() {
 			return
 		}
-		h.destroyRoom(m.Author.Room().ID())
+		h.destroyRoom(m.Author.Room().ID(), interfaces.ReasonRoomDestroyedTerminated)
 	}
 }
 
 func (h *Hub) passMessageToRoom(m *interfaces.MessageFromClient) {
 	if response, err := m.Author.Room().ParseMessage(m); err != nil {
-		h.sendErrorMessage(err, m.Author)
+		h.sendErrorMessage(m.Author, err)
 	} else {
 		h.broadcast(response)
 	}
@@ -181,12 +182,16 @@ func (h *Hub) removeClient(c interfaces.Client) {
 	for i := range h.clients {
 		if h.clients[i] == c {
 			if c.Room() != nil {
-				response := c.Room().RemoveClient(c)
+				r := c.Room()
+				response := r.RemoveClient(c)
 				h.broadcast(response)
+				if len(r.Clients()) == 0 {
+					h.destroyRoom(r.ID(), interfaces.ReasonRoomDestroyedNoClients)
+				}
 			}
 			h.clients = append(h.clients[:i], h.clients[i+1:]...)
 			log.Printf("Cliente eliminado del hub, Numero de clientes: %d\n", len(h.clients))
-			return
+			break
 		}
 	}
 }
@@ -196,7 +201,7 @@ func (h *Hub) NumberClients() int {
 	return len(h.clients)
 }
 
-func (h *Hub) sendErrorMessage(err error, author interfaces.Client) {
+func (h *Hub) sendErrorMessage(author interfaces.Client, err error) {
 	res := &interfaces.MessageError{
 		Type:    "err",
 		Content: err.Error(),
@@ -209,6 +214,11 @@ func (h *Hub) createRoom(b interfaces.Bridge, owner interfaces.Client) string {
 	id := generateID()
 	h.rooms[id] = room.New(id, b, owner, h.Messages, h.Unregister, h.configuration)
 
+	timer := time.AfterFunc(time.Minute*h.configuration.Timeout, func() {
+		h.destroyRoom(id, interfaces.ReasonRoomDestroyedTimeout)
+	})
+	h.rooms[id].SetTimer(timer)
+
 	msg := interfaces.MessageRoomCreated{
 		Type: "new",
 		ID:   id,
@@ -219,17 +229,22 @@ func (h *Hub) createRoom(b interfaces.Bridge, owner interfaces.Client) string {
 	return id
 }
 
-func (h *Hub) destroyRoom(roomID string) {
+func (h *Hub) destroyRoom(roomID string, reasonCode string) {
+	r := h.rooms[roomID]
+	r.Timer().Stop()
 	msg := interfaces.MessageRoomDestroyed{
 		Type:   "out",
-		Reason: "ter",
+		Reason: reasonCode,
 	}
 	response, _ := json.Marshal(msg)
-	for _, cl := range h.rooms[roomID].Clients() {
-		if cl != nil {
+	for _, cl := range r.Clients() {
+		if cl.IsBot() {
+			cl.Close()
+		} else if cl != nil {
 			h.sendMessage(cl, response)
 		}
 	}
+	log.Println("Room destroyed")
 	delete(h.rooms, roomID)
 }
 

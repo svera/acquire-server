@@ -250,7 +250,7 @@ func (c *BotClient) SetName(v string) serverInterfaces.Client {
 
 // Close sends a quitting signal that will end the ReadPump() and WritePump()
 // goroutines of this instance
-func (c *BotClient) Close(code int) {
+func (c *BotClient) Close() {
 	c.endReadPump <- true
 	c.endWritePump <- true
 }
