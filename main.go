@@ -4,13 +4,13 @@ import (
 	"log"
 	"net/http"
 
+	"fmt"
+	"os"
+
 	"github.com/gorilla/mux"
 	"github.com/svera/tbg-server/client"
 	"github.com/svera/tbg-server/config"
 	"github.com/svera/tbg-server/hub"
-	//"net/url"
-	"fmt"
-	"os"
 )
 
 var hb *hub.Hub

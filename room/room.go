@@ -117,6 +117,10 @@ func (r *Room) parseControlMessage(m *interfaces.MessageFromClient) (map[interfa
 		if err := json.Unmarshal(m.Content.Params, &parsed); err == nil {
 			return r.kickClient(parsed.PlayerNumber)
 		}
+
+	case interfaces.ControlMessageTypePlayerQuits:
+		return r.clientQuits(m.Author)
+
 	}
 
 	return response, nil
@@ -131,10 +135,12 @@ func (r *Room) passMessageToGame(m *interfaces.MessageFromClient) (map[interface
 		err = r.gameBridge.Execute(m.Content.Type, m.Content.Params)
 		if err == nil {
 			for n, cl := range r.clients {
-				if cl.IsBot() && r.IsGameOver() {
+				if cl != nil && cl.IsBot() && r.IsGameOver() {
 					continue
 				}
-				response[cl], _ = r.gameBridge.Status(n)
+				if cl != nil {
+					response[cl], _ = r.gameBridge.Status(n)
+				}
 			}
 		}
 	}
@@ -226,6 +232,20 @@ func (r *Room) kickClient(number int) (map[interfaces.Client][]byte, error) {
 	return response, nil
 }
 
+func (r *Room) clientQuits(cl interfaces.Client) (map[interfaces.Client][]byte, error) {
+	response := map[interfaces.Client][]byte{}
+
+	cl.SetRoom(nil)
+	response = r.RemoveClient(cl)
+	msg := interfaces.MessageRoomDestroyed{
+		Type:   "out",
+		Reason: "qui",
+	}
+	encodedMsg, _ := json.Marshal(msg)
+	response[cl] = encodedMsg
+	return response, nil
+}
+
 // Removes /sets as nil a client and removes / deactivates its player
 // depending wheter the game has already started or not.
 // Note that we don't remove a client if a game has already started, as client
@@ -239,16 +259,20 @@ func (r *Room) RemoveClient(c interfaces.Client) map[interfaces.Client][]byte {
 			if r.gameBridge.GameStarted() {
 				r.clients[i] = nil
 				r.gameBridge.DeactivatePlayer(i)
+				for i := range r.clients {
+					if cl := r.clients[i]; cl != nil {
+						response[cl], _ = r.gameBridge.Status(i)
+					}
+				}
 			} else {
 				r.clients = append(r.clients[:i], r.clients[i+1:]...)
 				r.gameBridge.RemovePlayer(i)
+				for i := range r.clients {
+					cl := r.clients[i]
+					response[cl] = r.updatedPlayersList()
+				}
 			}
 			break
-		}
-	}
-	for i := range r.clients {
-		if cl := r.clients[i]; cl != nil {
-			response[cl] = r.updatedPlayersList()
 		}
 	}
 	return response
