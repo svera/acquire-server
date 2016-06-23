@@ -9,10 +9,10 @@ import (
 	"log"
 	"time"
 
-	"github.com/svera/tbg-server/bridges"
-	"github.com/svera/tbg-server/config"
-	"github.com/svera/tbg-server/interfaces"
-	"github.com/svera/tbg-server/room"
+	"github.com/svera/sackson-server/bridges"
+	"github.com/svera/sackson-server/config"
+	"github.com/svera/sackson-server/interfaces"
+	"github.com/svera/sackson-server/room"
 )
 
 const (

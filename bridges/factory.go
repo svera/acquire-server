@@ -3,8 +3,8 @@ package bridges
 import (
 	"errors"
 
-	"github.com/svera/tbg-server/bridges/acquire"
-	"github.com/svera/tbg-server/interfaces"
+	"github.com/svera/sackson-server/bridges/acquire"
+	"github.com/svera/sackson-server/interfaces"
 )
 
 const (

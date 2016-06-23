@@ -3,7 +3,7 @@ package mocks
 import (
 	"encoding/json"
 
-	"github.com/svera/tbg-server/interfaces"
+	"github.com/svera/sackson-server/interfaces"
 )
 
 // Bridge is a structure that implements the Bridge interface for testing

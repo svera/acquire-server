@@ -3,7 +3,7 @@ package mocks
 import (
 	"time"
 
-	"github.com/svera/tbg-server/interfaces"
+	"github.com/svera/sackson-server/interfaces"
 )
 
 // Client is a structure that implements the Client interface for testing

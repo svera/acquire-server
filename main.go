@@ -8,9 +8,9 @@ import (
 	"os"
 
 	"github.com/gorilla/mux"
-	"github.com/svera/tbg-server/client"
-	"github.com/svera/tbg-server/config"
-	"github.com/svera/tbg-server/hub"
+	"github.com/svera/sackson-server/client"
+	"github.com/svera/sackson-server/config"
+	"github.com/svera/sackson-server/hub"
 )
 
 var hb *hub.Hub

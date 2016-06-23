@@ -6,7 +6,7 @@ import (
 
 	"github.com/svera/acquire/bots"
 	acquireInterfaces "github.com/svera/acquire/interfaces"
-	serverInterfaces "github.com/svera/tbg-server/interfaces"
+	serverInterfaces "github.com/svera/sackson-server/interfaces"
 )
 
 const (

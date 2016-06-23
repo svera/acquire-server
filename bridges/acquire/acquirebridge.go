@@ -10,9 +10,9 @@ import (
 	"github.com/svera/acquire/bots"
 	acquireInterfaces "github.com/svera/acquire/interfaces"
 	"github.com/svera/acquire/tile"
-	"github.com/svera/tbg-server/bridges/acquire/corporation"
-	"github.com/svera/tbg-server/bridges/acquire/player"
-	serverInterfaces "github.com/svera/tbg-server/interfaces"
+	"github.com/svera/sackson-server/bridges/acquire/corporation"
+	"github.com/svera/sackson-server/bridges/acquire/player"
+	serverInterfaces "github.com/svera/sackson-server/interfaces"
 )
 
 // AcquireBridge implements the bridge interface in order to be able to have

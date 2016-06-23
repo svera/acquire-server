@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/svera/tbg-server/config"
-	"github.com/svera/tbg-server/interfaces"
+	"github.com/svera/sackson-server/config"
+	"github.com/svera/sackson-server/interfaces"
 )
 
 const (

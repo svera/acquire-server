@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/svera/tbg-server/interfaces"
+	"github.com/svera/sackson-server/interfaces"
 )
 
 const (

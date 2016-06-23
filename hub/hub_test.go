@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/svera/tbg-server/config"
-	"github.com/svera/tbg-server/mocks"
+	"github.com/svera/sackson-server/config"
+	"github.com/svera/sackson-server/mocks"
 )
 
 /* THIS SHOULD BE MOVED TO THE ROOOM TESTS
