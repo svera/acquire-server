@@ -2,6 +2,7 @@ package client
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"time"
 
@@ -24,7 +25,7 @@ type Human struct {
 	name     string
 	ws       *websocket.Conn
 	incoming chan []byte // Channel storing incoming messages
-	owner    bool
+	room     interfaces.Room
 }
 
 // NewHuman returns a new Human instance
@@ -51,7 +52,7 @@ func NewHuman(w http.ResponseWriter, r *http.Request) (interfaces.Client, error)
 
 // ReadPump reads input from the user and writes it to the passed channel
 func (c *Human) ReadPump(cnl interface{}, unregister chan interfaces.Client) {
-	channel := cnl.(chan *Message)
+	channel := cnl.(chan *interfaces.MessageFromClient)
 	defer func() {
 		unregister <- c
 		c.ws.Close()
@@ -70,14 +71,16 @@ func (c *Human) ReadPump(cnl interface{}, unregister chan interfaces.Client) {
 			break
 		}
 
-		cnt := MessageContent{}
+		cnt := interfaces.MessageFromClientContent{}
 		if err := json.Unmarshal(message, &cnt); err == nil {
-			msg := &Message{
+			msg := &interfaces.MessageFromClient{
 				Author:  c,
 				Content: cnt,
 			}
 
 			channel <- msg
+		} else {
+			log.Println("error decoding message content")
 		}
 	}
 }
@@ -109,20 +112,17 @@ func (c *Human) WritePump() {
 	}
 }
 
+func (c *Human) Room() interfaces.Room {
+	return c.room
+}
+
+func (c *Human) SetRoom(r interfaces.Room) {
+	c.room = r
+}
+
 // Incoming returns the client's incoming channel
 func (c *Human) Incoming() chan []byte {
 	return c.incoming
-}
-
-// Owner returns true if the client is owner of the game, false otherwise
-func (c *Human) Owner() bool {
-	return c.owner
-}
-
-// SetOwner sets the client as game owner
-func (c *Human) SetOwner(v bool) interfaces.Client {
-	c.owner = v
-	return c
 }
 
 // Name returns the client's name
@@ -142,8 +142,8 @@ func (c *Human) write(mt int, message []byte) error {
 }
 
 // Close closes connection through the websocket
-func (c *Human) Close(code int) {
-	c.write(websocket.CloseMessage, websocket.FormatCloseMessage(code, "woops"))
+func (c *Human) Close() {
+	c.write(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 	c.ws.Close()
 }
 

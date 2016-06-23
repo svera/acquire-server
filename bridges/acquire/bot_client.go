@@ -6,7 +6,6 @@ import (
 
 	"github.com/svera/acquire/bots"
 	acquireInterfaces "github.com/svera/acquire/interfaces"
-	"github.com/svera/tbg-server/client"
 	serverInterfaces "github.com/svera/tbg-server/interfaces"
 )
 
@@ -25,16 +24,18 @@ type BotClient struct {
 	endWritePump chan bool
 	botTurn      chan statusMessage
 	bot          acquireInterfaces.Bot
+	room         serverInterfaces.Room
 }
 
 // NewBotClient returns a new Bot instance
-func NewBotClient(b acquireInterfaces.Bot) serverInterfaces.Client {
+func NewBotClient(b acquireInterfaces.Bot, room serverInterfaces.Room) serverInterfaces.Client {
 	return &BotClient{
 		incoming:     make(chan []byte, maxMessageSize),
 		endReadPump:  make(chan bool),
 		endWritePump: make(chan bool),
 		botTurn:      make(chan statusMessage),
 		bot:          b,
+		room:         room,
 	}
 }
 
@@ -42,9 +43,9 @@ func NewBotClient(b acquireInterfaces.Bot) serverInterfaces.Client {
 // an update message comes this way, updates the bot game status information
 // and gets its next play, sending it back to the hub
 func (c *BotClient) ReadPump(cnl interface{}, unregister chan serverInterfaces.Client) {
-	var msg *client.Message
+	var msg *serverInterfaces.MessageFromClient
 	var m interface{}
-	channel := cnl.(chan *client.Message)
+	channel := cnl.(chan *serverInterfaces.MessageFromClient)
 	defer func() {
 		unregister <- c
 	}()
@@ -65,8 +66,8 @@ func (c *BotClient) ReadPump(cnl interface{}, unregister chan serverInterfaces.C
 
 }
 
-func (c *BotClient) encodeResponse(m bots.Message) *client.Message {
-	var enc *client.Message
+func (c *BotClient) encodeResponse(m bots.Message) *serverInterfaces.MessageFromClient {
+	var enc *serverInterfaces.MessageFromClient
 
 	switch m.Type {
 	case bots.PlayTileResponseType:
@@ -131,49 +132,49 @@ func (c *BotClient) updateBot(parsed statusMessage) {
 	c.bot.Update(st)
 }
 
-func (c *BotClient) encodePlayTile(response bots.PlayTileResponseParams) *client.Message {
+func (c *BotClient) encodePlayTile(response bots.PlayTileResponseParams) *serverInterfaces.MessageFromClient {
 	params := playTileMessageParams{
 		Tile: response.Tile,
 	}
 	ser, _ := json.Marshal(params)
-	return &client.Message{
+	return &serverInterfaces.MessageFromClient{
 		Author: c,
-		Content: client.MessageContent{
+		Content: serverInterfaces.MessageFromClientContent{
 			Type:   messageTypePlayTile,
 			Params: ser,
 		},
 	}
 }
 
-func (c *BotClient) encodeFoundCorporation(response bots.NewCorpResponseParams) *client.Message {
+func (c *BotClient) encodeFoundCorporation(response bots.NewCorpResponseParams) *serverInterfaces.MessageFromClient {
 	params := newCorpMessageParams{
 		CorporationIndex: response.CorporationIndex,
 	}
 	ser, _ := json.Marshal(params)
-	return &client.Message{
+	return &serverInterfaces.MessageFromClient{
 		Author: c,
-		Content: client.MessageContent{
+		Content: serverInterfaces.MessageFromClientContent{
 			Type:   messageTypeFoundCorporation,
 			Params: ser,
 		},
 	}
 }
 
-func (c *BotClient) encodeBuyStock(response bots.BuyResponseParams) *client.Message {
+func (c *BotClient) encodeBuyStock(response bots.BuyResponseParams) *serverInterfaces.MessageFromClient {
 	params := buyMessageParams{
 		CorporationsIndexes: response.CorporationsIndexes,
 	}
 	ser, _ := json.Marshal(params)
-	return &client.Message{
+	return &serverInterfaces.MessageFromClient{
 		Author: c,
-		Content: client.MessageContent{
+		Content: serverInterfaces.MessageFromClientContent{
 			Type:   messageTypeBuyStock,
 			Params: ser,
 		},
 	}
 }
 
-func (c *BotClient) encodeSellTrade(response bots.SellTradeResponseParams) *client.Message {
+func (c *BotClient) encodeSellTrade(response bots.SellTradeResponseParams) *serverInterfaces.MessageFromClient {
 	params := sellTradeMessageParams{
 		CorporationsIndexes: map[string]sellTrade{},
 	}
@@ -181,33 +182,33 @@ func (c *BotClient) encodeSellTrade(response bots.SellTradeResponseParams) *clie
 		params.CorporationsIndexes[k] = sellTrade{v.Sell, v.Trade}
 	}
 	ser, _ := json.Marshal(params)
-	return &client.Message{
+	return &serverInterfaces.MessageFromClient{
 		Author: c,
-		Content: client.MessageContent{
+		Content: serverInterfaces.MessageFromClientContent{
 			Type:   messageTypeSellTrade,
 			Params: ser,
 		},
 	}
 }
 
-func (c *BotClient) encodeUntieMerge(response bots.UntieMergeResponseParams) *client.Message {
+func (c *BotClient) encodeUntieMerge(response bots.UntieMergeResponseParams) *serverInterfaces.MessageFromClient {
 	params := untieMergeMessageParams{
 		CorporationIndex: response.CorporationIndex,
 	}
 	ser, _ := json.Marshal(params)
-	return &client.Message{
+	return &serverInterfaces.MessageFromClient{
 		Author: c,
-		Content: client.MessageContent{
+		Content: serverInterfaces.MessageFromClientContent{
 			Type:   messageTypeUntieMerge,
 			Params: ser,
 		},
 	}
 }
 
-func (c *BotClient) encodeEndGame() *client.Message {
-	return &client.Message{
+func (c *BotClient) encodeEndGame() *serverInterfaces.MessageFromClient {
+	return &serverInterfaces.MessageFromClient{
 		Author: c,
-		Content: client.MessageContent{
+		Content: serverInterfaces.MessageFromClientContent{
 			Type: messageTypeEndGame,
 		},
 	}
@@ -238,16 +239,6 @@ func (c *BotClient) Incoming() chan []byte {
 	return c.incoming
 }
 
-// Owner always return false for bots
-func (c *BotClient) Owner() bool {
-	return false
-}
-
-// SetOwner doesn't change Owner status in a bot, as bots cannot be owners
-func (c *BotClient) SetOwner(v bool) serverInterfaces.Client {
-	return c
-}
-
 func (c *BotClient) Name() string {
 	return c.name
 }
@@ -259,7 +250,7 @@ func (c *BotClient) SetName(v string) serverInterfaces.Client {
 
 // Close sends a quitting signal that will end the ReadPump() and WritePump()
 // goroutines of this instance
-func (c *BotClient) Close(code int) {
+func (c *BotClient) Close() {
 	c.endReadPump <- true
 	c.endWritePump <- true
 }
@@ -267,4 +258,12 @@ func (c *BotClient) Close(code int) {
 // IsBot returns true because this client is managed by a bot
 func (c *BotClient) IsBot() bool {
 	return true
+}
+
+func (c *BotClient) Room() serverInterfaces.Room {
+	return c.room
+}
+
+func (c *BotClient) SetRoom(r serverInterfaces.Room) {
+	c.room = r
 }

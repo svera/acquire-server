@@ -12,6 +12,7 @@ type Client struct {
 	FakeName     string
 	FakeIsBot    bool
 	FakeIncoming chan []byte
+	FakeRoom     interfaces.Room
 }
 
 // ReadPump mocks the ReadPump method defined in the Client interface
@@ -59,8 +60,16 @@ func (c *Client) SetName(v string) interfaces.Client {
 }
 
 // Close mocks the Close method defined in the Client interface
-func (c *Client) Close(code int) {
+func (c *Client) Close() {
 
+}
+
+func (c *Client) Room() interfaces.Room {
+	return c.FakeRoom
+}
+
+func (c *Client) SetRoom(r interfaces.Room) {
+	c.FakeRoom = r
 }
 
 // IsBot mocks the IsBot method defined in the Client interface

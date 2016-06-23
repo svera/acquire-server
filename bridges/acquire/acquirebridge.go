@@ -50,9 +50,9 @@ func New() *AcquireBridge {
 	}
 }
 
-// ParseMessage gets an input JSON-encoded message and parses it, executing
+// Execute gets an input JSON-encoded message and parses it, executing
 // whatever actions are required by it
-func (b *AcquireBridge) ParseMessage(t string, params json.RawMessage) error {
+func (b *AcquireBridge) Execute(t string, params json.RawMessage) error {
 	var err error
 	b.history = nil
 
@@ -384,10 +384,10 @@ func (b *AcquireBridge) IsGameOver() bool {
 }
 
 // AddBot adds a new bot
-func (b *AcquireBridge) AddBot(params interface{}) (serverInterfaces.Client, error) {
+func (b *AcquireBridge) AddBot(params interface{}, room serverInterfaces.Room) (serverInterfaces.Client, error) {
 	if name, ok := params.(string); ok {
 		if bot, err := bots.Create(name); err == nil {
-			return NewBotClient(bot), nil
+			return NewBotClient(bot, room), nil
 		} else {
 			return nil, err
 		}
