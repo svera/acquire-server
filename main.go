@@ -14,6 +14,7 @@ import (
 )
 
 var hb *hub.Hub
+var gitHash = "No git hash provided"
 
 func newClient(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
@@ -47,7 +48,8 @@ func main() {
 
 		r.HandleFunc("/", newClient)
 		http.Handle("/", r)
-		log.Printf("Sackson server listening on port %s\n", cfg.Port)
+		fmt.Printf("Sackson server listening on port %s\n", cfg.Port)
+		fmt.Printf("Git commit hash: %s\n", gitHash)
 		log.Fatal(http.ListenAndServe(cfg.Port, r))
 	}
 }
