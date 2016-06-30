@@ -132,7 +132,7 @@ func (r *Room) passMessageToGame(m *interfaces.MessageFromClient) (map[interface
 	response := map[interfaces.Client][]byte{}
 
 	if currentPlayer, err = r.currentPlayerClient(); m.Author == currentPlayer && err == nil {
-		err = r.gameBridge.Execute(m.Content.Type, m.Content.Params)
+		err = r.gameBridge.Execute(m.Author.Name(), m.Content.Type, m.Content.Params)
 		if err == nil {
 			for n, cl := range r.clients {
 				if cl != nil && cl.IsBot() && r.IsGameOver() {

@@ -52,7 +52,7 @@ func New() *AcquireBridge {
 
 // Execute gets an input JSON-encoded message and parses it, executing
 // whatever actions are required by it
-func (b *AcquireBridge) Execute(t string, params json.RawMessage) error {
+func (b *AcquireBridge) Execute(clientName string, t string, params json.RawMessage) error {
 	var err error
 	b.history = nil
 
@@ -60,30 +60,30 @@ func (b *AcquireBridge) Execute(t string, params json.RawMessage) error {
 	case messageTypePlayTile:
 		var parsed playTileMessageParams
 		if err = json.Unmarshal(params, &parsed); err == nil {
-			err = b.playTile(parsed)
+			err = b.playTile(clientName, parsed)
 		}
 	case messageTypeFoundCorporation:
 		var parsed newCorpMessageParams
 		if err = json.Unmarshal(params, &parsed); err == nil {
-			err = b.foundCorporation(parsed)
+			err = b.foundCorporation(clientName, parsed)
 		}
 	case messageTypeBuyStock:
 		var parsed buyMessageParams
 		if err = json.Unmarshal(params, &parsed); err == nil {
-			err = b.buyStock(parsed)
+			err = b.buyStock(clientName, parsed)
 		}
 	case messageTypeSellTrade:
 		var parsed sellTradeMessageParams
 		if err = json.Unmarshal(params, &parsed); err == nil {
-			err = b.sellTrade(parsed)
+			err = b.sellTrade(clientName, parsed)
 		}
 	case messageTypeUntieMerge:
 		var parsed untieMergeMessageParams
 		if err = json.Unmarshal(params, &parsed); err == nil {
-			err = b.untieMerge(parsed)
+			err = b.untieMerge(clientName, parsed)
 		}
 	case messageTypeEndGame:
-		err = b.claimEndGame()
+		err = b.claimEndGame(clientName)
 	default:
 		err = errors.New(WrongMessage)
 	}
@@ -91,13 +91,13 @@ func (b *AcquireBridge) Execute(t string, params json.RawMessage) error {
 	return err
 }
 
-func (b *AcquireBridge) playTile(params playTileMessageParams) error {
+func (b *AcquireBridge) playTile(clientName string, params playTileMessageParams) error {
 	var err error
 	var tl acquireInterfaces.Tile
 
 	if tl, err = coordsToTile(params.Tile); err == nil {
 		if err = b.game.PlayTile(tl); err == nil {
-			b.history = append(b.history, fmt.Sprintf("%s played tile %s", b.currentPlayerName(), params.Tile))
+			b.history = append(b.history, fmt.Sprintf("%s played tile %s", clientName, params.Tile))
 			return nil
 		}
 	}
@@ -105,7 +105,7 @@ func (b *AcquireBridge) playTile(params playTileMessageParams) error {
 	return err
 }
 
-func (b *AcquireBridge) foundCorporation(params newCorpMessageParams) error {
+func (b *AcquireBridge) foundCorporation(clientName string, params newCorpMessageParams) error {
 	if params.CorporationIndex < 0 || params.CorporationIndex > 6 {
 		return errors.New(CorporationNotFound)
 	}
@@ -115,7 +115,7 @@ func (b *AcquireBridge) foundCorporation(params newCorpMessageParams) error {
 	return nil
 }
 
-func (b *AcquireBridge) buyStock(params buyMessageParams) error {
+func (b *AcquireBridge) buyStock(clientName string, params buyMessageParams) error {
 	buy := map[acquireInterfaces.Corporation]int{}
 
 	for corpIndex, amount := range params.CorporationsIndexes {
@@ -133,7 +133,7 @@ func (b *AcquireBridge) buyStock(params buyMessageParams) error {
 	return nil
 }
 
-func (b *AcquireBridge) sellTrade(params sellTradeMessageParams) error {
+func (b *AcquireBridge) sellTrade(clientName string, params sellTradeMessageParams) error {
 	var err error
 	var corp acquireInterfaces.Corporation
 
@@ -156,7 +156,7 @@ func (b *AcquireBridge) sellTrade(params sellTradeMessageParams) error {
 	return nil
 }
 
-func (b *AcquireBridge) untieMerge(params untieMergeMessageParams) error {
+func (b *AcquireBridge) untieMerge(clientName string, params untieMergeMessageParams) error {
 	if params.CorporationIndex < 0 || params.CorporationIndex > 6 {
 		return errors.New(CorporationNotFound)
 	}
@@ -167,7 +167,7 @@ func (b *AcquireBridge) untieMerge(params untieMergeMessageParams) error {
 	return nil
 }
 
-func (b *AcquireBridge) claimEndGame() error {
+func (b *AcquireBridge) claimEndGame(clientName string) error {
 	if !b.game.ClaimEndGame().IsLastRound() {
 		return errors.New(NotEndGame)
 	}
