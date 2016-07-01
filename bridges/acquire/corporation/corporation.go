@@ -19,7 +19,7 @@ func New(name string, index int) *Corporation {
 	}
 }
 
-// Name returns the corporatin name
+// Name returns the corporation name
 func (c *Corporation) Name() string {
 	return c.name
 }
