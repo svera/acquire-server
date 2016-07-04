@@ -246,6 +246,7 @@ func (h *Hub) destroyRoom(roomID string, reasonCode string) {
 		if cl != nil && cl.IsBot() {
 			cl.Close()
 		} else if cl != nil {
+			cl.SetRoom(nil)
 			h.sendMessage(cl, response)
 		}
 	}
