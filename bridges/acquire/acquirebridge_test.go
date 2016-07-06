@@ -7,7 +7,7 @@ import (
 
 func TestParseNonExistingTypeMessage(t *testing.T) {
 	bridge := New()
-	err := bridge.Execute("err", json.RawMessage{})
+	err := bridge.Execute("Test client", "err", json.RawMessage{})
 	if err == nil {
 		t.Errorf("Bridge must return an error when receiving a non-existing message type")
 	}
@@ -22,32 +22,32 @@ func TestParseWrongTypeMessage(t *testing.T) {
 	data := []byte(`{"aaa": "bbb"}`)
 	raw := (json.RawMessage)(data)
 
-	err := bridge.Execute("ply", raw)
+	err := bridge.Execute("Test client", "ply", raw)
 	if err == nil {
 		t.Errorf("Bridge must return an error when receiving a malformed message")
 	}
 
-	err = bridge.Execute("ncp", raw)
+	err = bridge.Execute("Test client", "ncp", raw)
 	if err == nil {
 		t.Errorf("Bridge must return an error when receiving a malformed message")
 	}
 
-	err = bridge.Execute("buy", raw)
+	err = bridge.Execute("Test client", "buy", raw)
 	if err == nil {
 		t.Errorf("Bridge must return an error when receiving a malformed message")
 	}
 
-	err = bridge.Execute("sel", raw)
+	err = bridge.Execute("Test client", "sel", raw)
 	if err == nil {
 		t.Errorf("Bridge must return an error when receiving a malformed message")
 	}
 
-	err = bridge.Execute("unt", raw)
+	err = bridge.Execute("Test client", "unt", raw)
 	if err == nil {
 		t.Errorf("Bridge must return an error when receiving a malformed message")
 	}
 
-	err = bridge.Execute("end", raw)
+	err = bridge.Execute("Test client", "end", raw)
 	if err == nil {
 		t.Errorf("Bridge must return an error when receiving a malformed message")
 	}
