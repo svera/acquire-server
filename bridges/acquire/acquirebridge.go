@@ -119,7 +119,13 @@ func (b *AcquireBridge) foundCorporation(clientName string, params newCorpMessag
 	if err := b.game.FoundCorporation(corp); err != nil {
 		return err
 	}
-	//b.history = append(b.history, fmt.Sprintf("%s founded corporation %s", clientName, corp.(*corporation.Corporation).Name()))
+	b.history = append(b.history, i18n{
+		Key: "game.history.founded_corporation",
+		Arguments: map[string]string{
+			"player":      clientName,
+			"corporation": corp.(*corporation.Corporation).Name(),
+		},
+	})
 
 	return nil
 }
@@ -139,9 +145,16 @@ func (b *AcquireBridge) buyStock(clientName string, params buyMessageParams) err
 	if err := b.game.BuyStock(buy); err != nil {
 		return err
 	}
-	//for corp, amount := range buy {
-	//b.history = append(b.history, fmt.Sprintf("%s bought %d stock shares of corporation %s", clientName, amount, corp.(*corporation.Corporation).Name()))
-	//}
+	for corp, amount := range buy {
+		b.history = append(b.history, i18n{
+			Key: "game.history.bought_stock",
+			Arguments: map[string]string{
+				"player":      clientName,
+				"amount":      strconv.Itoa(amount),
+				"corporation": corp.(*corporation.Corporation).Name(),
+			},
+		})
+	}
 	return nil
 }
 
@@ -165,12 +178,26 @@ func (b *AcquireBridge) sellTrade(clientName string, params sellTradeMessagePara
 	if err = b.game.SellTrade(sell, trade); err != nil {
 		return err
 	}
-	//for corp, amount := range sell {
-	//b.history = append(b.history, fmt.Sprintf("%s sold %d stock shares of corporation %s", clientName, amount, corp.(*corporation.Corporation).Name()))
-	//}
-	//for corp, amount := range trade {
-	//b.history = append(b.history, fmt.Sprintf("%s traded %d stock shares of corporation %s", clientName, amount, corp.(*corporation.Corporation).Name()))
-	//}
+	for corp, amount := range sell {
+		b.history = append(b.history, i18n{
+			Key: "game.history.sold_stock",
+			Arguments: map[string]string{
+				"player":      clientName,
+				"amount":      strconv.Itoa(amount),
+				"corporation": corp.(*corporation.Corporation).Name(),
+			},
+		})
+	}
+	for corp, amount := range trade {
+		b.history = append(b.history, i18n{
+			Key: "game.history.traded_stock",
+			Arguments: map[string]string{
+				"player":      clientName,
+				"amount":      strconv.Itoa(amount),
+				"corporation": corp.(*corporation.Corporation).Name(),
+			},
+		})
+	}
 
 	return nil
 }
@@ -184,7 +211,13 @@ func (b *AcquireBridge) untieMerge(clientName string, params untieMergeMessagePa
 	if err := b.game.UntieMerge(corp); err != nil {
 		return err
 	}
-	//b.history = append(b.history, fmt.Sprintf("%s untied merge choosing corporation %s", clientName, corp.(*corporation.Corporation).Name()))
+	b.history = append(b.history, i18n{
+		Key: "game.history.untied_merge",
+		Arguments: map[string]string{
+			"player":      clientName,
+			"corporation": corp.(*corporation.Corporation).Name(),
+		},
+	})
 
 	return nil
 }
@@ -193,7 +226,13 @@ func (b *AcquireBridge) claimEndGame(clientName string) error {
 	if !b.game.ClaimEndGame().IsLastRound() {
 		return errors.New(NotEndGame)
 	}
-	//b.history = append(b.history, fmt.Sprintf("%s claimed end game", clientName))
+	b.history = append(b.history, i18n{
+		Key: "game.history.claimed_end",
+		Arguments: map[string]string{
+			"player": clientName,
+		},
+	})
+
 	return nil
 }
 
