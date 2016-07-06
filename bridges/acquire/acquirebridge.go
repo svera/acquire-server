@@ -423,9 +423,13 @@ func (b *AcquireBridge) StartGame() error {
 		err = errors.New(GameAlreadyStarted)
 	}
 
-	b.game, err = acquire.New(b.players, acquire.Optional{Corporations: b.corporations})
-	if err == nil {
-		//b.history = append(b.history, fmt.Sprintf("%s is the starting player", b.currentPlayerName()))
+	if b.game, err = acquire.New(b.players, acquire.Optional{Corporations: b.corporations}); err == nil {
+		b.history = append(b.history, i18n{
+			Key: "game.history.starter_player",
+			Arguments: map[string]string{
+				"player": b.currentPlayerName(),
+			},
+		})
 	}
 	return err
 }
