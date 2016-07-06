@@ -44,10 +44,12 @@ type Hub struct {
 
 	// Configuration
 	configuration *config.Config
+
+	debug bool
 }
 
 // New returns a new Hub instance
-func New(cfg *config.Config) *Hub {
+func New(cfg *config.Config, debug bool) *Hub {
 	return &Hub{
 		Messages:      make(chan *interfaces.MessageFromClient),
 		Register:      make(chan interfaces.Client),
@@ -55,6 +57,7 @@ func New(cfg *config.Config) *Hub {
 		clients:       []interfaces.Client{},
 		rooms:         make(map[string]interfaces.Room),
 		configuration: cfg,
+		debug:         debug,
 	}
 }
 
@@ -71,6 +74,9 @@ func (h *Hub) Run() {
 
 		case c := <-h.Register:
 			h.clients = append(h.clients, c)
+			if h.debug {
+				log.Printf("Client added to hub, number of connected clients: %d\n", len(h.clients))
+			}
 
 		case c := <-h.Unregister:
 			for _, val := range h.clients {
@@ -195,7 +201,9 @@ func (h *Hub) removeClient(c interfaces.Client) {
 				}
 			}
 			h.clients = append(h.clients[:i], h.clients[i+1:]...)
-			log.Printf("Cliente eliminado del hub, Numero de clientes: %d\n", len(h.clients))
+			if h.debug {
+				log.Printf("Clien removed from hub, number of clients left: %d\n", len(h.clients))
+			}
 			break
 		}
 	}
@@ -230,6 +238,9 @@ func (h *Hub) createRoom(b interfaces.Bridge, owner interfaces.Client) string {
 	}
 	response, _ := json.Marshal(msg)
 	h.sendMessage(owner, response)
+	if h.debug {
+		log.Printf("Room %s created\n", id)
+	}
 
 	return id
 }
@@ -243,14 +254,16 @@ func (h *Hub) destroyRoom(roomID string, reasonCode string) {
 	}
 	response, _ := json.Marshal(msg)
 	for _, cl := range r.Clients() {
+		cl.SetRoom(nil)
 		if cl != nil && cl.IsBot() {
 			cl.Close()
 		} else if cl != nil {
-			cl.SetRoom(nil)
 			h.sendMessage(cl, response)
 		}
 	}
-	log.Println("Room destroyed")
+	if h.debug {
+		log.Printf("Room %s destroyed\n", roomID)
+	}
 	delete(h.rooms, roomID)
 }
 

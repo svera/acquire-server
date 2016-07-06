@@ -16,6 +16,28 @@ import (
 var hb *hub.Hub
 var gitHash = "No git hash provided"
 
+func main() {
+	f, err := os.Open("./config.yml")
+	if err != nil {
+		fmt.Println("Couldn't load configuration file. Check that config.yml exists and that it can be read. Exiting...")
+		return
+	}
+	if cfg, err := config.Load(f); err != nil {
+		fmt.Println(err.Error())
+	} else {
+		r := mux.NewRouter()
+
+		hb = hub.New(cfg, isDebugEnabled())
+		go hb.Run()
+
+		r.HandleFunc("/", newClient)
+		http.Handle("/", r)
+		fmt.Printf("Sackson server listening on port %s\n", cfg.Port)
+		fmt.Printf("Git commit hash: %s\n", gitHash)
+		log.Fatal(http.ListenAndServe(cfg.Port, r))
+	}
+}
+
 func newClient(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		http.Error(w, "Method not allowed", 405)
@@ -33,23 +55,13 @@ func newClient(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func main() {
-	f, err := os.Open("./config.yml")
-	if err != nil {
-		fmt.Println("Couldn't load configuration file. Check that config.yml exists and that it can be read. Exiting...")
-		return
+func isDebugEnabled() bool {
+	debug := false
+	if len(os.Args) == 2 {
+		arg := os.Args[1]
+		if arg == "debug" {
+			debug = true
+		}
 	}
-	if cfg, err := config.Load(f); err != nil {
-		fmt.Println(err.Error())
-	} else {
-		r := mux.NewRouter()
-		hb = hub.New(cfg)
-		go hb.Run()
-
-		r.HandleFunc("/", newClient)
-		http.Handle("/", r)
-		fmt.Printf("Sackson server listening on port %s\n", cfg.Port)
-		fmt.Printf("Git commit hash: %s\n", gitHash)
-		log.Fatal(http.ListenAndServe(cfg.Port, r))
-	}
+	return debug
 }
