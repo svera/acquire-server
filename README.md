@@ -9,10 +9,18 @@ connected clients and game's logic.
 
 ## Messages
 
-As stated at the beginning, Sackson server communicates with its different elements (game bridges, clients and hubs) through
-message passing. Those messages are in JSON format, and can be categorized between common messages and game-specific ones.
+As stated at the beginning, Sackson server communicates with its different elements (game bridges, clients and rooms) through
+message passing, managed by a structure called Hub. Those messages are in JSON format, and can be categorized between hub messages,
+room messages and game-specific ones.
 
-### Common messages
+The message flow goes outside in: First the hub parses the incoming message type, if it should be managed by the hub itself it does it, otherwise
+the message is passed to the game room the client is currently into. Again, the game room parses the message type and if it is not of a type
+recognized by the room struct, passes it again, this time to the game bridge.
 
-These messages describe server-wide operations, like game creation/destroying, client connection/disconnection, etc, which are
-used in all games.
+### Hub level messages
+
+These messages describe server-wide operations, basically game room creation/destroying.
+
+### Room level messages
+
+There are 4 types of messages a room can

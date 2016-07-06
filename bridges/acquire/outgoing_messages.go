@@ -16,7 +16,7 @@ type statusMessage struct {
 	RivalsInfo  []playerData      `json:"riv"`
 	RoundNumber int               `json:"rnd"`
 	IsLastRound bool              `json:"lst"`
-	History     []string          `json:"his"`
+	History     []i18n            `json:"his"`
 }
 
 type corpData struct {
@@ -35,4 +35,9 @@ type playerData struct {
 	InTurn      bool   `json:"trn"`
 	Cash        int    `json:"csh"`
 	OwnedShares [7]int `json:"own"`
+}
+
+type i18n struct {
+	Key       string            `json:"key"`
+	Arguments map[string]string `json:"arg"`
 }

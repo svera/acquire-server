@@ -21,7 +21,7 @@ type AcquireBridge struct {
 	game         *acquire.Game
 	players      []acquireInterfaces.Player
 	corporations [7]acquireInterfaces.Corporation
-	history      []string
+	history      []i18n
 }
 
 const (
@@ -97,7 +97,13 @@ func (b *AcquireBridge) playTile(clientName string, params playTileMessageParams
 
 	if tl, err = coordsToTile(params.Tile); err == nil {
 		if err = b.game.PlayTile(tl); err == nil {
-			b.history = append(b.history, fmt.Sprintf("%s played tile %s", clientName, params.Tile))
+			b.history = append(b.history, i18n{
+				Key: "game.history.played_tile",
+				Arguments: map[string]string{
+					"player": clientName,
+					"tile":   params.Tile,
+				},
+			})
 			return nil
 		}
 	}
@@ -113,7 +119,7 @@ func (b *AcquireBridge) foundCorporation(clientName string, params newCorpMessag
 	if err := b.game.FoundCorporation(corp); err != nil {
 		return err
 	}
-	b.history = append(b.history, fmt.Sprintf("%s founded corporation %s", clientName, corp.(*corporation.Corporation).Name()))
+	//b.history = append(b.history, fmt.Sprintf("%s founded corporation %s", clientName, corp.(*corporation.Corporation).Name()))
 
 	return nil
 }
@@ -133,9 +139,9 @@ func (b *AcquireBridge) buyStock(clientName string, params buyMessageParams) err
 	if err := b.game.BuyStock(buy); err != nil {
 		return err
 	}
-	for corp, amount := range buy {
-		b.history = append(b.history, fmt.Sprintf("%s bought %d stock shares of corporation %s", clientName, amount, corp.(*corporation.Corporation).Name()))
-	}
+	//for corp, amount := range buy {
+	//b.history = append(b.history, fmt.Sprintf("%s bought %d stock shares of corporation %s", clientName, amount, corp.(*corporation.Corporation).Name()))
+	//}
 	return nil
 }
 
@@ -159,12 +165,12 @@ func (b *AcquireBridge) sellTrade(clientName string, params sellTradeMessagePara
 	if err = b.game.SellTrade(sell, trade); err != nil {
 		return err
 	}
-	for corp, amount := range sell {
-		b.history = append(b.history, fmt.Sprintf("%s sold %d stock shares of corporation %s", clientName, amount, corp.(*corporation.Corporation).Name()))
-	}
-	for corp, amount := range trade {
-		b.history = append(b.history, fmt.Sprintf("%s traded %d stock shares of corporation %s", clientName, amount, corp.(*corporation.Corporation).Name()))
-	}
+	//for corp, amount := range sell {
+	//b.history = append(b.history, fmt.Sprintf("%s sold %d stock shares of corporation %s", clientName, amount, corp.(*corporation.Corporation).Name()))
+	//}
+	//for corp, amount := range trade {
+	//b.history = append(b.history, fmt.Sprintf("%s traded %d stock shares of corporation %s", clientName, amount, corp.(*corporation.Corporation).Name()))
+	//}
 
 	return nil
 }
@@ -178,7 +184,7 @@ func (b *AcquireBridge) untieMerge(clientName string, params untieMergeMessagePa
 	if err := b.game.UntieMerge(corp); err != nil {
 		return err
 	}
-	b.history = append(b.history, fmt.Sprintf("%s untied merge choosing corporation %s", clientName, corp.(*corporation.Corporation).Name()))
+	//b.history = append(b.history, fmt.Sprintf("%s untied merge choosing corporation %s", clientName, corp.(*corporation.Corporation).Name()))
 
 	return nil
 }
@@ -187,7 +193,7 @@ func (b *AcquireBridge) claimEndGame(clientName string) error {
 	if !b.game.ClaimEndGame().IsLastRound() {
 		return errors.New(NotEndGame)
 	}
-	b.history = append(b.history, fmt.Sprintf("%s claimed end game", clientName))
+	//b.history = append(b.history, fmt.Sprintf("%s claimed end game", clientName))
 	return nil
 }
 
@@ -380,7 +386,7 @@ func (b *AcquireBridge) StartGame() error {
 
 	b.game, err = acquire.New(b.players, acquire.Optional{Corporations: b.corporations})
 	if err == nil {
-		b.history = append(b.history, fmt.Sprintf("%s is the starting player", b.currentPlayerName()))
+		//b.history = append(b.history, fmt.Sprintf("%s is the starting player", b.currentPlayerName()))
 	}
 	return err
 }
