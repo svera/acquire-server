@@ -202,7 +202,7 @@ func (h *Hub) removeClient(c interfaces.Client) {
 			}
 			h.clients = append(h.clients[:i], h.clients[i+1:]...)
 			if h.debug {
-				log.Printf("Clien removed from hub, number of clients left: %d\n", len(h.clients))
+				log.Printf("Client removed from hub, number of clients left: %d\n", len(h.clients))
 			}
 			break
 		}
@@ -254,11 +254,11 @@ func (h *Hub) destroyRoom(roomID string, reasonCode string) {
 	}
 	response, _ := json.Marshal(msg)
 	for _, cl := range r.Clients() {
-		cl.SetRoom(nil)
 		if cl != nil && cl.IsBot() {
 			cl.Close()
 		} else if cl != nil {
 			h.sendMessage(cl, response)
+			cl.SetRoom(nil)
 		}
 	}
 	if h.debug {
