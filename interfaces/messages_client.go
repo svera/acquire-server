@@ -50,5 +50,5 @@ type MessageKickPlayerParams struct {
 // MessageAddBotParams contains the needed parameters for a add bot
 // message
 type MessageAddBotParams struct {
-	BotName string `json:"nam"`
+	BotLevel string `json:"lvl"`
 }

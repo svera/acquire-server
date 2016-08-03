@@ -106,7 +106,7 @@ func (r *Room) parseControlMessage(m *interfaces.MessageFromClient) (map[interfa
 		}
 		var parsed interfaces.MessageAddBotParams
 		if err := json.Unmarshal(m.Content.Params, &parsed); err == nil {
-			return r.addBot(parsed.BotName)
+			return r.addBot(parsed.BotLevel)
 		}
 
 	case interfaces.ControlMessageTypeKickPlayer:
