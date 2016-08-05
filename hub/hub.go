@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+	"math/rand"
 	"time"
 
 	"github.com/svera/sackson-server/bridges"
@@ -46,6 +47,13 @@ type Hub struct {
 	configuration *config.Config
 
 	debug bool
+}
+
+var rn *rand.Rand
+
+func init() {
+	source := rand.NewSource(time.Now().UnixNano())
+	rn = rand.New(source)
 }
 
 // New returns a new Hub instance
@@ -224,10 +232,13 @@ func (h *Hub) sendErrorMessage(author interfaces.Client, err error) {
 }
 
 func (h *Hub) createRoom(b interfaces.Bridge, owner interfaces.Client) string {
-	id := generateID()
+	id := h.generateID()
 	h.rooms[id] = room.New(id, b, owner, h.Messages, h.Unregister, h.configuration)
 
 	timer := time.AfterFunc(time.Minute*h.configuration.Timeout, func() {
+		if h.debug {
+			log.Printf("Destroying room %s due to timeout\n", id)
+		}
 		h.destroyRoom(id, interfaces.ReasonRoomDestroyedTimeout)
 	})
 	h.rooms[id].SetTimer(timer)
@@ -267,7 +278,18 @@ func (h *Hub) destroyRoom(roomID string, reasonCode string) {
 	delete(h.rooms, roomID)
 }
 
-// TODO Implement proper random string generator
-func generateID() string {
-	return "a"
+func (h *Hub) generateID() string {
+	letters := `abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ`
+	var locator string
+	var randomPosition int
+	numberLetters := len(letters)
+	for {
+		for i := 0; i < 5; i++ {
+			randomPosition = rn.Intn(numberLetters - 1)
+			locator += string(letters[randomPosition])
+		}
+		if _, exists := h.rooms[locator]; !exists {
+			return locator
+		}
+	}
 }
