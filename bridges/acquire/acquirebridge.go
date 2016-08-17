@@ -146,14 +146,16 @@ func (b *AcquireBridge) buyStock(clientName string, params buyMessageParams) err
 		return err
 	}
 	for corp, amount := range buy {
-		b.history = append(b.history, i18n{
-			Key: "game.history.bought_stock",
-			Arguments: map[string]string{
-				"player":      clientName,
-				"amount":      strconv.Itoa(amount),
-				"corporation": corp.(*corporation.Corporation).Name(),
-			},
-		})
+		if amount > 0 {
+			b.history = append(b.history, i18n{
+				Key: "game.history.bought_stock",
+				Arguments: map[string]string{
+					"player":      clientName,
+					"amount":      strconv.Itoa(amount),
+					"corporation": corp.(*corporation.Corporation).Name(),
+				},
+			})
+		}
 	}
 	return nil
 }
@@ -179,24 +181,28 @@ func (b *AcquireBridge) sellTrade(clientName string, params sellTradeMessagePara
 		return err
 	}
 	for corp, amount := range sell {
-		b.history = append(b.history, i18n{
-			Key: "game.history.sold_stock",
-			Arguments: map[string]string{
-				"player":      clientName,
-				"amount":      strconv.Itoa(amount),
-				"corporation": corp.(*corporation.Corporation).Name(),
-			},
-		})
+		if amount > 0 {
+			b.history = append(b.history, i18n{
+				Key: "game.history.sold_stock",
+				Arguments: map[string]string{
+					"player":      clientName,
+					"amount":      strconv.Itoa(amount),
+					"corporation": corp.(*corporation.Corporation).Name(),
+				},
+			})
+		}
 	}
 	for corp, amount := range trade {
-		b.history = append(b.history, i18n{
-			Key: "game.history.traded_stock",
-			Arguments: map[string]string{
-				"player":      clientName,
-				"amount":      strconv.Itoa(amount),
-				"corporation": corp.(*corporation.Corporation).Name(),
-			},
-		})
+		if amount > 0 {
+			b.history = append(b.history, i18n{
+				Key: "game.history.traded_stock",
+				Arguments: map[string]string{
+					"player":      clientName,
+					"amount":      strconv.Itoa(amount),
+					"corporation": corp.(*corporation.Corporation).Name(),
+				},
+			})
+		}
 	}
 
 	return nil
@@ -252,7 +258,7 @@ func (b *AcquireBridge) boardOwnership() map[string]string {
 		for _, letter := range letters {
 			cell := b.game.Board().Cell(number, letter)
 			if cell.Type() == "corporation" {
-				cells[strconv.Itoa(number)+letter] = fmt.Sprintf("c%d", cell.(*corporation.Corporation).Index())
+				cells[strconv.Itoa(number)+letter] = fmt.Sprintf("%d", cell.(*corporation.Corporation).Index())
 			} else {
 				cells[strconv.Itoa(number)+letter] = cell.Type()
 			}
