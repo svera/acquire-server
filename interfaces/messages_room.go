@@ -9,8 +9,13 @@ type MessageSetOwner struct {
 }
 
 type MessageCurrentPlayers struct {
-	Type   string   `json:"typ"`
-	Values []string `json:"val"`
+	Type   string          `json:"typ"`
+	Values []MessagePlayer `json:"val"`
+}
+
+type MessagePlayer struct {
+	Name  string `json:"nam"`
+	Owner bool   `json:"own"`
 }
 
 // MessageError is a struct sent to a specific player

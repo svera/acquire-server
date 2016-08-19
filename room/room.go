@@ -61,12 +61,11 @@ func New(id string, b interfaces.Bridge, owner interfaces.Client, messages chan 
 }
 
 func (r *Room) ParseMessage(m *interfaces.MessageFromClient) (map[interfaces.Client][]byte, error) {
-	if r.gameBridge.IsGameOver() {
-		return nil, errors.New(GameOver)
-	}
-
 	if r.isControlMessage(m) {
 		return r.parseControlMessage(m)
+	}
+	if r.gameBridge.IsGameOver() {
+		return nil, errors.New(GameOver)
 	}
 	return r.passMessageToGame(m)
 }
@@ -167,20 +166,26 @@ func (r *Room) addBot(level string) (map[interfaces.Client][]byte, error) {
 func (r *Room) updatedPlayersList() []byte {
 	msg := interfaces.MessageCurrentPlayers{
 		Type:   "pls",
-		Values: r.clientNames(),
+		Values: r.playerData(),
 	}
 	response, _ := json.Marshal(msg)
 	return response
 }
 
-func (r *Room) clientNames() []string {
-	names := []string{}
+func (r *Room) playerData() []interfaces.MessagePlayer {
+	players := []interfaces.MessagePlayer{}
 	for _, c := range r.clients {
 		if c != nil {
-			names = append(names, c.Name())
+			players = append(
+				players,
+				interfaces.MessagePlayer{
+					Name:  c.Name(),
+					Owner: c.Room().Owner() == c,
+				},
+			)
 		}
 	}
-	return names
+	return players
 }
 
 func (r *Room) currentPlayerClient() (interfaces.Client, error) {

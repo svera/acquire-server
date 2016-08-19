@@ -83,6 +83,7 @@ func (c *BotClient) encodeResponse(m bots.Message) *serverInterfaces.MessageFrom
 	case bots.EndGameResponseType:
 		enc = c.encodeEndGame()
 	default:
+		//TODO: Bug when a match with bots finishes and a user refreshes the page
 		panic(fmt.Sprintf("Unrecognized bot response: %s", m.Type))
 	}
 	return enc
