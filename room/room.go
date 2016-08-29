@@ -240,7 +240,6 @@ func (r *Room) kickClient(number int) (map[interfaces.Client][]byte, error) {
 func (r *Room) clientQuits(cl interfaces.Client) (map[interfaces.Client][]byte, error) {
 	response := map[interfaces.Client][]byte{}
 
-	cl.SetRoom(nil)
 	response = r.RemoveClient(cl)
 	msg := interfaces.MessageRoomDestroyed{
 		Type:   "out",
@@ -262,23 +261,39 @@ func (r *Room) RemoveClient(c interfaces.Client) map[interfaces.Client][]byte {
 		if r.clients[i] == c {
 			r.clients[i].SetRoom(nil)
 			if r.gameBridge.GameStarted() {
-				r.clients[i] = nil
-				r.gameBridge.DeactivatePlayer(i)
-				for i := range r.clients {
-					if cl := r.clients[i]; cl != nil {
-						response[cl], _ = r.gameBridge.Status(i)
-					}
-				}
+				response = r.deactivatePlayer(i)
 			} else {
-				r.clients = append(r.clients[:i], r.clients[i+1:]...)
-				r.gameBridge.RemovePlayer(i)
-				for i := range r.clients {
-					cl := r.clients[i]
-					response[cl] = r.updatedPlayersList()
-				}
+				response = r.removePlayer(i)
 			}
 			break
 		}
+	}
+	return response
+}
+
+// deactivatePlayerResponse deactivates a player from a game setting it as nil,
+// and returns an updated game status to all the players as a response
+func (r *Room) deactivatePlayer(playerNumber int) map[interfaces.Client][]byte {
+	response := map[interfaces.Client][]byte{}
+	r.clients[playerNumber] = nil
+	r.gameBridge.DeactivatePlayer(playerNumber)
+	for i, cl := range r.clients {
+		if cl == nil || cl.IsBot() {
+			continue
+		}
+		response[cl], _ = r.gameBridge.Status(i)
+	}
+	return response
+}
+
+// deactivatePlayerResponse removes a player from a room,
+// and returns an updated players list to all the clients as a response
+func (r *Room) removePlayer(playerNumber int) map[interfaces.Client][]byte {
+	response := map[interfaces.Client][]byte{}
+	r.clients = append(r.clients[:playerNumber], r.clients[playerNumber+1:]...)
+	r.gameBridge.RemovePlayer(playerNumber)
+	for _, cl := range r.clients {
+		response[cl] = r.updatedPlayersList()
 	}
 	return response
 }
