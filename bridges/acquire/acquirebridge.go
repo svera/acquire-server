@@ -242,15 +242,6 @@ func (b *AcquireBridge) claimEndGame(clientName string) error {
 	return nil
 }
 
-func corpIndexes(corps []acquireInterfaces.Corporation) []int {
-	indexes := []int{}
-	for _, corp := range corps {
-
-		indexes = append(indexes, corp.(*corporation.Corporation).Index())
-	}
-	return indexes
-}
-
 func (b *AcquireBridge) boardOwnership() map[string]string {
 	cells := make(map[string]string)
 	var letters = [9]string{"A", "B", "C", "D", "E", "F", "G", "H", "I"}
@@ -308,7 +299,6 @@ func (b *AcquireBridge) Status(n int) ([]byte, error) {
 		Board:       b.boardOwnership(),
 		State:       b.game.GameStateName(),
 		Corps:       b.corpsData(),
-		TiedCorps:   corpIndexes(b.game.TiedCorps()),
 		Hand:        b.tilesData(b.players[n]),
 		PlayerInfo:  playerInfo,
 		RivalsInfo:  rivalsInfo,
@@ -342,7 +332,12 @@ func (b *AcquireBridge) corpsData() [7]corpData {
 			RemainingShares: corp.Stock(),
 			Size:            corp.Size(),
 			Defunct:         b.game.IsCorporationDefunct(corp),
+			Tied:            false,
 		}
+	}
+
+	for _, corp := range b.game.TiedCorps() {
+		data[corp.(*corporation.Corporation).Index()].Tied = true
 	}
 	return data
 }
@@ -457,8 +452,8 @@ func (b *AcquireBridge) IsGameOver() bool {
 
 // AddBot adds a new bot
 func (b *AcquireBridge) AddBot(params interface{}, room serverInterfaces.Room) (serverInterfaces.Client, error) {
-	if name, ok := params.(string); ok {
-		if bot, err := bots.Create(name); err == nil {
+	if level, ok := params.(string); ok {
+		if bot, err := bots.Create(level); err == nil {
 			return NewBotClient(bot, room), nil
 		} else {
 			return nil, err

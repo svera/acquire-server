@@ -107,6 +107,7 @@ func (c *BotClient) updateBot(parsed statusMessage) {
 			RemainingShares: parsed.Corps[i].RemainingShares,
 			Size:            parsed.Corps[i].Size,
 			Defunct:         parsed.Corps[i].Defunct,
+			Tied:            parsed.Corps[i].Tied,
 		}
 	}
 	playerInfo = bots.PlayerData{
@@ -125,7 +126,6 @@ func (c *BotClient) updateBot(parsed statusMessage) {
 		State:       parsed.State,
 		Hand:        hand,
 		Corps:       corps,
-		TiedCorps:   parsed.TiedCorps,
 		PlayerInfo:  playerInfo,
 		RivalsInfo:  rivalsInfo,
 		IsLastRound: parsed.IsLastRound,
