@@ -20,7 +20,6 @@ The flow for incoming messages goes outside in: First the hub parses the incomin
 
 On the other hand, outgoing messages are sent to one or multiple clients to communicate events, usually in response to user actions.
 
-
 #### Hub level messages
 
 These messages describe server-wide operations, basically game room creation/destroying.
@@ -62,6 +61,18 @@ The reason code can be one of these:
   * `tim`: Room timed out
   * `ncl`: Not enough clients to keep playing
   * `ter`: Room destroyed by owner
+
+* Rooms list update
+
+Also, when a room is created or destroyed or a game starts, a message listing all available rooms
+(rooms which haven't started a game yet) is issued. Its format is as follows:
+
+```
+{
+  "typ": "rms", // Message type: room list
+  "val": ["abcde", "opqrst"...] // Available game rooms IDs
+}
+```
 
 #### Room level messages
 
