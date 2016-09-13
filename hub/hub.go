@@ -301,12 +301,12 @@ func (h *Hub) destroyRoom(roomID string, reasonCode string) {
 		}
 	}
 
+	delete(h.rooms, roomID)
 	h.sendUpdatedRoomList()
 
 	if h.debug {
 		log.Printf("Room %s destroyed\n", roomID)
 	}
-	delete(h.rooms, roomID)
 }
 
 func (h *Hub) sendUpdatedRoomList() {
