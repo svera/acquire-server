@@ -62,7 +62,7 @@ The reason code can be one of these:
   * `ncl`: Not enough clients to keep playing
   * `ter`: Room destroyed by owner
 
-* Rooms list update
+##### Rooms list update
 
 Also, when a room is created or destroyed or a game starts, a message listing all available rooms
 (rooms which haven't started a game yet) is issued. Its format is as follows:
