@@ -18,3 +18,8 @@ type MessageRoomDestroyed struct {
 	Type   string `json:"typ"`
 	Reason string `json:"rea"`
 }
+
+type MessageRoomsList struct {
+	Type   string   `json:"typ"`
+	Values []string `json:"val"`
+}

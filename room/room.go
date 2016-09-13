@@ -13,11 +13,17 @@ import (
 	"github.com/svera/sackson-server/interfaces"
 )
 
+// Error messages returned from room
 const (
 	InexistentClient  = "inexistent_client"
 	OwnerNotRemovable = "owner_not_removable"
 	Forbidden         = "forbidden"
 	GameOver          = "game_over"
+)
+
+// Events triggered from room, always in a past tense
+const (
+	GameStarted = "gameStarted"
 )
 
 // Room is a struct that manage the message flow between client (players)
@@ -45,10 +51,19 @@ type Room struct {
 
 	// timer function that will close the room after X minutes
 	timer *time.Timer
+
+	observer interfaces.Observable
 }
 
 // New returns a new Room instance
-func New(id string, b interfaces.Bridge, owner interfaces.Client, messages chan *interfaces.MessageFromClient, unregister chan interfaces.Client, cfg *config.Config) *Room {
+func New(
+	id string, b interfaces.Bridge,
+	owner interfaces.Client,
+	messages chan *interfaces.MessageFromClient,
+	unregister chan interfaces.Client,
+	cfg *config.Config,
+	observer interfaces.Observable,
+) *Room {
 	return &Room{
 		id:         id,
 		clients:    []interfaces.Client{},
@@ -57,6 +72,7 @@ func New(id string, b interfaces.Bridge, owner interfaces.Client, messages chan 
 		owner:      owner,
 		messages:   messages,
 		unregister: unregister,
+		observer:   observer,
 	}
 }
 
@@ -98,6 +114,7 @@ func (r *Room) parseControlMessage(m *interfaces.MessageFromClient) (map[interfa
 			st, _ := r.gameBridge.Status(n)
 			response[cl] = st
 		}
+		r.observer.Trigger(GameStarted)
 
 	case interfaces.ControlMessageTypeAddBot:
 		if m.Author != r.owner {
