@@ -46,6 +46,8 @@ type Hub struct {
 	// Configuration
 	configuration *config.Config
 
+	observer interfaces.Observable
+
 	debug bool
 }
 
@@ -57,7 +59,7 @@ func init() {
 }
 
 // New returns a new Hub instance
-func New(cfg *config.Config, debug bool) *Hub {
+func New(cfg *config.Config, observer interfaces.Observable, debug bool) *Hub {
 	return &Hub{
 		Messages:      make(chan *interfaces.MessageFromClient),
 		Register:      make(chan interfaces.Client),
@@ -65,6 +67,7 @@ func New(cfg *config.Config, debug bool) *Hub {
 		clients:       []interfaces.Client{},
 		rooms:         make(map[string]interfaces.Room),
 		configuration: cfg,
+		observer:      observer,
 		debug:         debug,
 	}
 }
@@ -77,11 +80,16 @@ func (h *Hub) Run() {
 		}
 	}()
 
+	h.observer.On(room.GameStarted, func() {
+		h.sendUpdatedRoomList()
+	})
+
 	for {
 		select {
 
 		case c := <-h.Register:
 			h.clients = append(h.clients, c)
+			h.sendUpdatedRoomList()
 			if h.debug {
 				log.Printf("Client added to hub, number of connected clients: %d\n", len(h.clients))
 			}
@@ -181,6 +189,12 @@ func (h *Hub) broadcast(response map[interfaces.Client][]byte) {
 	}
 }
 
+func (h *Hub) sendToAll(message []byte) {
+	for _, cl := range h.clients {
+		h.sendMessage(cl, message)
+	}
+}
+
 func (h *Hub) sendMessage(c interfaces.Client, message []byte) {
 	select {
 	case c.Incoming() <- message:
@@ -233,7 +247,7 @@ func (h *Hub) sendErrorMessage(author interfaces.Client, err error) {
 
 func (h *Hub) createRoom(b interfaces.Bridge, owner interfaces.Client) string {
 	id := h.generateID()
-	h.rooms[id] = room.New(id, b, owner, h.Messages, h.Unregister, h.configuration)
+	h.rooms[id] = room.New(id, b, owner, h.Messages, h.Unregister, h.configuration, h.observer)
 
 	timer := time.AfterFunc(time.Minute*h.configuration.Timeout, func() {
 		if h.debug {
@@ -243,17 +257,31 @@ func (h *Hub) createRoom(b interfaces.Bridge, owner interfaces.Client) string {
 	})
 	h.rooms[id].SetTimer(timer)
 
-	msg := interfaces.MessageRoomCreated{
+	msgRoomCreated := interfaces.MessageRoomCreated{
 		Type: "new",
 		ID:   id,
 	}
-	response, _ := json.Marshal(msg)
+	response, _ := json.Marshal(msgRoomCreated)
 	h.sendMessage(owner, response)
+
+	h.sendUpdatedRoomList()
+
 	if h.debug {
 		log.Printf("Room %s created\n", id)
 	}
 
 	return id
+}
+
+// Return a list of all rooms IDs which haven't started a game
+func (h *Hub) getWaitingRoomsIds() []string {
+	ids := []string{}
+	for id, room := range h.rooms {
+		if !room.GameStarted() {
+			ids = append(ids, id)
+		}
+	}
+	return ids
 }
 
 func (h *Hub) destroyRoom(roomID string, reasonCode string) {
@@ -272,10 +300,22 @@ func (h *Hub) destroyRoom(roomID string, reasonCode string) {
 			cl.SetRoom(nil)
 		}
 	}
+
+	h.sendUpdatedRoomList()
+
 	if h.debug {
 		log.Printf("Room %s destroyed\n", roomID)
 	}
 	delete(h.rooms, roomID)
+}
+
+func (h *Hub) sendUpdatedRoomList() {
+	msgRoomList := interfaces.MessageRoomsList{
+		Type:   "rms",
+		Values: h.getWaitingRoomsIds(),
+	}
+	response, _ := json.Marshal(msgRoomList)
+	h.sendToAll(response)
 }
 
 func (h *Hub) generateID() string {

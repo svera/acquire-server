@@ -11,6 +11,7 @@ import (
 	"github.com/svera/sackson-server/client"
 	"github.com/svera/sackson-server/config"
 	"github.com/svera/sackson-server/hub"
+	observable "github.com/svera/sackson-server/observable-wrapper"
 )
 
 var hb *hub.Hub
@@ -26,8 +27,8 @@ func main() {
 		fmt.Println(err.Error())
 	} else {
 		r := mux.NewRouter()
-
-		hb = hub.New(cfg, isDebugEnabled())
+		o := observable.New()
+		hb = hub.New(cfg, o, isDebugEnabled())
 		go hb.Run()
 
 		r.HandleFunc("/", newClient)
