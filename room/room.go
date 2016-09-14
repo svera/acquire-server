@@ -21,7 +21,7 @@ const (
 	GameOver          = "game_over"
 )
 
-// Events triggered from room, always in a past tense
+// Events triggered from Room, always in a past tense
 const (
 	GameStarted = "gameStarted"
 )
@@ -184,7 +184,7 @@ func (r *Room) addBot(level string) (map[interfaces.Client][]byte, error) {
 
 func (r *Room) updatedPlayersList() []byte {
 	msg := interfaces.MessageCurrentPlayers{
-		Type:   "pls",
+		Type:   interfaces.TypeMessageCurrentPlayers,
 		Values: r.playerData(),
 	}
 	response, _ := json.Marshal(msg)

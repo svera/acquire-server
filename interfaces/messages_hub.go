@@ -10,6 +10,13 @@ const (
 	ReasonRoomDestroyedNoClients  = "ncl"
 )
 
+// Types for the messages in this file
+const (
+	TypeMessageRoomCreated   = "new"
+	TypeMessageRoomDestroyed = "out"
+	TypeMessageRoomsList     = "rms"
+)
+
 // MessageRoomCreated defines the needed parameters for a room created
 // message
 type MessageRoomCreated struct {

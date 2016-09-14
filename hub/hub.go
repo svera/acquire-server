@@ -259,7 +259,7 @@ func (h *Hub) createRoom(b interfaces.Bridge, owner interfaces.Client) string {
 	h.rooms[id].SetTimer(timer)
 
 	msgRoomCreated := interfaces.MessageRoomCreated{
-		Type: "new",
+		Type: interfaces.TypeMessageRoomCreated,
 		ID:   id,
 	}
 	response, _ := json.Marshal(msgRoomCreated)
@@ -289,7 +289,7 @@ func (h *Hub) destroyRoom(roomID string, reasonCode string) {
 	r := h.rooms[roomID]
 	r.Timer().Stop()
 	msg := interfaces.MessageRoomDestroyed{
-		Type:   "out",
+		Type:   interfaces.TypeMessageRoomDestroyed,
 		Reason: reasonCode,
 	}
 	response, _ := json.Marshal(msg)

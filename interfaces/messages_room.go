@@ -3,12 +3,11 @@ package interfaces
 // Control messages sent from the room to the different players.
 // These messages are common to all games.
 
-// MessageSetOwner defines the needed parameters for a set owner
-// message
-type MessageSetOwner struct {
-	Type string `json:"typ"`
-	Role string `json:"rol"`
-}
+// Types for the messages in this file
+const (
+	TypeMessageCurrentPlayers = "pls"
+	TypeMessageError          = "err"
+)
 
 // MessageCurrentPlayers defines the needed parameters for a current players
 // message
@@ -29,11 +28,4 @@ type MessagePlayer struct {
 type MessageError struct {
 	Type    string `json:"typ"`
 	Content string `json:"cnt"`
-}
-
-// MessageJoinRoomAccepted defines the needed parameters for a join room accepted
-// message
-type MessageJoinRoomAccepted struct {
-	Type string `json:"typ"`
-	ID   string `json:"id"`
 }
