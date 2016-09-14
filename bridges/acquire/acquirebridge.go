@@ -1,3 +1,5 @@
+// Package acquirebridge implements an interface that allow to create Acquire
+// games using the Sackson server
 package acquirebridge
 
 import (
@@ -452,12 +454,13 @@ func (b *AcquireBridge) IsGameOver() bool {
 
 // AddBot adds a new bot
 func (b *AcquireBridge) AddBot(params interface{}, room serverInterfaces.Room) (serverInterfaces.Client, error) {
+	var err error
+	var bot acquireInterfaces.Bot
 	if level, ok := params.(string); ok {
-		if bot, err := bots.Create(level); err == nil {
+		if bot, err = bots.Create(level); err == nil {
 			return NewBotClient(bot, room), nil
-		} else {
-			return nil, err
 		}
+		return nil, err
 	}
 	panic("Expecting string in AddBot parameter")
 }

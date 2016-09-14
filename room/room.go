@@ -13,7 +13,7 @@ import (
 	"github.com/svera/sackson-server/interfaces"
 )
 
-// Error messages returned from room
+// Error messages returned from Room
 const (
 	InexistentClient  = "inexistent_client"
 	OwnerNotRemovable = "owner_not_removable"
@@ -76,6 +76,8 @@ func New(
 	}
 }
 
+// ParseMessage gets an incoming message from a client and parses it, executing
+// its desired action in the room or passing it to the room's game bridge
 func (r *Room) ParseMessage(m *interfaces.MessageFromClient) (map[interfaces.Client][]byte, error) {
 	if r.isControlMessage(m) {
 		return r.parseControlMessage(m)
@@ -214,6 +216,7 @@ func (r *Room) startGame() error {
 	return r.gameBridge.StartGame()
 }
 
+// AddClient adds a new client to the room
 func (r *Room) AddClient(c interfaces.Client) (map[interfaces.Client][]byte, error) {
 	response := map[interfaces.Client][]byte{}
 
@@ -267,7 +270,7 @@ func (r *Room) clientQuits(cl interfaces.Client) (map[interfaces.Client][]byte, 
 	return response, nil
 }
 
-// Removes /sets as nil a client and removes / deactivates its player
+// RemoveClient Removes /sets as nil a client and removes / deactivates its player
 // depending wheter the game has already started or not.
 // Note that we don't remove a client if a game has already started, as client
 // indexes must not change once a game has started.
@@ -315,30 +318,37 @@ func (r *Room) removePlayer(playerNumber int) map[interfaces.Client][]byte {
 	return response
 }
 
+// GameStarted returns true if the room's game has started, false otherwise
 func (r *Room) GameStarted() bool {
 	return r.gameBridge.GameStarted()
 }
 
+// IsGameOver returns true if the room's game has ended, false otherwise
 func (r *Room) IsGameOver() bool {
 	return r.gameBridge.IsGameOver()
 }
 
+// ID returns the room's ID
 func (r *Room) ID() string {
 	return r.id
 }
 
+// Owner returns the room's owner
 func (r *Room) Owner() interfaces.Client {
 	return r.owner
 }
 
+// Clients returns the room's connected clients
 func (r *Room) Clients() []interfaces.Client {
 	return r.clients
 }
 
+// SetTimer sets the room's timer, that manages when to close a room
 func (r *Room) SetTimer(t *time.Timer) {
 	r.timer = t
 }
 
+// Timer returns the room's timer
 func (r *Room) Timer() *time.Timer {
 	return r.timer
 }

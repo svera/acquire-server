@@ -1,5 +1,3 @@
-// This file specifies messages sent from the clients to the hub, specifying an
-// action
 package acquirebridge
 
 const (

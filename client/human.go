@@ -112,10 +112,12 @@ func (c *Human) WritePump() {
 	}
 }
 
+// Room returns the room where the client is in
 func (c *Human) Room() interfaces.Room {
 	return c.room
 }
 
+// SetRoom sets the client's room
 func (c *Human) SetRoom(r interfaces.Room) {
 	c.room = r
 }

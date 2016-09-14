@@ -2,6 +2,8 @@ package interfaces
 
 import "time"
 
+// Room is an interface that defines the minimum set of functions a room
+// implementation must have
 type Room interface {
 	GameStarted() bool
 	ParseMessage(m *MessageFromClient) (map[Client][]byte, error)

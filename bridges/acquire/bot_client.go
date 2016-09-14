@@ -236,14 +236,17 @@ func (c *BotClient) WritePump() {
 	}
 }
 
+// Incoming returns bot's incoming channel
 func (c *BotClient) Incoming() chan []byte {
 	return c.incoming
 }
 
+// Name returns bot's name
 func (c *BotClient) Name() string {
 	return c.name
 }
 
+// SetName sets bot's name
 func (c *BotClient) SetName(v string) serverInterfaces.Client {
 	c.name = v
 	return c
@@ -261,10 +264,12 @@ func (c *BotClient) IsBot() bool {
 	return true
 }
 
+// Room returns the room where the bot client is in
 func (c *BotClient) Room() serverInterfaces.Room {
 	return c.room
 }
 
+// SetRoom sets the bot client's room
 func (c *BotClient) SetRoom(r serverInterfaces.Room) {
 	c.room = r
 }

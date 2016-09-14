@@ -31,23 +31,24 @@ type MessageFromClientContent struct {
 	Params json.RawMessage `json:"par"`
 }
 
-// MessageCreateRoomParams contains the needed parameters for a create room
+// MessageCreateRoomParams defines the needed parameters for a create room
 // message
 type MessageCreateRoomParams struct {
 	BridgeName string `json:"bri"`
 }
 
+// MessageJoinRoomParams defines the needed parameters for a join room message
 type MessageJoinRoomParams struct {
 	Room string `json:"rom"`
 }
 
-// MessageKickPlayerParams contains the needed parameters for a kick player
+// MessageKickPlayerParams defines the needed parameters for a kick player
 // message
 type MessageKickPlayerParams struct {
 	PlayerNumber int `json:"ply"`
 }
 
-// MessageAddBotParams contains the needed parameters for a add bot
+// MessageAddBotParams defines the needed parameters for a add bot
 // message
 type MessageAddBotParams struct {
 	BotLevel string `json:"lvl"`

@@ -16,6 +16,7 @@ import (
 	"github.com/svera/sackson-server/room"
 )
 
+// Error messages returned from hub
 const (
 	InexistentClient  = "inexistent_client"
 	OwnerNotRemovable = "owner_not_removable"

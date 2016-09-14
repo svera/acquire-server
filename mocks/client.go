@@ -64,10 +64,12 @@ func (c *Client) Close() {
 
 }
 
+// Room mocks the Room method defined in the Client interface
 func (c *Client) Room() interfaces.Room {
 	return c.FakeRoom
 }
 
+// SetRoom mocks the SetRoom method defined in the Client interface
 func (c *Client) SetRoom(r interfaces.Room) {
 	c.FakeRoom = r
 }
