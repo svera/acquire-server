@@ -249,7 +249,7 @@ func (r *Room) kickClient(number int) (map[interfaces.Client][]byte, error) {
 	cl.SetRoom(nil)
 	response = r.RemoveClient(r.clients[number])
 	msg := interfaces.MessageRoomDestroyed{
-		Type:   "out",
+		Type:   interfaces.TypeMessageRoomDestroyed,
 		Reason: "kck",
 	}
 	encodedMsg, _ := json.Marshal(msg)
@@ -262,7 +262,7 @@ func (r *Room) clientQuits(cl interfaces.Client) (map[interfaces.Client][]byte, 
 
 	response = r.RemoveClient(cl)
 	msg := interfaces.MessageRoomDestroyed{
-		Type:   "out",
+		Type:   interfaces.TypeMessageRoomDestroyed,
 		Reason: "qui",
 	}
 	encodedMsg, _ := json.Marshal(msg)

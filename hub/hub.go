@@ -312,7 +312,7 @@ func (h *Hub) destroyRoom(roomID string, reasonCode string) {
 
 func (h *Hub) sendUpdatedRoomList() {
 	msgRoomList := interfaces.MessageRoomsList{
-		Type:   "rms",
+		Type:   interfaces.TypeMessageRoomsList,
 		Values: h.getWaitingRoomsIds(),
 	}
 	response, _ := json.Marshal(msgRoomList)
