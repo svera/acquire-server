@@ -295,6 +295,9 @@ func (h *Hub) destroyRoom(roomID string, reasonCode string) {
 	response, _ := json.Marshal(msg)
 	for _, cl := range r.Clients() {
 		if cl != nil && cl.IsBot() {
+			if h.debug {
+				log.Printf("Bot %s destroyed", cl.Name())
+			}
 			cl.Close()
 		} else if cl != nil {
 			h.sendMessage(cl, response)
