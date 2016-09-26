@@ -219,7 +219,7 @@ func (h *Hub) removeClient(c interfaces.Client) {
 				r := c.Room()
 				response := r.RemoveClient(c)
 				h.broadcast(response)
-				if len(r.Clients()) == 0 {
+				if len(r.HumanClients()) == 0 {
 					h.destroyRoom(r.ID(), interfaces.ReasonRoomDestroyedNoClients)
 				}
 			}

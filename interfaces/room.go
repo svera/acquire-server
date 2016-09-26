@@ -12,6 +12,7 @@ type Room interface {
 	ID() string
 	Owner() Client
 	Clients() []Client
+	HumanClients() []Client
 	AddClient(c Client) (map[Client][]byte, error)
 	SetTimer(t *time.Timer)
 	Timer() *time.Timer

@@ -291,7 +291,7 @@ func (r *Room) RemoveClient(c interfaces.Client) map[interfaces.Client][]byte {
 	return response
 }
 
-// deactivatePlayerResponse deactivates a player from a game setting it as nil,
+// deactivatePlayer deactivates a player from a game setting it as nil,
 // and returns an updated game status to all the players as a response
 func (r *Room) deactivatePlayer(playerNumber int) map[interfaces.Client][]byte {
 	response := map[interfaces.Client][]byte{}
@@ -306,7 +306,7 @@ func (r *Room) deactivatePlayer(playerNumber int) map[interfaces.Client][]byte {
 	return response
 }
 
-// deactivatePlayerResponse removes a player from a room,
+// removePlayer removes a player from a room,
 // and returns an updated players list to all the clients as a response
 func (r *Room) removePlayer(playerNumber int) map[interfaces.Client][]byte {
 	response := map[interfaces.Client][]byte{}
@@ -341,6 +341,17 @@ func (r *Room) Owner() interfaces.Client {
 // Clients returns the room's connected clients
 func (r *Room) Clients() []interfaces.Client {
 	return r.clients
+}
+
+// HumanClients returns room's connected human clients
+func (r *Room) HumanClients() []interfaces.Client {
+	human := []interfaces.Client{}
+	for _, c := range r.clients {
+		if c != nil && !c.IsBot() {
+			human = append(human, c)
+		}
+	}
+	return human
 }
 
 // SetTimer sets the room's timer, that manages when to close a room
