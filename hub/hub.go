@@ -254,6 +254,7 @@ func (h *Hub) createRoom(b interfaces.Bridge, owner interfaces.Client) string {
 		if h.debug {
 			log.Printf("Destroying room %s due to timeout\n", id)
 		}
+		// TODO concurrent map writes
 		h.destroyRoom(id, interfaces.ReasonRoomDestroyedTimeout)
 	})
 	h.rooms[id].SetTimer(timer)
