@@ -306,6 +306,7 @@ func (h *Hub) destroyRoom(roomID string, reasonCode string) {
 		}
 	}
 
+	// TODO concurrent map writes
 	delete(h.rooms, roomID)
 	h.sendUpdatedRoomList()
 
