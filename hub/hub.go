@@ -8,6 +8,7 @@ import (
 	"errors"
 	"log"
 	"math/rand"
+	"sync"
 	"time"
 
 	"github.com/svera/sackson-server/bridges"
@@ -23,6 +24,11 @@ const (
 	Forbidden         = "forbidden"
 	InexistentRoom    = "inexistent_room"
 	InexistentBridge  = "inexistent_bridge"
+)
+
+var (
+	mapLock sync.RWMutex
+	rn      *rand.Rand
 )
 
 // Hub is a struct that manage the message flow between client (players)
@@ -51,8 +57,6 @@ type Hub struct {
 
 	debug bool
 }
-
-var rn *rand.Rand
 
 func init() {
 	source := rand.NewSource(time.Now().UnixNano())
@@ -254,7 +258,6 @@ func (h *Hub) createRoom(b interfaces.Bridge, owner interfaces.Client) string {
 		if h.debug {
 			log.Printf("Destroying room %s due to timeout\n", id)
 		}
-		// TODO concurrent map writes
 		h.destroyRoom(id, interfaces.ReasonRoomDestroyedTimeout)
 	})
 	h.rooms[id].SetTimer(timer)
@@ -306,8 +309,9 @@ func (h *Hub) destroyRoom(roomID string, reasonCode string) {
 		}
 	}
 
-	// TODO concurrent map writes
+	mapLock.RLock()
 	delete(h.rooms, roomID)
+	mapLock.RUnlock()
 	h.sendUpdatedRoomList()
 
 	if h.debug {
