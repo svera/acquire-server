@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"time"
 
+	observable "github.com/GianlucaGuarini/go-observable"
 	"github.com/svera/sackson-server/config"
 	"github.com/svera/sackson-server/interfaces"
 )
@@ -52,7 +53,7 @@ type Room struct {
 	// timer function that will close the room after X minutes
 	timer *time.Timer
 
-	observer interfaces.Observable
+	observer *observable.Observable
 }
 
 // New returns a new Room instance
@@ -62,7 +63,7 @@ func New(
 	messages chan *interfaces.MessageFromClient,
 	unregister chan interfaces.Client,
 	cfg *config.Config,
-	observer interfaces.Observable,
+	observer *observable.Observable,
 ) *Room {
 	return &Room{
 		id:         id,

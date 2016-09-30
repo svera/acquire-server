@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	observable "github.com/GianlucaGuarini/go-observable"
 	"github.com/svera/sackson-server/bridges"
 	"github.com/svera/sackson-server/config"
 	"github.com/svera/sackson-server/interfaces"
@@ -53,7 +54,7 @@ type Hub struct {
 	// Configuration
 	configuration *config.Config
 
-	observer interfaces.Observable
+	observer *observable.Observable
 
 	debug bool
 }
@@ -64,7 +65,7 @@ func init() {
 }
 
 // New returns a new Hub instance
-func New(cfg *config.Config, observer interfaces.Observable, debug bool) *Hub {
+func New(cfg *config.Config, observer *observable.Observable, debug bool) *Hub {
 	return &Hub{
 		Messages:      make(chan *interfaces.MessageFromClient),
 		Register:      make(chan interfaces.Client),
