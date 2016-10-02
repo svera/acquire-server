@@ -79,14 +79,15 @@ func New(
 
 // ParseMessage gets an incoming message from a client and parses it, executing
 // its desired action in the room or passing it to the room's game bridge
-func (r *Room) ParseMessage(m *interfaces.MessageFromClient) (map[interfaces.Client][]byte, error) {
+func (r *Room) ParseMessage(m *interfaces.MessageFromClient) {
 	if r.isControlMessage(m) {
-		return r.parseControlMessage(m)
+		r.parseControlMessage(m)
+	} else if r.gameBridge.IsGameOver() {
+		response := newMessage(interfaces.TypeMessageError, GameOver)
+		r.observer.Trigger("messageCreated", []interfaces.Client{m.Author}, response)
+	} else {
+		r.passMessageToGame(m)
 	}
-	if r.gameBridge.IsGameOver() {
-		return nil, errors.New(GameOver)
-	}
-	return r.passMessageToGame(m)
 }
 
 func (r *Room) isControlMessage(m *interfaces.MessageFromClient) bool {
@@ -101,54 +102,31 @@ func (r *Room) isControlMessage(m *interfaces.MessageFromClient) bool {
 	return false
 }
 
-func (r *Room) parseControlMessage(m *interfaces.MessageFromClient) (map[interfaces.Client][]byte, error) {
-	response := map[interfaces.Client][]byte{}
-
+func (r *Room) parseControlMessage(m *interfaces.MessageFromClient) {
+	var err error
 	switch m.Content.Type {
 
 	case interfaces.ControlMessageTypeStartGame:
-		if m.Author != r.owner {
-			return nil, errors.New(Forbidden)
-		}
-		if err := r.startGame(); err != nil {
-			return nil, err
-		}
-		for n, cl := range r.clients {
-			st, _ := r.gameBridge.Status(n)
-			response[cl] = st
-		}
-		r.observer.Trigger(GameStarted)
+		err = r.startGameAction(m)
 
 	case interfaces.ControlMessageTypeAddBot:
-		if m.Author != r.owner {
-			return nil, errors.New(Forbidden)
-		}
-		var parsed interfaces.MessageAddBotParams
-		if err := json.Unmarshal(m.Content.Params, &parsed); err == nil {
-			return r.addBot(parsed.BotLevel)
-		}
+		err = r.addBotAction(m)
 
 	case interfaces.ControlMessageTypeKickPlayer:
-		if m.Author != r.owner {
-			return nil, errors.New(Forbidden)
-		}
-		var parsed interfaces.MessageKickPlayerParams
-		if err := json.Unmarshal(m.Content.Params, &parsed); err == nil {
-			return r.kickClient(parsed.PlayerNumber)
-		}
+		err = r.kickPlayerAction(m)
 
 	case interfaces.ControlMessageTypePlayerQuits:
-		return r.clientQuits(m.Author)
-
+		err = r.clientQuits(m.Author)
 	}
-
-	return response, nil
+	if err != nil {
+		response := newMessage(interfaces.TypeMessageError, err.Error())
+		r.observer.Trigger("messageCreated", []interfaces.Client{m.Author}, response)
+	}
 }
 
-func (r *Room) passMessageToGame(m *interfaces.MessageFromClient) (map[interfaces.Client][]byte, error) {
+func (r *Room) passMessageToGame(m *interfaces.MessageFromClient) {
 	var err error
 	var currentPlayer interfaces.Client
-	response := map[interfaces.Client][]byte{}
 
 	if currentPlayer, err = r.currentPlayerClient(); m.Author == currentPlayer && err == nil {
 		err = r.gameBridge.Execute(m.Author.Name(), m.Content.Type, m.Content.Params)
@@ -158,41 +136,74 @@ func (r *Room) passMessageToGame(m *interfaces.MessageFromClient) (map[interface
 					continue
 				}
 				if cl != nil {
-					response[cl], _ = r.gameBridge.Status(n)
+					st, _ := r.gameBridge.Status(n)
+					r.observer.Trigger("messageCreated", []interfaces.Client{cl}, st)
 				}
 			}
+		} else {
+			response := newMessage(interfaces.TypeMessageError, err.Error())
+			r.observer.Trigger("messageCreated", []interfaces.Client{m.Author}, response)
 		}
 	}
-	return response, nil
 }
 
-func (r *Room) addBot(level string) (map[interfaces.Client][]byte, error) {
+func (r *Room) startGameAction(m *interfaces.MessageFromClient) error {
+	if m.Author != r.owner {
+		return errors.New(Forbidden)
+	}
+	if err := r.startGame(); err != nil {
+		return err
+	}
+	for n, cl := range r.clients {
+		st, _ := r.gameBridge.Status(n)
+		r.observer.Trigger("messageCreated", []interfaces.Client{cl}, st)
+	}
+	r.observer.Trigger(GameStarted)
+	return nil
+}
+
+func (r *Room) addBotAction(m *interfaces.MessageFromClient) error {
+	var err error
+	if m.Author != r.owner {
+		return errors.New(Forbidden)
+	}
+	var parsed interfaces.MessageAddBotParams
+	if err = json.Unmarshal(m.Content.Params, &parsed); err == nil {
+		if err = r.addBot(parsed.BotLevel); err != nil {
+			response := newMessage(interfaces.TypeMessageError, err.Error())
+			r.observer.Trigger("messageCreated", []interfaces.Client{m.Author}, response)
+		}
+	}
+	return err
+}
+
+func (r *Room) kickPlayerAction(m *interfaces.MessageFromClient) error {
+	var err error
+	if m.Author != r.owner {
+		return errors.New(Forbidden)
+	}
+	var parsed interfaces.MessageKickPlayerParams
+	if err = json.Unmarshal(m.Content.Params, &parsed); err == nil {
+		return r.kickClient(parsed.PlayerNumber)
+	}
+	return err
+}
+
+func (r *Room) addBot(level string) error {
 	var err error
 	var c interfaces.Client
-	response := map[interfaces.Client][]byte{}
 
 	if c, err = r.gameBridge.AddBot(level, r); err == nil {
 		c.SetName(fmt.Sprintf("Bot %d", len(r.clients)+1))
-		if response, err = r.AddClient(c); err == nil {
+		if err = r.addClient(c); err == nil {
 			go c.WritePump()
 			go c.ReadPump(r.messages, r.unregister)
-
-			return response, nil
 		}
 	}
-	return nil, err
+	return err
 }
 
-func (r *Room) updatedPlayersList() []byte {
-	msg := interfaces.MessageCurrentPlayers{
-		Type:   interfaces.TypeMessageCurrentPlayers,
-		Values: r.playerData(),
-	}
-	response, _ := json.Marshal(msg)
-	return response
-}
-
-func (r *Room) playerData() []interfaces.MessagePlayer {
+func (r *Room) playersData() []interfaces.MessagePlayer {
 	players := []interfaces.MessagePlayer{}
 	for _, c := range r.clients {
 		if c != nil {
@@ -217,12 +228,14 @@ func (r *Room) startGame() error {
 	return r.gameBridge.StartGame()
 }
 
-// AddClient adds a new client to the room
-func (r *Room) AddClient(c interfaces.Client) (map[interfaces.Client][]byte, error) {
-	response := map[interfaces.Client][]byte{}
+// AddHuman adds a new client to the room
+func (r *Room) AddHuman(c interfaces.Client) error {
+	return r.addClient(c)
+}
 
+func (r *Room) addClient(c interfaces.Client) error {
 	if err := r.gameBridge.AddPlayer(c.Name()); err != nil {
-		return nil, err
+		return err
 	}
 	r.clients = append(r.clients, c)
 
@@ -230,93 +243,74 @@ func (r *Room) AddClient(c interfaces.Client) (map[interfaces.Client][]byte, err
 		r.owner = c
 	}
 	c.SetRoom(r)
-	for _, cl := range r.clients {
-		response[cl] = r.updatedPlayersList()
-	}
-
-	return response, nil
+	response := newMessage(interfaces.TypeMessageCurrentPlayers, r.playersData())
+	r.observer.Trigger("messageCreated", r.clients, response)
+	return nil
 }
 
-func (r *Room) kickClient(number int) (map[interfaces.Client][]byte, error) {
-	response := map[interfaces.Client][]byte{}
-
+func (r *Room) kickClient(number int) error {
 	if number < 0 || number >= len(r.clients) {
-		return nil, errors.New(InexistentClient)
+		return errors.New(InexistentClient)
 	}
 	cl := r.clients[number]
 	if cl == r.owner {
-		return nil, errors.New(OwnerNotRemovable)
+		return errors.New(OwnerNotRemovable)
 	}
 	cl.SetRoom(nil)
-	response = r.RemoveClient(r.clients[number])
-	msg := interfaces.MessageRoomDestroyed{
-		Type:   interfaces.TypeMessageRoomDestroyed,
-		Reason: "kck",
-	}
-	encodedMsg, _ := json.Marshal(msg)
-	response[cl] = encodedMsg
-	return response, nil
+	r.RemoveClient(r.clients[number])
+	response := newMessage(interfaces.TypeMessageRoomDestroyed, "kck")
+	r.observer.Trigger("messageCreated", []interfaces.Client{cl}, response)
+	return nil
 }
 
-func (r *Room) clientQuits(cl interfaces.Client) (map[interfaces.Client][]byte, error) {
-	response := map[interfaces.Client][]byte{}
-
-	response = r.RemoveClient(cl)
-	msg := interfaces.MessageRoomDestroyed{
-		Type:   interfaces.TypeMessageRoomDestroyed,
-		Reason: "qui",
-	}
-	encodedMsg, _ := json.Marshal(msg)
-	response[cl] = encodedMsg
-	return response, nil
+func (r *Room) clientQuits(cl interfaces.Client) error {
+	r.RemoveClient(cl)
+	response := newMessage(interfaces.TypeMessageRoomDestroyed, "qui")
+	r.observer.Trigger("messageCreated", []interfaces.Client{cl}, response)
+	return nil
 }
 
 // RemoveClient Removes /sets as nil a client and removes / deactivates its player
 // depending wheter the game has already started or not.
 // Note that we don't remove a client if a game has already started, as client
 // indexes must not change once a game has started.
-func (r *Room) RemoveClient(c interfaces.Client) map[interfaces.Client][]byte {
-	response := map[interfaces.Client][]byte{}
-
+func (r *Room) RemoveClient(c interfaces.Client) {
 	for i := range r.clients {
 		if r.clients[i] == c {
 			r.clients[i].SetRoom(nil)
 			if r.gameBridge.GameStarted() {
-				response = r.deactivatePlayer(i)
+				r.deactivatePlayer(i)
 			} else {
-				response = r.removePlayer(i)
+				r.removePlayer(i)
 			}
 			break
 		}
 	}
-	return response
 }
 
 // deactivatePlayer deactivates a player from a game setting it as nil,
 // and returns an updated game status to all the players as a response
-func (r *Room) deactivatePlayer(playerNumber int) map[interfaces.Client][]byte {
-	response := map[interfaces.Client][]byte{}
+func (r *Room) deactivatePlayer(playerNumber int) {
 	r.clients[playerNumber] = nil
 	r.gameBridge.DeactivatePlayer(playerNumber)
 	for i, cl := range r.clients {
 		if cl == nil || cl.IsBot() {
 			continue
 		}
-		response[cl], _ = r.gameBridge.Status(i)
+		st, _ := r.gameBridge.Status(i)
+		r.observer.Trigger("messageCreated", []interfaces.Client{cl}, st)
 	}
-	return response
 }
 
 // removePlayer removes a player from a room,
 // and returns an updated players list to all the clients as a response
-func (r *Room) removePlayer(playerNumber int) map[interfaces.Client][]byte {
-	response := map[interfaces.Client][]byte{}
+func (r *Room) removePlayer(playerNumber int) {
 	r.clients = append(r.clients[:playerNumber], r.clients[playerNumber+1:]...)
 	r.gameBridge.RemovePlayer(playerNumber)
+	response := newMessage(interfaces.TypeMessageCurrentPlayers, r.playersData())
 	for _, cl := range r.clients {
-		response[cl] = r.updatedPlayersList()
+		r.observer.Trigger("messageCreated", []interfaces.Client{cl}, response)
 	}
-	return response
 }
 
 // GameStarted returns true if the room's game has started, false otherwise

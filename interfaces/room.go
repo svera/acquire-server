@@ -6,14 +6,14 @@ import "time"
 // implementation must have
 type Room interface {
 	GameStarted() bool
-	ParseMessage(m *MessageFromClient) (map[Client][]byte, error)
+	ParseMessage(m *MessageFromClient)
 	IsGameOver() bool
-	RemoveClient(c Client) map[Client][]byte
+	RemoveClient(c Client)
 	ID() string
 	Owner() Client
 	Clients() []Client
 	HumanClients() []Client
-	AddClient(c Client) (map[Client][]byte, error)
+	AddHuman(c Client) error
 	SetTimer(t *time.Timer)
 	Timer() *time.Timer
 }

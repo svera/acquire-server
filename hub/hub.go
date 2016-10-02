@@ -5,7 +5,6 @@ package hub
 
 import (
 	"encoding/json"
-	"errors"
 	"log"
 	"math/rand"
 	"sync"
@@ -66,7 +65,7 @@ func init() {
 
 // New returns a new Hub instance
 func New(cfg *config.Config, observer *observable.Observable, debug bool) *Hub {
-	return &Hub{
+	h := &Hub{
 		Messages:      make(chan *interfaces.MessageFromClient),
 		Register:      make(chan interfaces.Client),
 		Unregister:    make(chan interfaces.Client),
@@ -76,6 +75,21 @@ func New(cfg *config.Config, observer *observable.Observable, debug bool) *Hub {
 		observer:      observer,
 		debug:         debug,
 	}
+
+	h.observer.On(room.GameStarted, func() {
+		message := h.createUpdatedRoomListMessage()
+		for _, cl := range h.clients {
+			h.sendMessage(cl, message)
+		}
+	})
+
+	h.observer.On("messageCreated", func(clients []interfaces.Client, message []byte) {
+		for _, cl := range clients {
+			h.sendMessage(cl, message)
+		}
+	})
+
+	return h
 }
 
 // Run listens for messages coming from several channels and acts accordingly
@@ -86,16 +100,12 @@ func (h *Hub) Run() {
 		}
 	}()
 
-	h.observer.On(room.GameStarted, func() {
-		h.sendUpdatedRoomList()
-	})
-
 	for {
 		select {
 
 		case c := <-h.Register:
 			h.clients = append(h.clients, c)
-			h.sendUpdatedRoomList()
+			h.observer.Trigger("messageCreated", h.clients, h.createUpdatedRoomListMessage())
 			if h.debug {
 				log.Printf("Client added to hub, number of connected clients: %d\n", len(h.clients))
 			}
@@ -147,14 +157,15 @@ func (h *Hub) parseControlMessage(m *interfaces.MessageFromClient) {
 		var parsed interfaces.MessageCreateRoomParams
 		if err := json.Unmarshal(m.Content.Params, &parsed); err == nil {
 			if bridge, err := bridges.Create(parsed.BridgeName); err != nil {
-				h.sendErrorMessage(m.Author, errors.New(InexistentBridge))
+				res := &interfaces.MessageError{
+					Type:    "err",
+					Content: err.Error(),
+				}
+				response, _ := json.Marshal(res)
+				h.observer.Trigger("messageCreated", []interfaces.Client{m.Author}, response)
 			} else {
 				id := h.createRoom(bridge, m.Author)
-				if response, err := h.rooms[id].AddClient(m.Author); err != nil {
-					h.sendErrorMessage(m.Author, err)
-				} else {
-					h.broadcast(response)
-				}
+				h.rooms[id].AddHuman(m.Author)
 			}
 		}
 
@@ -162,13 +173,14 @@ func (h *Hub) parseControlMessage(m *interfaces.MessageFromClient) {
 		var parsed interfaces.MessageJoinRoomParams
 		if err := json.Unmarshal(m.Content.Params, &parsed); err == nil {
 			if room, ok := h.rooms[parsed.Room]; ok {
-				if response, err := room.AddClient(m.Author); err != nil {
-					h.sendErrorMessage(m.Author, err)
-				} else {
-					h.broadcast(response)
-				}
+				room.AddHuman(m.Author)
 			} else {
-				h.sendErrorMessage(m.Author, errors.New(InexistentRoom))
+				res := &interfaces.MessageError{
+					Type:    "err",
+					Content: InexistentRoom,
+				}
+				response, _ := json.Marshal(res)
+				h.observer.Trigger("messageCreated", []interfaces.Client{m.Author}, response)
 			}
 
 		}
@@ -182,23 +194,7 @@ func (h *Hub) parseControlMessage(m *interfaces.MessageFromClient) {
 }
 
 func (h *Hub) passMessageToRoom(m *interfaces.MessageFromClient) {
-	if response, err := m.Author.Room().ParseMessage(m); err != nil {
-		h.sendErrorMessage(m.Author, err)
-	} else {
-		h.broadcast(response)
-	}
-}
-
-func (h *Hub) broadcast(response map[interfaces.Client][]byte) {
-	for cl, msg := range response {
-		h.sendMessage(cl, msg)
-	}
-}
-
-func (h *Hub) sendToAll(message []byte) {
-	for _, cl := range h.clients {
-		h.sendMessage(cl, message)
-	}
+	m.Author.Room().ParseMessage(m)
 }
 
 func (h *Hub) sendMessage(c interfaces.Client, message []byte) {
@@ -222,8 +218,7 @@ func (h *Hub) removeClient(c interfaces.Client) {
 		if h.clients[i] == c {
 			if c.Room() != nil {
 				r := c.Room()
-				response := r.RemoveClient(c)
-				h.broadcast(response)
+				r.RemoveClient(c)
 				if len(r.HumanClients()) == 0 {
 					h.destroyRoom(r.ID(), interfaces.ReasonRoomDestroyedNoClients)
 				}
@@ -240,15 +235,6 @@ func (h *Hub) removeClient(c interfaces.Client) {
 // NumberClients returns the number of connected clients
 func (h *Hub) NumberClients() int {
 	return len(h.clients)
-}
-
-func (h *Hub) sendErrorMessage(author interfaces.Client, err error) {
-	res := &interfaces.MessageError{
-		Type:    "err",
-		Content: err.Error(),
-	}
-	response, _ := json.Marshal(res)
-	h.sendMessage(author, response)
 }
 
 func (h *Hub) createRoom(b interfaces.Bridge, owner interfaces.Client) string {
@@ -268,9 +254,9 @@ func (h *Hub) createRoom(b interfaces.Bridge, owner interfaces.Client) string {
 		ID:   id,
 	}
 	response, _ := json.Marshal(msgRoomCreated)
-	h.sendMessage(owner, response)
+	h.observer.Trigger("messageCreated", []interfaces.Client{owner}, response)
 
-	h.sendUpdatedRoomList()
+	h.observer.Trigger("messageCreated", h.clients, h.createUpdatedRoomListMessage())
 
 	if h.debug {
 		log.Printf("Room %s created\n", id)
@@ -305,7 +291,7 @@ func (h *Hub) destroyRoom(roomID string, reasonCode string) {
 			}
 			cl.Close()
 		} else if cl != nil {
-			h.sendMessage(cl, response)
+			h.observer.Trigger("messageCreated", h.clients, response)
 			cl.SetRoom(nil)
 		}
 	}
@@ -313,20 +299,20 @@ func (h *Hub) destroyRoom(roomID string, reasonCode string) {
 	mapLock.RLock()
 	delete(h.rooms, roomID)
 	mapLock.RUnlock()
-	h.sendUpdatedRoomList()
+	h.observer.Trigger("messageCreated", h.clients, h.createUpdatedRoomListMessage())
 
 	if h.debug {
 		log.Printf("Room %s destroyed\n", roomID)
 	}
 }
 
-func (h *Hub) sendUpdatedRoomList() {
+func (h *Hub) createUpdatedRoomListMessage() []byte {
 	msgRoomList := interfaces.MessageRoomsList{
 		Type:   interfaces.TypeMessageRoomsList,
 		Values: h.getWaitingRoomsIds(),
 	}
 	response, _ := json.Marshal(msgRoomList)
-	h.sendToAll(response)
+	return response
 }
 
 func (h *Hub) generateID() string {
