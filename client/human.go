@@ -26,6 +26,7 @@ type Human struct {
 	ws       *websocket.Conn
 	incoming chan []byte // Channel storing incoming messages
 	room     interfaces.Room
+	timer    *time.Timer
 }
 
 // NewHuman returns a new Human instance
@@ -152,4 +153,20 @@ func (c *Human) Close() {
 // IsBot returns false because this client is not managed by a bot
 func (c *Human) IsBot() bool {
 	return false
+}
+
+// SetTimer sets room's timer, which manages when to close a room
+func (c *Human) SetTimer(t *time.Timer) {
+	c.timer = t
+	c.StopTimer()
+}
+
+func (c *Human) StopTimer() {
+	if !c.timer.Stop() {
+		<-c.timer.C
+	}
+}
+
+func (c *Human) StartTimer(d time.Duration) {
+	c.timer.Reset(d)
 }

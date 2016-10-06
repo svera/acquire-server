@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	observable "github.com/GianlucaGuarini/go-observable"
@@ -54,6 +55,8 @@ type Room struct {
 	timer *time.Timer
 
 	observer *observable.Observable
+
+	clientInTurn interfaces.Client
 }
 
 // New returns a new Room instance
@@ -66,14 +69,15 @@ func New(
 	observer *observable.Observable,
 ) *Room {
 	return &Room{
-		id:         id,
-		clients:    []interfaces.Client{},
-		gameBridge: b,
-		timeout:    cfg.Timeout,
-		owner:      owner,
-		messages:   messages,
-		unregister: unregister,
-		observer:   observer,
+		id:           id,
+		clients:      []interfaces.Client{},
+		gameBridge:   b,
+		timeout:      cfg.Timeout,
+		owner:        owner,
+		messages:     messages,
+		unregister:   unregister,
+		observer:     observer,
+		clientInTurn: nil,
 	}
 }
 
@@ -136,14 +140,28 @@ func (r *Room) passMessageToGame(m *interfaces.MessageFromClient) {
 					continue
 				}
 				if cl != nil {
-					st, _ := r.gameBridge.Status(n)
-					r.observer.Trigger("messageCreated", []interfaces.Client{cl}, st)
+					response, _ := r.gameBridge.Status(n)
+					r.observer.Trigger("messageCreated", []interfaces.Client{cl}, response)
 				}
+			}
+			currentPlayerClient, _ := r.currentPlayerClient()
+			if r.clientInTurn != currentPlayerClient {
+				r.changePlayerSetTimer()
 			}
 		} else {
 			response := newMessage(interfaces.TypeMessageError, err.Error())
 			r.observer.Trigger("messageCreated", []interfaces.Client{m.Author}, response)
 		}
+	}
+}
+
+func (r *Room) changePlayerSetTimer() {
+	if r.clientInTurn != nil {
+		r.clientInTurn.StopTimer()
+	}
+	r.clientInTurn, _ = r.currentPlayerClient()
+	if !r.clientInTurn.IsBot() {
+		r.clientInTurn.StartTimer(time.Second * 10)
 	}
 }
 
@@ -158,6 +176,7 @@ func (r *Room) startGameAction(m *interfaces.MessageFromClient) error {
 		st, _ := r.gameBridge.Status(n)
 		r.observer.Trigger("messageCreated", []interfaces.Client{cl}, st)
 	}
+	r.changePlayerSetTimer()
 	r.observer.Trigger(GameStarted)
 	return nil
 }
@@ -230,7 +249,25 @@ func (r *Room) startGame() error {
 
 // AddHuman adds a new client to the room
 func (r *Room) AddHuman(c interfaces.Client) error {
-	return r.addClient(c)
+	var err error
+	if err = r.addClient(c); err == nil {
+		c.SetTimer(time.AfterFunc(time.Second*10, func() {
+			log.Printf("client timed out")
+			r.timeoutPlayer(c)
+		}))
+		return nil
+	}
+	return err
+}
+
+func (r *Room) timeoutPlayer(cl interfaces.Client) {
+	msg := interfaces.MessageRoomDestroyed{
+		Type:   interfaces.TypeMessageRoomDestroyed,
+		Reason: "ptm",
+	}
+	response, _ := json.Marshal(msg)
+	r.observer.Trigger("messageCreated", []interfaces.Client{cl}, response)
+	r.RemoveClient(cl)
 }
 
 func (r *Room) addClient(c interfaces.Client) error {
