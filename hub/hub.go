@@ -89,6 +89,12 @@ func New(cfg *config.Config, observer *observable.Observable, debug bool) *Hub {
 		}
 	})
 
+	h.observer.On("clientOut", func(r interfaces.Room) {
+		if len(r.HumanClients()) == 0 {
+			h.destroyRoom(r.ID(), interfaces.ReasonRoomDestroyedNoClients)
+		}
+	})
+
 	return h
 }
 
@@ -150,47 +156,61 @@ func (h *Hub) isControlMessage(m *interfaces.MessageFromClient) bool {
 }
 
 func (h *Hub) parseControlMessage(m *interfaces.MessageFromClient) {
-
 	switch m.Content.Type {
 
 	case interfaces.ControlMessageTypeCreateRoom:
-		var parsed interfaces.MessageCreateRoomParams
-		if err := json.Unmarshal(m.Content.Params, &parsed); err == nil {
-			if bridge, err := bridges.Create(parsed.BridgeName); err != nil {
-				res := &interfaces.MessageError{
-					Type:    "err",
-					Content: err.Error(),
-				}
-				response, _ := json.Marshal(res)
-				h.observer.Trigger("messageCreated", []interfaces.Client{m.Author}, response)
-			} else {
-				id := h.createRoom(bridge, m.Author)
-				h.rooms[id].AddHuman(m.Author)
-			}
-		}
+		h.createRoomAction(m)
 
 	case interfaces.ControlMessageTypeJoinRoom:
-		var parsed interfaces.MessageJoinRoomParams
-		if err := json.Unmarshal(m.Content.Params, &parsed); err == nil {
-			if room, ok := h.rooms[parsed.Room]; ok {
-				room.AddHuman(m.Author)
-			} else {
-				res := &interfaces.MessageError{
-					Type:    "err",
-					Content: InexistentRoom,
-				}
-				response, _ := json.Marshal(res)
-				h.observer.Trigger("messageCreated", []interfaces.Client{m.Author}, response)
-			}
-
-		}
+		h.joinRoomAction(m)
 
 	case interfaces.ControlMessageTypeTerminateRoom:
-		if m.Author != m.Author.Room().Owner() {
-			return
-		}
-		h.destroyRoom(m.Author.Room().ID(), interfaces.ReasonRoomDestroyedTerminated)
+		h.terminateRoomAction(m)
 	}
+}
+
+func (h *Hub) createRoomAction(m *interfaces.MessageFromClient) {
+	var parsed interfaces.MessageCreateRoomParams
+	if err := json.Unmarshal(m.Content.Params, &parsed); err == nil {
+		if bridge, err := bridges.Create(parsed.BridgeName); err != nil {
+			res := &interfaces.MessageError{
+				Type:    "err",
+				Content: err.Error(),
+			}
+			response, _ := json.Marshal(res)
+			h.observer.Trigger("messageCreated", []interfaces.Client{m.Author}, response)
+		} else {
+			roomParams := map[string]interface{}{
+				"playerTimeout": parsed.PlayerTimeout,
+			}
+			id := h.createRoom(bridge, roomParams, m.Author)
+			h.rooms[id].AddHuman(m.Author)
+		}
+	}
+}
+
+func (h *Hub) joinRoomAction(m *interfaces.MessageFromClient) {
+	var parsed interfaces.MessageJoinRoomParams
+	if err := json.Unmarshal(m.Content.Params, &parsed); err == nil {
+		if room, ok := h.rooms[parsed.Room]; ok {
+			room.AddHuman(m.Author)
+		} else {
+			res := &interfaces.MessageError{
+				Type:    "err",
+				Content: InexistentRoom,
+			}
+			response, _ := json.Marshal(res)
+			h.observer.Trigger("messageCreated", []interfaces.Client{m.Author}, response)
+		}
+
+	}
+}
+
+func (h *Hub) terminateRoomAction(m *interfaces.MessageFromClient) {
+	if m.Author != m.Author.Room().Owner() {
+		return
+	}
+	h.destroyRoom(m.Author.Room().ID(), interfaces.ReasonRoomDestroyedTerminated)
 }
 
 func (h *Hub) passMessageToRoom(m *interfaces.MessageFromClient) {
@@ -219,9 +239,6 @@ func (h *Hub) removeClient(c interfaces.Client) {
 			if c.Room() != nil {
 				r := c.Room()
 				r.RemoveClient(c)
-				if len(r.HumanClients()) == 0 {
-					h.destroyRoom(r.ID(), interfaces.ReasonRoomDestroyedNoClients)
-				}
 			}
 			h.clients = append(h.clients[:i], h.clients[i+1:]...)
 			if h.debug {
@@ -237,8 +254,9 @@ func (h *Hub) NumberClients() int {
 	return len(h.clients)
 }
 
-func (h *Hub) createRoom(b interfaces.Bridge, owner interfaces.Client) string {
+func (h *Hub) createRoom(b interfaces.Bridge, roomParams map[string]interface{}, owner interfaces.Client) string {
 	id := h.generateID()
+	log.Printf("player timeout value: %d", roomParams["playerTimeout"].(int))
 	h.rooms[id] = room.New(id, b, owner, h.Messages, h.Unregister, h.configuration, h.observer)
 
 	timer := time.AfterFunc(time.Minute*h.configuration.Timeout, func() {
@@ -279,11 +297,27 @@ func (h *Hub) getWaitingRoomsIds() []string {
 func (h *Hub) destroyRoom(roomID string, reasonCode string) {
 	r := h.rooms[roomID]
 	r.Timer().Stop()
+
+	h.expelClientsFromRoom(r, reasonCode)
+
+	mapLock.RLock()
+	log.Println("Preparado para destruir")
+	delete(h.rooms, roomID)
+	mapLock.RUnlock()
+	h.observer.Trigger("messageCreated", h.clients, h.createUpdatedRoomListMessage())
+
+	if h.debug {
+		log.Printf("Room %s destroyed\n", roomID)
+	}
+}
+
+func (h *Hub) expelClientsFromRoom(r interfaces.Room, reasonCode string) {
 	msg := interfaces.MessageRoomDestroyed{
 		Type:   interfaces.TypeMessageRoomDestroyed,
 		Reason: reasonCode,
 	}
 	response, _ := json.Marshal(msg)
+
 	for _, cl := range r.Clients() {
 		if cl != nil && cl.IsBot() {
 			if h.debug {
@@ -293,16 +327,8 @@ func (h *Hub) destroyRoom(roomID string, reasonCode string) {
 		} else if cl != nil {
 			h.observer.Trigger("messageCreated", h.clients, response)
 			cl.SetRoom(nil)
+			cl.StopTimer()
 		}
-	}
-
-	mapLock.RLock()
-	delete(h.rooms, roomID)
-	mapLock.RUnlock()
-	h.observer.Trigger("messageCreated", h.clients, h.createUpdatedRoomListMessage())
-
-	if h.debug {
-		log.Printf("Room %s destroyed\n", roomID)
 	}
 }
 

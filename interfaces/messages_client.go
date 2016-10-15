@@ -34,7 +34,8 @@ type MessageFromClientContent struct {
 // MessageCreateRoomParams defines the needed parameters for a create room
 // message
 type MessageCreateRoomParams struct {
-	BridgeName string `json:"bri"`
+	BridgeName    string `json:"bri"`
+	PlayerTimeout int    `json:"pto"`
 }
 
 // MessageJoinRoomParams defines the needed parameters for a join room message

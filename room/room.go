@@ -161,7 +161,7 @@ func (r *Room) changePlayerSetTimer() {
 	}
 	r.clientInTurn, _ = r.currentPlayerClient()
 	if !r.clientInTurn.IsBot() {
-		r.clientInTurn.StartTimer(time.Second * 10)
+		r.clientInTurn.StartTimer(time.Second * 120)
 	}
 }
 
@@ -251,8 +251,8 @@ func (r *Room) startGame() error {
 func (r *Room) AddHuman(c interfaces.Client) error {
 	var err error
 	if err = r.addClient(c); err == nil {
-		c.SetTimer(time.AfterFunc(time.Second*10, func() {
-			log.Printf("client timed out")
+		c.SetTimer(time.AfterFunc(time.Second*120, func() {
+			log.Printf("client %s timed out", c.Name())
 			r.timeoutPlayer(c)
 		}))
 		return nil
@@ -301,6 +301,7 @@ func (r *Room) kickClient(number int) error {
 }
 
 func (r *Room) clientQuits(cl interfaces.Client) error {
+	log.Println("client quits")
 	r.RemoveClient(cl)
 	response := newMessage(interfaces.TypeMessageRoomDestroyed, "qui")
 	r.observer.Trigger("messageCreated", []interfaces.Client{cl}, response)
@@ -315,11 +316,13 @@ func (r *Room) RemoveClient(c interfaces.Client) {
 	for i := range r.clients {
 		if r.clients[i] == c {
 			r.clients[i].SetRoom(nil)
+			c.StopTimer()
 			if r.gameBridge.GameStarted() {
 				r.deactivatePlayer(i)
 			} else {
 				r.removePlayer(i)
 			}
+			r.observer.Trigger("clientOut", r)
 			break
 		}
 	}
