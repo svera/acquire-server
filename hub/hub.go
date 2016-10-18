@@ -99,13 +99,12 @@ func (h *Hub) Run() {
 				if val == c {
 					h.removeClient(c)
 					close(c.Incoming())
+					break
 				}
 			}
-			break
 
 		case m := <-h.Messages:
 			h.parseMessage(m)
-			break
 
 		}
 	}
