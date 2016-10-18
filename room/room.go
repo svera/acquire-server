@@ -1,16 +1,11 @@
-// Package room contains the Room class, which manages communication between clients and game,
-// passing messages back and forth which describe actions and results,
-// as well as the connections to it.
 package room
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
 	"log"
 	"time"
 
-	observable "github.com/GianlucaGuarini/go-observable"
+	emitable "github.com/olebedev/emitter"
 	"github.com/svera/sackson-server/config"
 	"github.com/svera/sackson-server/interfaces"
 )
@@ -23,7 +18,7 @@ const (
 	GameOver          = "game_over"
 )
 
-// Events triggered from Room, always in a past tense
+// Events Emited from Room, always in a past tense
 const (
 	GameStarted = "gameStarted"
 )
@@ -54,9 +49,11 @@ type Room struct {
 	// timer function that will close the room after X minutes
 	timer *time.Timer
 
-	observer *observable.Observable
+	emitter *emitable.Emitter
 
 	clientInTurn interfaces.Client
+
+	playerTimeOut time.Duration
 }
 
 // New returns a new Room instance
@@ -66,18 +63,20 @@ func New(
 	messages chan *interfaces.MessageFromClient,
 	unregister chan interfaces.Client,
 	cfg *config.Config,
-	observer *observable.Observable,
+	emitter *emitable.Emitter,
+	roomParams map[string]interface{},
 ) *Room {
 	return &Room{
-		id:           id,
-		clients:      []interfaces.Client{},
-		gameBridge:   b,
-		timeout:      cfg.Timeout,
-		owner:        owner,
-		messages:     messages,
-		unregister:   unregister,
-		observer:     observer,
-		clientInTurn: nil,
+		id:            id,
+		clients:       []interfaces.Client{},
+		gameBridge:    b,
+		timeout:       cfg.Timeout,
+		owner:         owner,
+		messages:      messages,
+		unregister:    unregister,
+		emitter:       emitter,
+		clientInTurn:  nil,
+		playerTimeOut: roomParams["playerTimeout"].(time.Duration),
 	}
 }
 
@@ -88,7 +87,7 @@ func (r *Room) ParseMessage(m *interfaces.MessageFromClient) {
 		r.parseControlMessage(m)
 	} else if r.gameBridge.IsGameOver() {
 		response := newMessage(interfaces.TypeMessageError, GameOver)
-		r.observer.Trigger("messageCreated", []interfaces.Client{m.Author}, response)
+		go r.emitter.Emit("messageCreated", []interfaces.Client{m.Author}, response)
 	} else {
 		r.passMessageToGame(m)
 	}
@@ -124,7 +123,7 @@ func (r *Room) parseControlMessage(m *interfaces.MessageFromClient) {
 	}
 	if err != nil {
 		response := newMessage(interfaces.TypeMessageError, err.Error())
-		r.observer.Trigger("messageCreated", []interfaces.Client{m.Author}, response)
+		go r.emitter.Emit("messageCreated", []interfaces.Client{m.Author}, response)
 	}
 }
 
@@ -141,7 +140,7 @@ func (r *Room) passMessageToGame(m *interfaces.MessageFromClient) {
 				}
 				if cl != nil {
 					response, _ := r.gameBridge.Status(n)
-					r.observer.Trigger("messageCreated", []interfaces.Client{cl}, response)
+					go r.emitter.Emit("messageCreated", []interfaces.Client{cl}, response)
 				}
 			}
 			currentPlayerClient, _ := r.currentPlayerClient()
@@ -150,7 +149,7 @@ func (r *Room) passMessageToGame(m *interfaces.MessageFromClient) {
 			}
 		} else {
 			response := newMessage(interfaces.TypeMessageError, err.Error())
-			r.observer.Trigger("messageCreated", []interfaces.Client{m.Author}, response)
+			go r.emitter.Emit("messageCreated", []interfaces.Client{m.Author}, response)
 		}
 	}
 }
@@ -160,66 +159,9 @@ func (r *Room) changePlayerSetTimer() {
 		r.clientInTurn.StopTimer()
 	}
 	r.clientInTurn, _ = r.currentPlayerClient()
-	if !r.clientInTurn.IsBot() {
-		r.clientInTurn.StartTimer(time.Second * 120)
+	if !r.clientInTurn.IsBot() && r.playerTimeOut > 0 {
+		r.clientInTurn.StartTimer(time.Second * r.playerTimeOut)
 	}
-}
-
-func (r *Room) startGameAction(m *interfaces.MessageFromClient) error {
-	if m.Author != r.owner {
-		return errors.New(Forbidden)
-	}
-	if err := r.startGame(); err != nil {
-		return err
-	}
-	for n, cl := range r.clients {
-		st, _ := r.gameBridge.Status(n)
-		r.observer.Trigger("messageCreated", []interfaces.Client{cl}, st)
-	}
-	r.changePlayerSetTimer()
-	r.observer.Trigger(GameStarted)
-	return nil
-}
-
-func (r *Room) addBotAction(m *interfaces.MessageFromClient) error {
-	var err error
-	if m.Author != r.owner {
-		return errors.New(Forbidden)
-	}
-	var parsed interfaces.MessageAddBotParams
-	if err = json.Unmarshal(m.Content.Params, &parsed); err == nil {
-		if err = r.addBot(parsed.BotLevel); err != nil {
-			response := newMessage(interfaces.TypeMessageError, err.Error())
-			r.observer.Trigger("messageCreated", []interfaces.Client{m.Author}, response)
-		}
-	}
-	return err
-}
-
-func (r *Room) kickPlayerAction(m *interfaces.MessageFromClient) error {
-	var err error
-	if m.Author != r.owner {
-		return errors.New(Forbidden)
-	}
-	var parsed interfaces.MessageKickPlayerParams
-	if err = json.Unmarshal(m.Content.Params, &parsed); err == nil {
-		return r.kickClient(parsed.PlayerNumber)
-	}
-	return err
-}
-
-func (r *Room) addBot(level string) error {
-	var err error
-	var c interfaces.Client
-
-	if c, err = r.gameBridge.AddBot(level, r); err == nil {
-		c.SetName(fmt.Sprintf("Bot %d", len(r.clients)+1))
-		if err = r.addClient(c); err == nil {
-			go c.WritePump()
-			go c.ReadPump(r.messages, r.unregister)
-		}
-	}
-	return err
 }
 
 func (r *Room) playersData() []interfaces.MessagePlayer {
@@ -243,18 +185,16 @@ func (r *Room) currentPlayerClient() (interfaces.Client, error) {
 	return r.clients[number], err
 }
 
-func (r *Room) startGame() error {
-	return r.gameBridge.StartGame()
-}
-
 // AddHuman adds a new client to the room
 func (r *Room) AddHuman(c interfaces.Client) error {
 	var err error
 	if err = r.addClient(c); err == nil {
-		c.SetTimer(time.AfterFunc(time.Second*120, func() {
-			log.Printf("client %s timed out", c.Name())
-			r.timeoutPlayer(c)
-		}))
+		if r.playerTimeOut > 0 {
+			c.SetTimer(time.AfterFunc(time.Second*r.playerTimeOut, func() {
+				log.Printf("client %s timed out", c.Name())
+				r.timeoutPlayer(c)
+			}))
+		}
 		return nil
 	}
 	return err
@@ -266,7 +206,7 @@ func (r *Room) timeoutPlayer(cl interfaces.Client) {
 		Reason: "ptm",
 	}
 	response, _ := json.Marshal(msg)
-	r.observer.Trigger("messageCreated", []interfaces.Client{cl}, response)
+	go r.emitter.Emit("messageCreated", []interfaces.Client{cl}, response)
 	r.RemoveClient(cl)
 }
 
@@ -281,30 +221,7 @@ func (r *Room) addClient(c interfaces.Client) error {
 	}
 	c.SetRoom(r)
 	response := newMessage(interfaces.TypeMessageCurrentPlayers, r.playersData())
-	r.observer.Trigger("messageCreated", r.clients, response)
-	return nil
-}
-
-func (r *Room) kickClient(number int) error {
-	if number < 0 || number >= len(r.clients) {
-		return errors.New(InexistentClient)
-	}
-	cl := r.clients[number]
-	if cl == r.owner {
-		return errors.New(OwnerNotRemovable)
-	}
-	cl.SetRoom(nil)
-	r.RemoveClient(r.clients[number])
-	response := newMessage(interfaces.TypeMessageRoomDestroyed, "kck")
-	r.observer.Trigger("messageCreated", []interfaces.Client{cl}, response)
-	return nil
-}
-
-func (r *Room) clientQuits(cl interfaces.Client) error {
-	log.Println("client quits")
-	r.RemoveClient(cl)
-	response := newMessage(interfaces.TypeMessageRoomDestroyed, "qui")
-	r.observer.Trigger("messageCreated", []interfaces.Client{cl}, response)
+	go r.emitter.Emit("messageCreated", r.clients, response)
 	return nil
 }
 
@@ -316,13 +233,14 @@ func (r *Room) RemoveClient(c interfaces.Client) {
 	for i := range r.clients {
 		if r.clients[i] == c {
 			r.clients[i].SetRoom(nil)
+			// QUE PASA CON ESTO!!!!
 			c.StopTimer()
 			if r.gameBridge.GameStarted() {
 				r.deactivatePlayer(i)
 			} else {
 				r.removePlayer(i)
 			}
-			r.observer.Trigger("clientOut", r)
+			go r.emitter.Emit("clientOut", r)
 			break
 		}
 	}
@@ -338,7 +256,7 @@ func (r *Room) deactivatePlayer(playerNumber int) {
 			continue
 		}
 		st, _ := r.gameBridge.Status(i)
-		r.observer.Trigger("messageCreated", []interfaces.Client{cl}, st)
+		go r.emitter.Emit("messageCreated", []interfaces.Client{cl}, st)
 	}
 }
 
@@ -349,7 +267,8 @@ func (r *Room) removePlayer(playerNumber int) {
 	r.gameBridge.RemovePlayer(playerNumber)
 	response := newMessage(interfaces.TypeMessageCurrentPlayers, r.playersData())
 	for _, cl := range r.clients {
-		r.observer.Trigger("messageCreated", []interfaces.Client{cl}, response)
+		log.Println("lista de clientes actualizadas")
+		go r.emitter.Emit("messageCreated", []interfaces.Client{cl}, response)
 	}
 }
 

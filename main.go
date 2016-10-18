@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"os"
 
-	observable "github.com/GianlucaGuarini/go-observable"
 	"github.com/gorilla/mux"
+	"github.com/olebedev/emitter"
 	"github.com/svera/sackson-server/client"
 	"github.com/svera/sackson-server/config"
 	"github.com/svera/sackson-server/hub"
@@ -27,8 +27,9 @@ func main() {
 		fmt.Println(err.Error())
 	} else {
 		r := mux.NewRouter()
-		o := observable.New()
-		hb = hub.New(cfg, o, isDebugEnabled())
+		e := &emitter.Emitter{}
+		e.Use("*", emitter.Skip)
+		hb = hub.New(cfg, e, isDebugEnabled())
 		go hb.Run()
 
 		r.HandleFunc("/", newClient)

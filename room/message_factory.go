@@ -12,7 +12,7 @@ func newMessage(typeMessage string, args ...interface{}) []byte {
 	switch typeMessage {
 	case interfaces.TypeMessageError:
 		msg := &interfaces.MessageError{
-			Type:    "err",
+			Type:    interfaces.TypeMessageError,
 			Content: args[0].(string),
 		}
 		encoded, _ = json.Marshal(msg)

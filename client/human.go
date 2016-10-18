@@ -161,12 +161,14 @@ func (c *Human) SetTimer(t *time.Timer) {
 	c.StopTimer()
 }
 
+// StopTimer stops the client's timer
 func (c *Human) StopTimer() {
-	if !c.timer.Stop() {
-		<-c.timer.C
+	if c.timer != nil {
+		c.timer.Stop()
 	}
 }
 
+// StartTimer starts the client's timer
 func (c *Human) StartTimer(d time.Duration) {
 	c.timer.Reset(d)
 }
