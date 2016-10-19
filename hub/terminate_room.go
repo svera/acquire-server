@@ -44,7 +44,7 @@ func (h *Hub) expelClientsFromRoom(r interfaces.Room, reasonCode string) {
 			}
 			cl.Close()
 		} else if cl != nil {
-			go h.emitter.Emit("messageCreated", h.clients, response)
+			go h.emitter.Emit("messageCreated", r.Clients(), response)
 			cl.SetRoom(nil)
 			cl.StopTimer()
 		}
