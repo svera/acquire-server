@@ -26,6 +26,7 @@ type Human struct {
 	ws       *websocket.Conn
 	incoming chan []byte // Channel storing incoming messages
 	room     interfaces.Room
+	timer    *time.Timer
 }
 
 // NewHuman returns a new Human instance
@@ -33,7 +34,7 @@ func NewHuman(w http.ResponseWriter, r *http.Request) (interfaces.Client, error)
 	var upgrader = websocket.Upgrader{
 		ReadBufferSize:  maxMessageSize,
 		WriteBufferSize: maxMessageSize,
-		// This line needs to be changed to make it more restrictive
+		// TODO: This line needs to be changed to make it more restrictive
 		CheckOrigin: func(r *http.Request) bool {
 			return true
 		},
@@ -152,4 +153,22 @@ func (c *Human) Close() {
 // IsBot returns false because this client is not managed by a bot
 func (c *Human) IsBot() bool {
 	return false
+}
+
+// SetTimer sets room's timer, which manages when to close a room
+func (c *Human) SetTimer(t *time.Timer) {
+	c.timer = t
+	c.StopTimer()
+}
+
+// StopTimer stops the client's timer
+func (c *Human) StopTimer() {
+	if c.timer != nil {
+		c.timer.Stop()
+	}
+}
+
+// StartTimer starts the client's timer
+func (c *Human) StartTimer(d time.Duration) {
+	c.timer.Reset(d)
 }

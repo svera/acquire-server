@@ -2,6 +2,7 @@ package interfaces
 
 import (
 	"encoding/json"
+	"time"
 )
 
 // Control messages types, common to all games.
@@ -34,7 +35,8 @@ type MessageFromClientContent struct {
 // MessageCreateRoomParams defines the needed parameters for a create room
 // message
 type MessageCreateRoomParams struct {
-	BridgeName string `json:"bri"`
+	BridgeName    string        `json:"bri"`
+	PlayerTimeout time.Duration `json:"pto"`
 }
 
 // MessageJoinRoomParams defines the needed parameters for a join room message

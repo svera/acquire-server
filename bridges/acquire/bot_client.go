@@ -3,6 +3,7 @@ package acquirebridge
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/svera/acquire/bots"
 	acquireInterfaces "github.com/svera/acquire/interfaces"
@@ -83,7 +84,6 @@ func (c *BotClient) encodeResponse(m bots.Message) *serverInterfaces.MessageFrom
 	case bots.EndGameResponseType:
 		enc = c.encodeEndGame()
 	default:
-		//TODO: Bug when a match with bots finishes and a user refreshes the page
 		panic(fmt.Sprintf("Unrecognized bot response: %s", m.Type))
 	}
 	return enc
@@ -272,4 +272,14 @@ func (c *BotClient) Room() serverInterfaces.Room {
 // SetRoom sets the bot client's room
 func (c *BotClient) SetRoom(r serverInterfaces.Room) {
 	c.room = r
+}
+
+// SetTimer is not needed in BotCLient
+func (c *BotClient) SetTimer(*time.Timer) {
+}
+
+func (c *BotClient) StopTimer() {
+}
+
+func (c *BotClient) StartTimer(d time.Duration) {
 }

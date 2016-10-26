@@ -1,18 +1,12 @@
-// Package hub contains the Hub class, which manages communication between clients and game,
-// passing messages back and forth which describe actions and results,
-// as well as the connections to it.
 package hub
 
 import (
-	"encoding/json"
-	"errors"
 	"log"
 	"math/rand"
 	"sync"
 	"time"
 
-	observable "github.com/GianlucaGuarini/go-observable"
-	"github.com/svera/sackson-server/bridges"
+	emitable "github.com/olebedev/emitter"
 	"github.com/svera/sackson-server/config"
 	"github.com/svera/sackson-server/interfaces"
 	"github.com/svera/sackson-server/room"
@@ -54,7 +48,7 @@ type Hub struct {
 	// Configuration
 	configuration *config.Config
 
-	observer *observable.Observable
+	emitter *emitable.Emitter
 
 	debug bool
 }
@@ -65,17 +59,21 @@ func init() {
 }
 
 // New returns a new Hub instance
-func New(cfg *config.Config, observer *observable.Observable, debug bool) *Hub {
-	return &Hub{
+func New(cfg *config.Config, emitter *emitable.Emitter, debug bool) *Hub {
+	h := &Hub{
 		Messages:      make(chan *interfaces.MessageFromClient),
 		Register:      make(chan interfaces.Client),
 		Unregister:    make(chan interfaces.Client),
 		clients:       []interfaces.Client{},
 		rooms:         make(map[string]interfaces.Room),
 		configuration: cfg,
-		observer:      observer,
+		emitter:       emitter,
 		debug:         debug,
 	}
+
+	h.registerCallbacks()
+
+	return h
 }
 
 // Run listens for messages coming from several channels and acts accordingly
@@ -86,16 +84,12 @@ func (h *Hub) Run() {
 		}
 	}()
 
-	h.observer.On(room.GameStarted, func() {
-		h.sendUpdatedRoomList()
-	})
-
 	for {
 		select {
 
 		case c := <-h.Register:
 			h.clients = append(h.clients, c)
-			h.sendUpdatedRoomList()
+			go h.emitter.Emit("messageCreated", h.clients, h.createUpdatedRoomListMessage())
 			if h.debug {
 				log.Printf("Client added to hub, number of connected clients: %d\n", len(h.clients))
 			}
@@ -105,13 +99,12 @@ func (h *Hub) Run() {
 				if val == c {
 					h.removeClient(c)
 					close(c.Incoming())
+					break
 				}
 			}
-			break
 
 		case m := <-h.Messages:
 			h.parseMessage(m)
-			break
 
 		}
 	}
@@ -140,65 +133,21 @@ func (h *Hub) isControlMessage(m *interfaces.MessageFromClient) bool {
 }
 
 func (h *Hub) parseControlMessage(m *interfaces.MessageFromClient) {
-
 	switch m.Content.Type {
 
 	case interfaces.ControlMessageTypeCreateRoom:
-		var parsed interfaces.MessageCreateRoomParams
-		if err := json.Unmarshal(m.Content.Params, &parsed); err == nil {
-			if bridge, err := bridges.Create(parsed.BridgeName); err != nil {
-				h.sendErrorMessage(m.Author, errors.New(InexistentBridge))
-			} else {
-				id := h.createRoom(bridge, m.Author)
-				if response, err := h.rooms[id].AddClient(m.Author); err != nil {
-					h.sendErrorMessage(m.Author, err)
-				} else {
-					h.broadcast(response)
-				}
-			}
-		}
+		h.createRoomAction(m)
 
 	case interfaces.ControlMessageTypeJoinRoom:
-		var parsed interfaces.MessageJoinRoomParams
-		if err := json.Unmarshal(m.Content.Params, &parsed); err == nil {
-			if room, ok := h.rooms[parsed.Room]; ok {
-				if response, err := room.AddClient(m.Author); err != nil {
-					h.sendErrorMessage(m.Author, err)
-				} else {
-					h.broadcast(response)
-				}
-			} else {
-				h.sendErrorMessage(m.Author, errors.New(InexistentRoom))
-			}
-
-		}
+		h.joinRoomAction(m)
 
 	case interfaces.ControlMessageTypeTerminateRoom:
-		if m.Author != m.Author.Room().Owner() {
-			return
-		}
-		h.destroyRoom(m.Author.Room().ID(), interfaces.ReasonRoomDestroyedTerminated)
+		h.terminateRoomAction(m)
 	}
 }
 
 func (h *Hub) passMessageToRoom(m *interfaces.MessageFromClient) {
-	if response, err := m.Author.Room().ParseMessage(m); err != nil {
-		h.sendErrorMessage(m.Author, err)
-	} else {
-		h.broadcast(response)
-	}
-}
-
-func (h *Hub) broadcast(response map[interfaces.Client][]byte) {
-	for cl, msg := range response {
-		h.sendMessage(cl, msg)
-	}
-}
-
-func (h *Hub) sendToAll(message []byte) {
-	for _, cl := range h.clients {
-		h.sendMessage(cl, message)
-	}
+	m.Author.Room().ParseMessage(m)
 }
 
 func (h *Hub) sendMessage(c interfaces.Client, message []byte) {
@@ -222,11 +171,7 @@ func (h *Hub) removeClient(c interfaces.Client) {
 		if h.clients[i] == c {
 			if c.Room() != nil {
 				r := c.Room()
-				response := r.RemoveClient(c)
-				h.broadcast(response)
-				if len(r.HumanClients()) == 0 {
-					h.destroyRoom(r.ID(), interfaces.ReasonRoomDestroyedNoClients)
-				}
+				r.RemoveClient(c)
 			}
 			h.clients = append(h.clients[:i], h.clients[i+1:]...)
 			if h.debug {
@@ -242,43 +187,6 @@ func (h *Hub) NumberClients() int {
 	return len(h.clients)
 }
 
-func (h *Hub) sendErrorMessage(author interfaces.Client, err error) {
-	res := &interfaces.MessageError{
-		Type:    "err",
-		Content: err.Error(),
-	}
-	response, _ := json.Marshal(res)
-	h.sendMessage(author, response)
-}
-
-func (h *Hub) createRoom(b interfaces.Bridge, owner interfaces.Client) string {
-	id := h.generateID()
-	h.rooms[id] = room.New(id, b, owner, h.Messages, h.Unregister, h.configuration, h.observer)
-
-	timer := time.AfterFunc(time.Minute*h.configuration.Timeout, func() {
-		if h.debug {
-			log.Printf("Destroying room %s due to timeout\n", id)
-		}
-		h.destroyRoom(id, interfaces.ReasonRoomDestroyedTimeout)
-	})
-	h.rooms[id].SetTimer(timer)
-
-	msgRoomCreated := interfaces.MessageRoomCreated{
-		Type: interfaces.TypeMessageRoomCreated,
-		ID:   id,
-	}
-	response, _ := json.Marshal(msgRoomCreated)
-	h.sendMessage(owner, response)
-
-	h.sendUpdatedRoomList()
-
-	if h.debug {
-		log.Printf("Room %s created\n", id)
-	}
-
-	return id
-}
-
 // Return a list of all rooms IDs which haven't started a game
 func (h *Hub) getWaitingRoomsIds() []string {
 	ids := []string{}
@@ -290,57 +198,28 @@ func (h *Hub) getWaitingRoomsIds() []string {
 	return ids
 }
 
-func (h *Hub) destroyRoom(roomID string, reasonCode string) {
-	r := h.rooms[roomID]
-	r.Timer().Stop()
-	msg := interfaces.MessageRoomDestroyed{
-		Type:   interfaces.TypeMessageRoomDestroyed,
-		Reason: reasonCode,
-	}
-	response, _ := json.Marshal(msg)
-	for _, cl := range r.Clients() {
-		if cl != nil && cl.IsBot() {
-			if h.debug {
-				log.Printf("Bot %s destroyed", cl.Name())
-			}
-			cl.Close()
-		} else if cl != nil {
-			h.sendMessage(cl, response)
-			cl.SetRoom(nil)
+func (h *Hub) registerCallbacks() {
+	h.emitter.On(room.GameStarted, func(event *emitable.Event) {
+		message := h.createUpdatedRoomListMessage()
+		for _, cl := range h.clients {
+			h.sendMessage(cl, message)
 		}
-	}
+	})
 
-	mapLock.RLock()
-	delete(h.rooms, roomID)
-	mapLock.RUnlock()
-	h.sendUpdatedRoomList()
+	h.emitter.On("messageCreated", func(event *emitable.Event) {
+		clients := event.Args[0].([]interfaces.Client)
+		message := event.Args[1].([]byte)
 
-	if h.debug {
-		log.Printf("Room %s destroyed\n", roomID)
-	}
-}
-
-func (h *Hub) sendUpdatedRoomList() {
-	msgRoomList := interfaces.MessageRoomsList{
-		Type:   interfaces.TypeMessageRoomsList,
-		Values: h.getWaitingRoomsIds(),
-	}
-	response, _ := json.Marshal(msgRoomList)
-	h.sendToAll(response)
-}
-
-func (h *Hub) generateID() string {
-	letters := `abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ`
-	var locator string
-	var randomPosition int
-	numberLetters := len(letters)
-	for {
-		for i := 0; i < 5; i++ {
-			randomPosition = rn.Intn(numberLetters - 1)
-			locator += string(letters[randomPosition])
+		for _, cl := range clients {
+			h.sendMessage(cl, message)
 		}
-		if _, exists := h.rooms[locator]; !exists {
-			return locator
+	})
+
+	h.emitter.On("clientOut", func(event *emitable.Event) {
+		r := event.Args[0].(interfaces.Room)
+
+		if len(r.HumanClients()) == 0 {
+			h.destroyRoom(r.ID(), interfaces.ReasonRoomDestroyedNoClients)
 		}
-	}
+	})
 }

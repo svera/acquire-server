@@ -1,0 +1,38 @@
+package room
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+
+	"github.com/svera/sackson-server/interfaces"
+)
+
+func (r *Room) addBotAction(m *interfaces.MessageFromClient) error {
+	var err error
+	if m.Author != r.owner {
+		return errors.New(Forbidden)
+	}
+	var parsed interfaces.MessageAddBotParams
+	if err = json.Unmarshal(m.Content.Params, &parsed); err == nil {
+		if err = r.addBot(parsed.BotLevel); err != nil {
+			response := newMessage(interfaces.TypeMessageError, err.Error())
+			go r.emitter.Emit("messageCreated", []interfaces.Client{m.Author}, response)
+		}
+	}
+	return err
+}
+
+func (r *Room) addBot(level string) error {
+	var err error
+	var c interfaces.Client
+
+	if c, err = r.gameBridge.AddBot(level, r); err == nil {
+		c.SetName(fmt.Sprintf("Bot %d", len(r.clients)+1))
+		if err = r.addClient(c); err == nil {
+			go c.WritePump()
+			go c.ReadPump(r.messages, r.unregister)
+		}
+	}
+	return err
+}

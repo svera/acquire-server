@@ -1,5 +1,7 @@
 package interfaces
 
+import "time"
+
 // Client is an interface that defines the minimum set of functions needed
 // to implement a client which can be used within a hub instance
 type Client interface {
@@ -12,4 +14,7 @@ type Client interface {
 	IsBot() bool
 	Room() Room
 	SetRoom(r Room)
+	SetTimer(t *time.Timer)
+	StopTimer()
+	StartTimer(d time.Duration)
 }
