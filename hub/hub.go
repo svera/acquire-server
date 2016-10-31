@@ -24,6 +24,7 @@ const (
 var (
 	mapLock sync.RWMutex
 	rn      *rand.Rand
+	wg      sync.WaitGroup
 )
 
 // Hub is a struct that manage the message flow between client (players)
@@ -97,6 +98,7 @@ func (h *Hub) Run() {
 		case c := <-h.Unregister:
 			for _, val := range h.clients {
 				if val == c {
+					wg.Wait()
 					h.removeClient(c)
 					close(c.Incoming())
 					break
@@ -151,12 +153,16 @@ func (h *Hub) passMessageToRoom(m *interfaces.MessageFromClient) {
 }
 
 func (h *Hub) sendMessage(c interfaces.Client, message []byte) {
+	wg.Add(1)
+
 	select {
 	case c.Incoming() <- message:
+		wg.Done()
 		break
 
 	// We can't reach the client
 	default:
+		wg.Wait()
 		close(c.Incoming())
 		h.removeClient(c)
 	}
@@ -201,6 +207,7 @@ func (h *Hub) getWaitingRoomsIds() []string {
 func (h *Hub) registerCallbacks() {
 	h.emitter.On(room.GameStarted, func(event *emitable.Event) {
 		message := h.createUpdatedRoomListMessage()
+
 		for _, cl := range h.clients {
 			h.sendMessage(cl, message)
 		}
