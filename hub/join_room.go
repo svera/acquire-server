@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/svera/sackson-server/interfaces"
+	"github.com/svera/sackson-server/messages"
 )
 
 func (h *Hub) joinRoomAction(m *interfaces.MessageFromClient) {
@@ -12,11 +13,7 @@ func (h *Hub) joinRoomAction(m *interfaces.MessageFromClient) {
 		if room, ok := h.rooms[parsed.Room]; ok {
 			room.AddHuman(m.Author)
 		} else {
-			res := &interfaces.MessageError{
-				Type:    "err",
-				Content: InexistentRoom,
-			}
-			response, _ := json.Marshal(res)
+			response := messages.New(interfaces.TypeMessageError, InexistentRoom)
 			go h.emitter.Emit("messageCreated", []interfaces.Client{m.Author}, response)
 		}
 

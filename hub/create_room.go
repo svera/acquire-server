@@ -7,6 +7,7 @@ import (
 
 	"github.com/svera/sackson-server/bridges"
 	"github.com/svera/sackson-server/interfaces"
+	"github.com/svera/sackson-server/messages"
 	"github.com/svera/sackson-server/room"
 )
 
@@ -14,11 +15,7 @@ func (h *Hub) createRoomAction(m *interfaces.MessageFromClient) {
 	var parsed interfaces.MessageCreateRoomParams
 	if err := json.Unmarshal(m.Content.Params, &parsed); err == nil {
 		if bridge, err := bridges.Create(parsed.BridgeName); err != nil {
-			res := &interfaces.MessageError{
-				Type:    "err",
-				Content: err.Error(),
-			}
-			response, _ := json.Marshal(res)
+			response := messages.New(interfaces.TypeMessageError, err.Error())
 			go h.emitter.Emit("messageCreated", []interfaces.Client{m.Author}, response)
 		} else {
 			roomParams := map[string]interface{}{
@@ -42,11 +39,7 @@ func (h *Hub) createRoom(b interfaces.Bridge, roomParams map[string]interface{},
 	})
 	h.rooms[id].SetTimer(timer)
 
-	msgRoomCreated := interfaces.MessageRoomCreated{
-		Type: interfaces.TypeMessageRoomCreated,
-		ID:   id,
-	}
-	response, _ := json.Marshal(msgRoomCreated)
+	response := messages.New(interfaces.TypeMessageRoomCreated, id)
 	go h.emitter.Emit("messageCreated", []interfaces.Client{owner}, response)
 
 	go h.emitter.Emit("messageCreated", h.clients, h.createUpdatedRoomListMessage())

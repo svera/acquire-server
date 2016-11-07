@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/svera/sackson-server/interfaces"
+	"github.com/svera/sackson-server/messages"
 )
 
 func (r *Room) addBotAction(m *interfaces.MessageFromClient) error {
@@ -16,7 +17,7 @@ func (r *Room) addBotAction(m *interfaces.MessageFromClient) error {
 	var parsed interfaces.MessageAddBotParams
 	if err = json.Unmarshal(m.Content.Params, &parsed); err == nil {
 		if err = r.addBot(parsed.BotLevel); err != nil {
-			response := newMessage(interfaces.TypeMessageError, err.Error())
+			response := messages.New(interfaces.TypeMessageError, err.Error())
 			go r.emitter.Emit("messageCreated", []interfaces.Client{m.Author}, response)
 		}
 	}

@@ -8,13 +8,16 @@ const (
 	ReasonRoomDestroyedTimeout    = "tim"
 	ReasonRoomDestroyedTerminated = "ter"
 	ReasonRoomDestroyedNoClients  = "ncl"
+	ReasonPlayerTimedOut          = "ptm"
+	ReasonPlayerKicked            = "kck"
+	ReasonPlayerQuitted           = "qui"
 )
 
 // Types for the messages in this file
 const (
-	TypeMessageRoomCreated   = "new"
-	TypeMessageRoomDestroyed = "out"
-	TypeMessageRoomsList     = "rms"
+	TypeMessageRoomCreated = "new"
+	TypeMessageClientOut   = "out"
+	TypeMessageRoomsList   = "rms"
 )
 
 // MessageRoomCreated defines the needed parameters for a room created
@@ -24,9 +27,9 @@ type MessageRoomCreated struct {
 	ID   string `json:"id"`
 }
 
-// MessageRoomDestroyed defines the needed parameters for a room destroyed
+// MessageClientOut defines the needed parameters for a client out
 // message
-type MessageRoomDestroyed struct {
+type MessageClientOut struct {
 	Type   string `json:"typ"`
 	Reason string `json:"rea"`
 }

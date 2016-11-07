@@ -1,13 +1,13 @@
 package room
 
 import (
-	"encoding/json"
 	"log"
 	"time"
 
 	emitable "github.com/olebedev/emitter"
 	"github.com/svera/sackson-server/config"
 	"github.com/svera/sackson-server/interfaces"
+	"github.com/svera/sackson-server/messages"
 )
 
 // Error messages returned from Room
@@ -86,7 +86,7 @@ func (r *Room) ParseMessage(m *interfaces.MessageFromClient) {
 	if r.isControlMessage(m) {
 		r.parseControlMessage(m)
 	} else if r.gameBridge.IsGameOver() {
-		response := newMessage(interfaces.TypeMessageError, GameOver)
+		response := messages.New(interfaces.TypeMessageError, GameOver)
 		go r.emitter.Emit("messageCreated", []interfaces.Client{m.Author}, response)
 	} else {
 		r.passMessageToGame(m)
@@ -122,7 +122,7 @@ func (r *Room) parseControlMessage(m *interfaces.MessageFromClient) {
 		err = r.clientQuits(m.Author)
 	}
 	if err != nil {
-		response := newMessage(interfaces.TypeMessageError, err.Error())
+		response := messages.New(interfaces.TypeMessageError, err.Error())
 		go r.emitter.Emit("messageCreated", []interfaces.Client{m.Author}, response)
 	}
 }
@@ -148,7 +148,7 @@ func (r *Room) passMessageToGame(m *interfaces.MessageFromClient) {
 				r.changePlayerSetTimer()
 			}
 		} else {
-			response := newMessage(interfaces.TypeMessageError, err.Error())
+			response := messages.New(interfaces.TypeMessageError, err.Error())
 			go r.emitter.Emit("messageCreated", []interfaces.Client{m.Author}, response)
 		}
 	}
@@ -201,11 +201,8 @@ func (r *Room) AddHuman(c interfaces.Client) error {
 }
 
 func (r *Room) timeoutPlayer(cl interfaces.Client) {
-	msg := interfaces.MessageRoomDestroyed{
-		Type:   interfaces.TypeMessageRoomDestroyed,
-		Reason: "ptm",
-	}
-	response, _ := json.Marshal(msg)
+	response := messages.New(interfaces.TypeMessageClientOut, interfaces.ReasonPlayerTimedOut)
+
 	go r.emitter.Emit("messageCreated", []interfaces.Client{cl}, response)
 	r.RemoveClient(cl)
 }
@@ -220,7 +217,7 @@ func (r *Room) addClient(c interfaces.Client) error {
 		r.owner = c
 	}
 	c.SetRoom(r)
-	response := newMessage(interfaces.TypeMessageCurrentPlayers, r.playersData())
+	response := messages.New(interfaces.TypeMessageCurrentPlayers, r.playersData())
 	go r.emitter.Emit("messageCreated", r.clients, response)
 	return nil
 }
@@ -233,7 +230,6 @@ func (r *Room) RemoveClient(c interfaces.Client) {
 	for i := range r.clients {
 		if r.clients[i] == c {
 			r.clients[i].SetRoom(nil)
-			// QUE PASA CON ESTO!!!!
 			c.StopTimer()
 			if r.gameBridge.GameStarted() {
 				r.deactivatePlayer(i)
@@ -265,7 +261,7 @@ func (r *Room) deactivatePlayer(playerNumber int) {
 func (r *Room) removePlayer(playerNumber int) {
 	r.clients = append(r.clients[:playerNumber], r.clients[playerNumber+1:]...)
 	r.gameBridge.RemovePlayer(playerNumber)
-	response := newMessage(interfaces.TypeMessageCurrentPlayers, r.playersData())
+	response := messages.New(interfaces.TypeMessageCurrentPlayers, r.playersData())
 	for _, cl := range r.clients {
 		log.Println("lista de clientes actualizadas")
 		go r.emitter.Emit("messageCreated", []interfaces.Client{cl}, response)

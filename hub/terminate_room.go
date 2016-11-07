@@ -1,10 +1,10 @@
 package hub
 
 import (
-	"encoding/json"
 	"log"
 
 	"github.com/svera/sackson-server/interfaces"
+	"github.com/svera/sackson-server/messages"
 )
 
 func (h *Hub) terminateRoomAction(m *interfaces.MessageFromClient) {
@@ -31,11 +31,7 @@ func (h *Hub) destroyRoom(roomID string, reasonCode string) {
 }
 
 func (h *Hub) expelClientsFromRoom(r interfaces.Room, reasonCode string) {
-	msg := interfaces.MessageRoomDestroyed{
-		Type:   interfaces.TypeMessageRoomDestroyed,
-		Reason: reasonCode,
-	}
-	response, _ := json.Marshal(msg)
+	response := messages.New(interfaces.TypeMessageClientOut, reasonCode)
 
 	for _, cl := range r.Clients() {
 		if cl != nil && cl.IsBot() {
@@ -52,10 +48,5 @@ func (h *Hub) expelClientsFromRoom(r interfaces.Room, reasonCode string) {
 }
 
 func (h *Hub) createUpdatedRoomListMessage() []byte {
-	msgRoomList := interfaces.MessageRoomsList{
-		Type:   interfaces.TypeMessageRoomsList,
-		Values: h.getWaitingRoomsIds(),
-	}
-	response, _ := json.Marshal(msgRoomList)
-	return response
+	return messages.New(interfaces.TypeMessageRoomsList, h.getWaitingRoomsIds())
 }

@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/svera/sackson-server/interfaces"
+	"github.com/svera/sackson-server/messages"
 )
 
 func (r *Room) kickPlayerAction(m *interfaces.MessageFromClient) error {
@@ -29,7 +30,7 @@ func (r *Room) kickClient(number int) error {
 	}
 	cl.SetRoom(nil)
 	r.RemoveClient(r.clients[number])
-	response := newMessage(interfaces.TypeMessageRoomDestroyed, "kck")
+	response := messages.New(interfaces.TypeMessageClientOut, interfaces.ReasonPlayerKicked)
 	go r.emitter.Emit("messageCreated", []interfaces.Client{cl}, response)
 	return nil
 }
