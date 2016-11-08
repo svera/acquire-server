@@ -7,7 +7,7 @@ import (
 	"github.com/svera/sackson-server/messages"
 )
 
-func (h *Hub) terminateRoomAction(m *interfaces.MessageFromClient) {
+func (h *Hub) terminateRoomAction(m *interfaces.IncomingMessage) {
 	if m.Author != m.Author.Room().Owner() {
 		return
 	}

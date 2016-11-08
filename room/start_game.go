@@ -6,7 +6,7 @@ import (
 	"github.com/svera/sackson-server/interfaces"
 )
 
-func (r *Room) startGameAction(m *interfaces.MessageFromClient) error {
+func (r *Room) startGameAction(m *interfaces.IncomingMessage) error {
 	if m.Author != r.owner {
 		return errors.New(Forbidden)
 	}

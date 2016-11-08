@@ -21,7 +21,7 @@ func New(typeMessage string, args ...interface{}) []byte {
 	case interfaces.TypeMessageCurrentPlayers:
 		msg := interfaces.MessageCurrentPlayers{
 			Type:   interfaces.TypeMessageCurrentPlayers,
-			Values: args[0].([]interfaces.MessagePlayer),
+			Values: args[0].([]interfaces.PlayerData),
 		}
 		encoded, _ = json.Marshal(msg)
 

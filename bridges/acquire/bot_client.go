@@ -44,9 +44,9 @@ func NewBotClient(b acquireInterfaces.Bot, room serverInterfaces.Room) serverInt
 // an update message comes this way, updates the bot game status information
 // and gets its next play, sending it back to the hub
 func (c *BotClient) ReadPump(cnl interface{}, unregister chan serverInterfaces.Client) {
-	var msg *serverInterfaces.MessageFromClient
+	var msg *serverInterfaces.IncomingMessage
 	var m interface{}
-	channel := cnl.(chan *serverInterfaces.MessageFromClient)
+	channel := cnl.(chan *serverInterfaces.IncomingMessage)
 	defer func() {
 		unregister <- c
 	}()
@@ -67,8 +67,8 @@ func (c *BotClient) ReadPump(cnl interface{}, unregister chan serverInterfaces.C
 
 }
 
-func (c *BotClient) encodeResponse(m bots.Message) *serverInterfaces.MessageFromClient {
-	var enc *serverInterfaces.MessageFromClient
+func (c *BotClient) encodeResponse(m bots.Message) *serverInterfaces.IncomingMessage {
+	var enc *serverInterfaces.IncomingMessage
 
 	switch m.Type {
 	case bots.PlayTileResponseType:
@@ -133,49 +133,49 @@ func (c *BotClient) updateBot(parsed statusMessage) {
 	c.bot.Update(st)
 }
 
-func (c *BotClient) encodePlayTile(response bots.PlayTileResponseParams) *serverInterfaces.MessageFromClient {
+func (c *BotClient) encodePlayTile(response bots.PlayTileResponseParams) *serverInterfaces.IncomingMessage {
 	params := playTileMessageParams{
 		Tile: response.Tile,
 	}
 	ser, _ := json.Marshal(params)
-	return &serverInterfaces.MessageFromClient{
+	return &serverInterfaces.IncomingMessage{
 		Author: c,
-		Content: serverInterfaces.MessageFromClientContent{
+		Content: serverInterfaces.IncomingMessageContent{
 			Type:   messageTypePlayTile,
 			Params: ser,
 		},
 	}
 }
 
-func (c *BotClient) encodeFoundCorporation(response bots.NewCorpResponseParams) *serverInterfaces.MessageFromClient {
+func (c *BotClient) encodeFoundCorporation(response bots.NewCorpResponseParams) *serverInterfaces.IncomingMessage {
 	params := newCorpMessageParams{
 		CorporationIndex: response.CorporationIndex,
 	}
 	ser, _ := json.Marshal(params)
-	return &serverInterfaces.MessageFromClient{
+	return &serverInterfaces.IncomingMessage{
 		Author: c,
-		Content: serverInterfaces.MessageFromClientContent{
+		Content: serverInterfaces.IncomingMessageContent{
 			Type:   messageTypeFoundCorporation,
 			Params: ser,
 		},
 	}
 }
 
-func (c *BotClient) encodeBuyStock(response bots.BuyResponseParams) *serverInterfaces.MessageFromClient {
+func (c *BotClient) encodeBuyStock(response bots.BuyResponseParams) *serverInterfaces.IncomingMessage {
 	params := buyMessageParams{
 		CorporationsIndexes: response.CorporationsIndexes,
 	}
 	ser, _ := json.Marshal(params)
-	return &serverInterfaces.MessageFromClient{
+	return &serverInterfaces.IncomingMessage{
 		Author: c,
-		Content: serverInterfaces.MessageFromClientContent{
+		Content: serverInterfaces.IncomingMessageContent{
 			Type:   messageTypeBuyStock,
 			Params: ser,
 		},
 	}
 }
 
-func (c *BotClient) encodeSellTrade(response bots.SellTradeResponseParams) *serverInterfaces.MessageFromClient {
+func (c *BotClient) encodeSellTrade(response bots.SellTradeResponseParams) *serverInterfaces.IncomingMessage {
 	params := sellTradeMessageParams{
 		CorporationsIndexes: map[string]sellTrade{},
 	}
@@ -183,33 +183,33 @@ func (c *BotClient) encodeSellTrade(response bots.SellTradeResponseParams) *serv
 		params.CorporationsIndexes[k] = sellTrade{v.Sell, v.Trade}
 	}
 	ser, _ := json.Marshal(params)
-	return &serverInterfaces.MessageFromClient{
+	return &serverInterfaces.IncomingMessage{
 		Author: c,
-		Content: serverInterfaces.MessageFromClientContent{
+		Content: serverInterfaces.IncomingMessageContent{
 			Type:   messageTypeSellTrade,
 			Params: ser,
 		},
 	}
 }
 
-func (c *BotClient) encodeUntieMerge(response bots.UntieMergeResponseParams) *serverInterfaces.MessageFromClient {
+func (c *BotClient) encodeUntieMerge(response bots.UntieMergeResponseParams) *serverInterfaces.IncomingMessage {
 	params := untieMergeMessageParams{
 		CorporationIndex: response.CorporationIndex,
 	}
 	ser, _ := json.Marshal(params)
-	return &serverInterfaces.MessageFromClient{
+	return &serverInterfaces.IncomingMessage{
 		Author: c,
-		Content: serverInterfaces.MessageFromClientContent{
+		Content: serverInterfaces.IncomingMessageContent{
 			Type:   messageTypeUntieMerge,
 			Params: ser,
 		},
 	}
 }
 
-func (c *BotClient) encodeEndGame() *serverInterfaces.MessageFromClient {
-	return &serverInterfaces.MessageFromClient{
+func (c *BotClient) encodeEndGame() *serverInterfaces.IncomingMessage {
+	return &serverInterfaces.IncomingMessage{
 		Author: c,
-		Content: serverInterfaces.MessageFromClientContent{
+		Content: serverInterfaces.IncomingMessageContent{
 			Type: messageTypeEndGame,
 		},
 	}

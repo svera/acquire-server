@@ -9,7 +9,7 @@ import (
 	"github.com/svera/sackson-server/messages"
 )
 
-func (r *Room) addBotAction(m *interfaces.MessageFromClient) error {
+func (r *Room) addBotAction(m *interfaces.IncomingMessage) error {
 	var err error
 	if m.Author != r.owner {
 		return errors.New(Forbidden)

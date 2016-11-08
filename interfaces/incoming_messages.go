@@ -17,17 +17,17 @@ const (
 	ControlMessageTypeTerminateRoom = "ter"
 )
 
-// MessageFromClient is a container struct used by
+// IncomingMessage is a container struct used by
 // clients to encapsulate their action messages sent to the hub.
-type MessageFromClient struct {
+type IncomingMessage struct {
 	Author  Client
-	Content MessageFromClientContent
+	Content IncomingMessageContent
 }
 
-// MessageFromClientContent is a struct that goes inside MessageFromClient struct, acting
+// IncomingMessageContent is a struct that goes inside IncomingMessage struct, acting
 // as a container for the different kind of parameters needed for each type
 // of message
-type MessageFromClientContent struct {
+type IncomingMessageContent struct {
 	Type   string          `json:"typ"`
 	Params json.RawMessage `json:"par"`
 }

@@ -38,7 +38,7 @@ type Room struct {
 	gameBridge interfaces.Bridge
 
 	// Bots inbound messages
-	messages chan *interfaces.MessageFromClient
+	messages chan *interfaces.IncomingMessage
 
 	// Bots unregistration requests
 	unregister chan interfaces.Client
@@ -60,7 +60,7 @@ type Room struct {
 func New(
 	id string, b interfaces.Bridge,
 	owner interfaces.Client,
-	messages chan *interfaces.MessageFromClient,
+	messages chan *interfaces.IncomingMessage,
 	unregister chan interfaces.Client,
 	cfg *config.Config,
 	emitter *emitable.Emitter,
@@ -82,7 +82,7 @@ func New(
 
 // ParseMessage gets an incoming message from a client and parses it, executing
 // its desired action in the room or passing it to the room's game bridge
-func (r *Room) ParseMessage(m *interfaces.MessageFromClient) {
+func (r *Room) Parse(m *interfaces.IncomingMessage) {
 	if r.isControlMessage(m) {
 		r.parseControlMessage(m)
 	} else if r.gameBridge.IsGameOver() {
@@ -93,7 +93,7 @@ func (r *Room) ParseMessage(m *interfaces.MessageFromClient) {
 	}
 }
 
-func (r *Room) isControlMessage(m *interfaces.MessageFromClient) bool {
+func (r *Room) isControlMessage(m *interfaces.IncomingMessage) bool {
 	switch m.Content.Type {
 	case
 		interfaces.ControlMessageTypeAddBot,
@@ -105,7 +105,7 @@ func (r *Room) isControlMessage(m *interfaces.MessageFromClient) bool {
 	return false
 }
 
-func (r *Room) parseControlMessage(m *interfaces.MessageFromClient) {
+func (r *Room) parseControlMessage(m *interfaces.IncomingMessage) {
 	var err error
 	switch m.Content.Type {
 
@@ -127,7 +127,7 @@ func (r *Room) parseControlMessage(m *interfaces.MessageFromClient) {
 	}
 }
 
-func (r *Room) passMessageToGame(m *interfaces.MessageFromClient) {
+func (r *Room) passMessageToGame(m *interfaces.IncomingMessage) {
 	var err error
 	var currentPlayer interfaces.Client
 
@@ -164,13 +164,13 @@ func (r *Room) changePlayerSetTimer() {
 	}
 }
 
-func (r *Room) playersData() []interfaces.MessagePlayer {
-	players := []interfaces.MessagePlayer{}
+func (r *Room) playersData() []interfaces.PlayerData {
+	players := []interfaces.PlayerData{}
 	for _, c := range r.clients {
 		if c != nil {
 			players = append(
 				players,
-				interfaces.MessagePlayer{
+				interfaces.PlayerData{
 					Name:  c.Name(),
 					Owner: c.Room().Owner() == c,
 				},

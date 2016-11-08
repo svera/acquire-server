@@ -11,7 +11,7 @@ import (
 	"github.com/svera/sackson-server/room"
 )
 
-func (h *Hub) createRoomAction(m *interfaces.MessageFromClient) {
+func (h *Hub) createRoomAction(m *interfaces.IncomingMessage) {
 	var parsed interfaces.MessageCreateRoomParams
 	if err := json.Unmarshal(m.Content.Params, &parsed); err == nil {
 		if bridge, err := bridges.Create(parsed.BridgeName); err != nil {

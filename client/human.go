@@ -53,7 +53,7 @@ func NewHuman(w http.ResponseWriter, r *http.Request) (interfaces.Client, error)
 
 // ReadPump reads input from the user and writes it to the passed channel
 func (c *Human) ReadPump(cnl interface{}, unregister chan interfaces.Client) {
-	channel := cnl.(chan *interfaces.MessageFromClient)
+	channel := cnl.(chan *interfaces.IncomingMessage)
 	defer func() {
 		unregister <- c
 		c.ws.Close()
@@ -72,9 +72,9 @@ func (c *Human) ReadPump(cnl interface{}, unregister chan interfaces.Client) {
 			break
 		}
 
-		cnt := interfaces.MessageFromClientContent{}
+		cnt := interfaces.IncomingMessageContent{}
 		if err := json.Unmarshal(message, &cnt); err == nil {
-			msg := &interfaces.MessageFromClient{
+			msg := &interfaces.IncomingMessage{
 				Author:  c,
 				Content: cnt,
 			}

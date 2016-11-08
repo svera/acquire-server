@@ -7,7 +7,7 @@ import (
 	"github.com/svera/sackson-server/messages"
 )
 
-func (h *Hub) joinRoomAction(m *interfaces.MessageFromClient) {
+func (h *Hub) joinRoomAction(m *interfaces.IncomingMessage) {
 	var parsed interfaces.MessageJoinRoomParams
 	if err := json.Unmarshal(m.Content.Params, &parsed); err == nil {
 		if room, ok := h.rooms[parsed.Room]; ok {

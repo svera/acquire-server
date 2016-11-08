@@ -6,7 +6,7 @@ import "time"
 // implementation must have
 type Room interface {
 	GameStarted() bool
-	ParseMessage(m *MessageFromClient)
+	Parse(m *IncomingMessage)
 	IsGameOver() bool
 	RemoveClient(c Client)
 	ID() string

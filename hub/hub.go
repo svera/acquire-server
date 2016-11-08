@@ -38,7 +38,7 @@ type Hub struct {
 	rooms map[string]interfaces.Room
 
 	// Inbound messages
-	Messages chan *interfaces.MessageFromClient
+	Messages chan *interfaces.IncomingMessage
 
 	// Registration requests
 	Register chan interfaces.Client
@@ -62,7 +62,7 @@ func init() {
 // New returns a new Hub instance
 func New(cfg *config.Config, emitter *emitable.Emitter, debug bool) *Hub {
 	h := &Hub{
-		Messages:      make(chan *interfaces.MessageFromClient),
+		Messages:      make(chan *interfaces.IncomingMessage),
 		Register:      make(chan interfaces.Client),
 		Unregister:    make(chan interfaces.Client),
 		clients:       []interfaces.Client{},
@@ -115,7 +115,7 @@ func (h *Hub) Run() {
 // parseMessage distinguish the passed message between be a control message (not
 // related to a particular game, but to the server) or a room one (specific to
 // a particular room)
-func (h *Hub) parseMessage(m *interfaces.MessageFromClient) {
+func (h *Hub) parseMessage(m *interfaces.IncomingMessage) {
 	if h.isControlMessage(m) {
 		h.parseControlMessage(m)
 	} else {
@@ -123,7 +123,7 @@ func (h *Hub) parseMessage(m *interfaces.MessageFromClient) {
 	}
 }
 
-func (h *Hub) isControlMessage(m *interfaces.MessageFromClient) bool {
+func (h *Hub) isControlMessage(m *interfaces.IncomingMessage) bool {
 	switch m.Content.Type {
 	case
 		interfaces.ControlMessageTypeCreateRoom,
@@ -134,7 +134,7 @@ func (h *Hub) isControlMessage(m *interfaces.MessageFromClient) bool {
 	return false
 }
 
-func (h *Hub) parseControlMessage(m *interfaces.MessageFromClient) {
+func (h *Hub) parseControlMessage(m *interfaces.IncomingMessage) {
 	switch m.Content.Type {
 
 	case interfaces.ControlMessageTypeCreateRoom:
@@ -148,8 +148,8 @@ func (h *Hub) parseControlMessage(m *interfaces.MessageFromClient) {
 	}
 }
 
-func (h *Hub) passMessageToRoom(m *interfaces.MessageFromClient) {
-	m.Author.Room().ParseMessage(m)
+func (h *Hub) passMessageToRoom(m *interfaces.IncomingMessage) {
+	m.Author.Room().Parse(m)
 }
 
 func (h *Hub) sendMessage(c interfaces.Client, message []byte) {
