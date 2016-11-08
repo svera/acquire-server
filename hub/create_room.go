@@ -32,7 +32,7 @@ func (h *Hub) createRoom(b interfaces.Bridge, roomParams map[string]interface{},
 	h.rooms[id] = room.New(id, b, owner, h.Messages, h.Unregister, h.configuration, h.emitter, roomParams)
 
 	timer := time.AfterFunc(time.Minute*h.configuration.Timeout, func() {
-		if h.debug {
+		if h.configuration.Debug {
 			log.Printf("Destroying room %s due to timeout\n", id)
 		}
 		h.destroyRoom(id, interfaces.ReasonRoomDestroyedTimeout)
@@ -44,7 +44,7 @@ func (h *Hub) createRoom(b interfaces.Bridge, roomParams map[string]interface{},
 
 	go h.emitter.Emit("messageCreated", h.clients, h.createUpdatedRoomListMessage())
 
-	if h.debug {
+	if h.configuration.Debug {
 		log.Printf("Room %s created\n", id)
 	}
 

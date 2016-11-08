@@ -25,7 +25,7 @@ func (h *Hub) destroyRoom(roomID string, reasonCode string) {
 	mapLock.RUnlock()
 	go h.emitter.Emit("messageCreated", h.clients, h.createUpdatedRoomListMessage())
 
-	if h.debug {
+	if h.configuration.Debug {
 		log.Printf("Room %s destroyed\n", roomID)
 	}
 }
@@ -35,7 +35,7 @@ func (h *Hub) expelClientsFromRoom(r interfaces.Room, reasonCode string) {
 
 	for _, cl := range r.Clients() {
 		if cl != nil && cl.IsBot() {
-			if h.debug {
+			if h.configuration.Debug {
 				log.Printf("Bot %s destroyed", cl.Name())
 			}
 			cl.Close()

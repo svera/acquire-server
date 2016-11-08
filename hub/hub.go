@@ -50,8 +50,6 @@ type Hub struct {
 	configuration *config.Config
 
 	emitter *emitable.Emitter
-
-	debug bool
 }
 
 func init() {
@@ -60,7 +58,7 @@ func init() {
 }
 
 // New returns a new Hub instance
-func New(cfg *config.Config, emitter *emitable.Emitter, debug bool) *Hub {
+func New(cfg *config.Config, emitter *emitable.Emitter) *Hub {
 	h := &Hub{
 		Messages:      make(chan *interfaces.IncomingMessage),
 		Register:      make(chan interfaces.Client),
@@ -69,7 +67,6 @@ func New(cfg *config.Config, emitter *emitable.Emitter, debug bool) *Hub {
 		rooms:         make(map[string]interfaces.Room),
 		configuration: cfg,
 		emitter:       emitter,
-		debug:         debug,
 	}
 
 	h.registerCallbacks()
@@ -91,7 +88,7 @@ func (h *Hub) Run() {
 		case c := <-h.Register:
 			h.clients = append(h.clients, c)
 			go h.emitter.Emit("messageCreated", h.clients, h.createUpdatedRoomListMessage())
-			if h.debug {
+			if h.configuration.Debug {
 				log.Printf("Client added to hub, number of connected clients: %d\n", len(h.clients))
 			}
 
@@ -180,7 +177,7 @@ func (h *Hub) removeClient(c interfaces.Client) {
 				r.RemoveClient(c)
 			}
 			h.clients = append(h.clients[:i], h.clients[i+1:]...)
-			if h.debug {
+			if h.configuration.Debug {
 				log.Printf("Client removed from hub, number of clients left: %d\n", len(h.clients))
 			}
 			break

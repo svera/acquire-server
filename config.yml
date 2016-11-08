@@ -1,3 +1,0 @@
-port: ":8001"
-# room live time in minutes
-timeout: 10

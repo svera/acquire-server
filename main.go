@@ -29,7 +29,7 @@ func main() {
 		r := mux.NewRouter()
 		e := &emitter.Emitter{}
 		e.Use("*", emitter.Skip)
-		hb = hub.New(cfg, e, isDebugEnabled())
+		hb = hub.New(cfg, e)
 		go hb.Run()
 
 		r.HandleFunc("/", newClient)
@@ -55,15 +55,4 @@ func newClient(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-}
-
-func isDebugEnabled() bool {
-	debug := false
-	if len(os.Args) == 2 {
-		arg := os.Args[1]
-		if arg == "debug" {
-			debug = true
-		}
-	}
-	return debug
 }

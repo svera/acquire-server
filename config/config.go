@@ -13,6 +13,7 @@ import (
 type Config struct {
 	Port    string
 	Timeout time.Duration
+	Debug   bool
 }
 
 // Load reads configuration from config.yml and parses it
