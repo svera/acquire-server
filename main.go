@@ -16,6 +16,7 @@ import (
 
 var hb *hub.Hub
 var gitHash = "No git hash provided"
+var buildstamp = "No date provided"
 
 func main() {
 	f, err := os.Open("./config.yml")
@@ -36,6 +37,7 @@ func main() {
 		http.Handle("/", r)
 		fmt.Printf("Sackson server listening on port %s\n", cfg.Port)
 		fmt.Printf("Git commit hash: %s\n", gitHash)
+		fmt.Printf("Built on %s\n\n", buildstamp)
 		log.Fatal(http.ListenAndServe(cfg.Port, r))
 	}
 }
