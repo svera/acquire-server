@@ -15,6 +15,7 @@ import (
 )
 
 var hb *hub.Hub
+var cfg *config.Config
 var gitHash = "No git hash provided"
 var buildstamp = "No date provided"
 
@@ -24,7 +25,7 @@ func main() {
 		fmt.Println("Couldn't load configuration file. Check that config.yml exists and that it can be read. Exiting...")
 		return
 	}
-	if cfg, err := config.Load(f); err != nil {
+	if cfg, err = config.Load(f); err != nil {
 		fmt.Println(err.Error())
 	} else {
 		r := mux.NewRouter()
@@ -48,7 +49,7 @@ func newClient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if c, err := client.NewHuman(w, r); err == nil {
+	if c, err := client.NewHuman(w, r, cfg); err == nil {
 		c.SetName(fmt.Sprintf("Player %d", hb.NumberClients()+1))
 		hb.Register <- c
 		go c.WritePump()

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/svera/sackson-server/config"
 	"github.com/svera/sackson-server/interfaces"
 )
 
@@ -30,12 +31,15 @@ type Human struct {
 }
 
 // NewHuman returns a new Human instance
-func NewHuman(w http.ResponseWriter, r *http.Request) (interfaces.Client, error) {
+func NewHuman(w http.ResponseWriter, r *http.Request, cfg *config.Config) (interfaces.Client, error) {
 	var upgrader = websocket.Upgrader{
 		ReadBufferSize:  maxMessageSize,
 		WriteBufferSize: maxMessageSize,
-		// TODO: This line needs to be changed to make it more restrictive
 		CheckOrigin: func(r *http.Request) bool {
+			if r.Header.Get("Origin") != cfg.AllowedOrigin && cfg.AllowedOrigin != "*" {
+				http.Error(w, "Origin not allowed", 403)
+				return false
+			}
 			return true
 		},
 	}

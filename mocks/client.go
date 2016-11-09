@@ -78,3 +78,18 @@ func (c *Client) SetRoom(r interfaces.Room) {
 func (c *Client) IsBot() bool {
 	return c.FakeIsBot
 }
+
+// SetTimer mocks the IsBot method defined in the Client interface
+func (c *Client) SetTimer(t *time.Timer) {
+
+}
+
+// StopTimer mocks the IsBot method defined in the Client interface
+func (c *Client) StopTimer() {
+
+}
+
+// StartTimer mocks the IsBot method defined in the Client interface
+func (c *Client) StartTimer(d time.Duration) {
+
+}

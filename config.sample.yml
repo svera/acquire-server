@@ -1,5 +1,7 @@
 port: ":8001"
-# Room live time in minutes
+# Room live time in minutes (0 for no timeout)
 timeout: 10
 # Show debug messages
 debug: true
+# Allowed origin for connections (* for any)
+allowed_origin: "*"

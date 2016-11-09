@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/olebedev/emitter"
 	"github.com/svera/sackson-server/config"
 	"github.com/svera/sackson-server/mocks"
 )
@@ -26,7 +27,8 @@ func TestRunStopsAfterXMinutes(t *testing.T) {
 */
 func TestRegister(t *testing.T) {
 	var h *Hub
-	h = New(&config.Config{Timeout: 1}, false)
+	e := &emitter.Emitter{}
+	h = New(&config.Config{Timeout: 1}, e)
 
 	go h.Run()
 	c := &mocks.Client{FakeIncoming: make(chan []byte, 2)}
@@ -39,7 +41,8 @@ func TestRegister(t *testing.T) {
 
 func TestUnregister(t *testing.T) {
 	var h *Hub
-	h = New(&config.Config{Timeout: 1}, false)
+	e := &emitter.Emitter{}
+	h = New(&config.Config{Timeout: 1}, e)
 
 	go h.Run()
 	c := &mocks.Client{FakeIncoming: make(chan []byte, 2)}

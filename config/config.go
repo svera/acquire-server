@@ -9,11 +9,12 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// Config holds data needed to run a TBG server instance
+// Config holds data needed to run a Sackson server instance
 type Config struct {
-	Port    string
-	Timeout time.Duration
-	Debug   bool
+	Port          string
+	Timeout       time.Duration
+	Debug         bool
+	AllowedOrigin string `yaml:"allowed_origin"`
 }
 
 // Load reads configuration from config.yml and parses it
@@ -33,7 +34,10 @@ func Load(src io.Reader) (*Config, error) {
 
 func (c *Config) validate() error {
 	if c.Port == "" {
-		return errors.New("TBG configuration: Invalid port")
+		return errors.New("Sackson-server configuration: Invalid port.")
+	}
+	if c.AllowedOrigin == "" {
+		return errors.New("Sackson-server configuration: Invalid origin.")
 	}
 	return nil
 }
