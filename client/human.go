@@ -37,7 +37,6 @@ func NewHuman(w http.ResponseWriter, r *http.Request, cfg *config.Config) (inter
 		WriteBufferSize: maxMessageSize,
 		CheckOrigin: func(r *http.Request) bool {
 			if r.Header.Get("Origin") != cfg.AllowedOrigin && cfg.AllowedOrigin != "*" {
-				http.Error(w, "Origin not allowed", 403)
 				return false
 			}
 			return true
