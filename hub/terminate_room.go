@@ -15,18 +15,17 @@ func (h *Hub) terminateRoomAction(m *interfaces.IncomingMessage) {
 }
 
 func (h *Hub) destroyRoom(roomID string, reasonCode string) {
-	r := h.rooms[roomID]
-	r.Timer().Stop()
+	if r, ok := h.rooms[roomID]; ok {
+		mapLock.RLock()
+		r.Timer().Stop()
+		h.expelClientsFromRoom(r, reasonCode)
+		delete(h.rooms, roomID)
+		mapLock.RUnlock()
+		go h.emitter.Emit("messageCreated", h.clients, h.createUpdatedRoomListMessage())
 
-	h.expelClientsFromRoom(r, reasonCode)
-
-	mapLock.RLock()
-	delete(h.rooms, roomID)
-	mapLock.RUnlock()
-	go h.emitter.Emit("messageCreated", h.clients, h.createUpdatedRoomListMessage())
-
-	if h.configuration.Debug {
-		log.Printf("Room %s destroyed\n", roomID)
+		if h.configuration.Debug {
+			log.Printf("Room %s destroyed\n", roomID)
+		}
 	}
 }
 
@@ -40,7 +39,7 @@ func (h *Hub) expelClientsFromRoom(r interfaces.Room, reasonCode string) {
 			}
 			cl.Close()
 		} else if cl != nil {
-			go h.emitter.Emit("messageCreated", r.Clients(), response)
+			go h.emitter.Emit("messageCreated", r.HumanClients(), response)
 			cl.SetRoom(nil)
 			cl.StopTimer()
 		}

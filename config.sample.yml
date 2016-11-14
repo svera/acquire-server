@@ -4,4 +4,5 @@ timeout: 10
 # Show debug messages
 debug: true
 # Allowed origin for connections (* for any)
+# e.g. "http://localhost:8080"
 allowed_origin: "*"

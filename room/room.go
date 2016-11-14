@@ -263,7 +263,6 @@ func (r *Room) removePlayer(playerNumber int) {
 	r.gameBridge.RemovePlayer(playerNumber)
 	response := messages.New(interfaces.TypeMessageCurrentPlayers, r.playersData())
 	for _, cl := range r.clients {
-		log.Println("lista de clientes actualizadas")
 		go r.emitter.Emit("messageCreated", []interfaces.Client{cl}, response)
 	}
 }
