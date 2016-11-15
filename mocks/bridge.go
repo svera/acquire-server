@@ -15,6 +15,11 @@ type Bridge struct {
 	FakeIsGameOver          bool
 }
 
+// Execute mocks the Execute method defined in the Bridge interface
+func (b *Bridge) Execute(clientName string, t string, content json.RawMessage) error {
+	return nil
+}
+
 // ParseMessage mocks the ParseMessage method defined in the Bridge interface
 func (b *Bridge) ParseMessage(t string, content json.RawMessage) error {
 	return nil
@@ -46,7 +51,7 @@ func (b *Bridge) DeactivatePlayer(number int) error {
 }
 
 // AddBot mocks the AddBot method defined in the Bridge interface
-func (b *Bridge) AddBot(params interface{}) (interfaces.Client, error) {
+func (b *Bridge) AddBot(params interface{}, room interfaces.Room) (interfaces.Client, error) {
 	return b.FakeClient, nil
 }
 

@@ -21,8 +21,7 @@ func (h *Hub) createRoomAction(m *interfaces.IncomingMessage) {
 			roomParams := map[string]interface{}{
 				"playerTimeout": parsed.PlayerTimeout,
 			}
-			id := h.createRoom(bridge, roomParams, m.Author)
-			h.rooms[id].AddHuman(m.Author)
+			h.createRoom(bridge, roomParams, m.Author)
 		}
 	}
 }
@@ -47,6 +46,7 @@ func (h *Hub) createRoom(b interfaces.Bridge, roomParams map[string]interface{},
 	if h.configuration.Debug {
 		log.Printf("Room %s created\n", id)
 	}
+	h.rooms[id].AddHuman(owner)
 
 	return id
 }

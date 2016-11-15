@@ -1,4 +1,4 @@
-// Package corporation contains the model Corporation and attahced methods which manages corporations in game
+// Package corporation contains the model Corporation and attached methods which manages corporations in game
 package corporation
 
 import acquireCorporation "github.com/svera/acquire/corporation"
