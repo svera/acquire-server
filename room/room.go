@@ -80,7 +80,7 @@ func New(
 	}
 }
 
-// ParseMessage gets an incoming message from a client and parses it, executing
+// Parse gets an incoming message from a client and parses it, executing
 // its desired action in the room or passing it to the room's game bridge
 func (r *Room) Parse(m *interfaces.IncomingMessage) {
 	if r.isControlMessage(m) {
@@ -222,7 +222,7 @@ func (r *Room) addClient(c interfaces.Client) error {
 	return nil
 }
 
-// RemoveClient Removes /sets as nil a client and removes / deactivates its player
+// RemoveClient removes / sets as nil a client and removes / deactivates its player
 // depending wheter the game has already started or not.
 // Note that we don't remove a client if a game has already started, as client
 // indexes must not change once a game has started.
