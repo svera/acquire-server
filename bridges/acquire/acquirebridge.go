@@ -1,5 +1,3 @@
-// Package acquirebridge implements an interface that allow to create Acquire
-// games using the Sackson server
 package acquirebridge
 
 import (

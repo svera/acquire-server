@@ -64,7 +64,7 @@ These messages are the ones allowed by the Acquire bridge and describe actions p
 * Untie merge.
 ```
 {
-  "typ": "unt", // Message type: New corporation
+  "typ": "unt", // Message type: Untie merge
   "par": { // Parameters
     "cor": "2" // Corporation number
   }
@@ -86,44 +86,44 @@ the updated game status:
 ```
 {
     "typ": "upd", // Type: update
-	"brd": { // Board state
-        "1A": "empty",
-        "1B": "unincorporated",
+    "brd": { // Board state
+        "1A": "empty", // Board cell 1A is empty
+        "1B": "unincorporated", // Board cell 1B is unincorporated
         "1C": "empty",
-        "1D": "0",
+        "1D": "0", // Board cell 1A belongs to corporation 0
         ...
     }
-	"sta": "PlayTile",
+    "sta": "PlayTile",
     "hnd": {
-        "1A": true,
+        "1A": true, // Player has tile 1A and it is playable
     },
     "cor": [
         {
             "nam": "Hilton",
-            "prc": 100,
-            "maj": 400,
-            "min": 200,
-            "rem": 20,
-            "siz": 2,
-            "def": false,
-            "tie": false,        
+            "prc": 100, // Corporation stock price
+            "maj": 400, // Corporation majority bonus
+            "min": 200, // Corporation minority bonus
+            "rem": 20,  // Remaining stock shares
+            "siz": 2,   // Corporation size
+            "def": false, // Is corporation defunct? (in corporation merges)
+            "tie": false, // Is coroporation part of a tied merge?
         },
         ...
     ],
-	"ply": {
-	    "atv": true, // Is player still in game?
+    "ply": {
+        "atv": true, // Is player still in game?
         "nam": "John",
-        "trn": true,
-        "csh": 6000,
-        "own": [
+        "trn": true, // Is player currently in turn?
+        "csh": 6000, // Player cash
+        "own": [     // Player owned shares per corporation
             0: 2,
             1: 0,
             ...
         ]
     },
-	"riv": [
+    "riv": [
         {
-            "atv": true, // Is player still in game?
+            "atv": true,
             "nam": "Doe",
             "trn": false,
             "csh": 6000,
@@ -135,9 +135,9 @@ the updated game status:
         },
         ...
     ],
-	"rnd": 3, // Round number
-	"lst": false, // Is last round?
-	"his": [ // History log (i18n enabled)
+    "rnd": 3, // Round number
+    "lst": false, // Is last round?
+    "his": [ // History log (i18n enabled)
         {
             "key": "translation_key",
             "arg": {
