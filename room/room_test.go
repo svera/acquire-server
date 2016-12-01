@@ -111,3 +111,31 @@ func TestKickOwnerNotAllowed(t *testing.T) {
 		t.Errorf("Room must still have owner after trying to kick him/her, got %d", len(r.clients))
 	}
 }
+
+func TestPlayerQuits(t *testing.T) {
+	setup()
+
+	m := &interfaces.IncomingMessage{
+		Author: c,
+		Content: interfaces.IncomingMessageContent{
+			Type: interfaces.ControlMessageTypePlayerQuits,
+		},
+	}
+
+	r.clients = append(r.clients, c)
+	r.Parse(m)
+
+	if len(r.clients) != 0 {
+		t.Errorf("Room must have no clients after quitting, got %d", len(r.clients))
+	}
+}
+
+func TestAddHuman(t *testing.T) {
+	setup()
+
+	r.AddHuman(c)
+
+	if len(r.clients) != 1 {
+		t.Errorf("Room must have 1 client, got %d", len(r.clients))
+	}
+}
