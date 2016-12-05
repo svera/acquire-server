@@ -145,7 +145,14 @@ func (b *AcquireBridge) DeactivatePlayer(number int) error {
 	if number < 0 || number > len(b.players) {
 		return errors.New(InexistentPlayer)
 	}
+	playerName := b.players[number].(*player.Player).Name()
 	b.game.DeactivatePlayer(b.players[number])
+	b.history = append(b.history, i18n{
+		Key: "game.history.player_left",
+		Arguments: map[string]string{
+			"player": playerName,
+		},
+	})
 	return nil
 }
 

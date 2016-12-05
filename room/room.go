@@ -247,6 +247,13 @@ func (r *Room) RemoveClient(c interfaces.Client) {
 func (r *Room) deactivatePlayer(playerNumber int) {
 	r.clients[playerNumber] = nil
 	r.gameBridge.DeactivatePlayer(playerNumber)
+	if !r.gameBridge.IsGameOver() {
+		currentPlayerClient, _ := r.currentPlayerClient()
+		if r.clientInTurn != currentPlayerClient {
+			r.changePlayerSetTimer()
+		}
+	}
+
 	for i, cl := range r.clients {
 		if cl == nil || cl.IsBot() {
 			continue
