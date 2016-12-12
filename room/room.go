@@ -2,6 +2,7 @@ package room
 
 import (
 	"log"
+	"sync"
 	"time"
 
 	emitable "github.com/olebedev/emitter"
@@ -54,6 +55,8 @@ type Room struct {
 	clientInTurn interfaces.Client
 
 	playerTimeOut time.Duration
+
+	mu sync.Mutex
 }
 
 // New returns a new Room instance
@@ -266,6 +269,8 @@ func (r *Room) deactivatePlayer(playerNumber int) {
 // removePlayer removes a player from a room,
 // and returns an updated players list to all the clients as a response
 func (r *Room) removePlayer(playerNumber int) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	r.clients = append(r.clients[:playerNumber], r.clients[playerNumber+1:]...)
 	r.gameBridge.RemovePlayer(playerNumber)
 	response := messages.New(interfaces.TypeMessageCurrentPlayers, r.playersData())
@@ -296,17 +301,21 @@ func (r *Room) Owner() interfaces.Client {
 
 // Clients returns the room's connected clients
 func (r *Room) Clients() []interfaces.Client {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	return r.clients
 }
 
 // HumanClients returns room's connected human clients
 func (r *Room) HumanClients() []interfaces.Client {
 	human := []interfaces.Client{}
+	r.mu.Lock()
 	for _, c := range r.clients {
 		if c != nil && !c.IsBot() {
 			human = append(human, c)
 		}
 	}
+	r.mu.Unlock()
 	return human
 }
 

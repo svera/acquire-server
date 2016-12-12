@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -28,6 +29,8 @@ type Human struct {
 	incoming chan []byte // Channel storing incoming messages
 	room     interfaces.Room
 	timer    *time.Timer
+	mu       sync.Mutex
+	quit     chan struct{}
 }
 
 // NewHuman returns a new Human instance
@@ -51,6 +54,7 @@ func NewHuman(w http.ResponseWriter, r *http.Request, cfg *config.Config) (inter
 	return &Human{
 		incoming: make(chan []byte, maxMessageSize),
 		ws:       ws,
+		quit:     make(chan struct{}),
 	}, nil
 }
 
@@ -112,22 +116,30 @@ func (c *Human) WritePump() {
 			if err := c.write(websocket.PingMessage, []byte{}); err != nil {
 				return
 			}
+		case <-c.quit:
+			return
 		}
 	}
 }
 
 // Room returns the room where the client is in
 func (c *Human) Room() interfaces.Room {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	return c.room
 }
 
 // SetRoom sets the client's room
 func (c *Human) SetRoom(r interfaces.Room) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	c.room = r
 }
 
 // Incoming returns the client's incoming channel
 func (c *Human) Incoming() chan []byte {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	return c.incoming
 }
 
@@ -143,6 +155,8 @@ func (c *Human) SetName(v string) interfaces.Client {
 }
 
 func (c *Human) write(mt int, message []byte) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	c.ws.SetWriteDeadline(time.Now().Add(writeWait))
 	return c.ws.WriteMessage(mt, message)
 }
@@ -151,6 +165,7 @@ func (c *Human) write(mt int, message []byte) error {
 func (c *Human) Close() {
 	c.write(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 	c.ws.Close()
+	close(c.quit)
 }
 
 // IsBot returns false because this client is not managed by a bot

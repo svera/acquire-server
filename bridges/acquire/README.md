@@ -106,7 +106,7 @@ the updated game status:
             "rem": 20,  // Remaining stock shares
             "siz": 2,   // Corporation size
             "def": false, // Is corporation defunct? (in corporation merges)
-            "tie": false, // Is coroporation part of a tied merge?
+            "tie": false, // Is corporation part of a tied merge?
         },
         ...
     ],

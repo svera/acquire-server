@@ -21,8 +21,8 @@ const (
 type BotClient struct {
 	name         string
 	incoming     chan []byte // Channel storing incoming messages
-	endReadPump  chan bool
-	endWritePump chan bool
+	endReadPump  chan struct{}
+	endWritePump chan struct{}
 	botTurn      chan statusMessage
 	bot          acquireInterfaces.Bot
 	room         serverInterfaces.Room
@@ -32,8 +32,8 @@ type BotClient struct {
 func NewBotClient(b acquireInterfaces.Bot, room serverInterfaces.Room) serverInterfaces.Client {
 	return &BotClient{
 		incoming:     make(chan []byte, maxMessageSize),
-		endReadPump:  make(chan bool),
-		endWritePump: make(chan bool),
+		endReadPump:  make(chan struct{}),
+		endWritePump: make(chan struct{}),
 		botTurn:      make(chan statusMessage),
 		bot:          b,
 		room:         room,
@@ -255,8 +255,8 @@ func (c *BotClient) SetName(v string) serverInterfaces.Client {
 // Close sends a quitting signal that will end the ReadPump() and WritePump()
 // goroutines of this instance
 func (c *BotClient) Close() {
-	c.endReadPump <- true
-	c.endWritePump <- true
+	close(c.endReadPump)
+	close(c.endWritePump)
 }
 
 // IsBot returns true because this client is managed by a bot
@@ -274,12 +274,14 @@ func (c *BotClient) SetRoom(r serverInterfaces.Room) {
 	c.room = r
 }
 
-// SetTimer is not needed in BotCLient
+// SetTimer is not needed in BotClient
 func (c *BotClient) SetTimer(*time.Timer) {
 }
 
+// StopTimer is not needed in BotClient
 func (c *BotClient) StopTimer() {
 }
 
+// StartTimer is not needed in BotClient
 func (c *BotClient) StartTimer(d time.Duration) {
 }

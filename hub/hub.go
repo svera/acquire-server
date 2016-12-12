@@ -50,6 +50,8 @@ type Hub struct {
 	configuration *config.Config
 
 	emitter *emitable.Emitter
+
+	mu sync.Mutex
 }
 
 func init() {
@@ -86,7 +88,9 @@ func (h *Hub) Run() {
 		select {
 
 		case c := <-h.Register:
+			h.mu.Lock()
 			h.clients = append(h.clients, c)
+			h.mu.Unlock()
 			go h.emitter.Emit("messageCreated", h.clients, h.createUpdatedRoomListMessage())
 			if h.configuration.Debug {
 				log.Printf("Client added to hub, number of connected clients: %d\n", len(h.clients))
@@ -97,7 +101,6 @@ func (h *Hub) Run() {
 				if val == c {
 					wg.Wait()
 					h.removeClient(c)
-					close(c.Incoming())
 					break
 				}
 			}
@@ -160,7 +163,6 @@ func (h *Hub) sendMessage(c interfaces.Client, message []byte) {
 	// We can't reach the client
 	default:
 		wg.Wait()
-		close(c.Incoming())
 		h.removeClient(c)
 	}
 }
@@ -170,6 +172,8 @@ func (h *Hub) sendMessage(c interfaces.Client, message []byte) {
 // Note that we don't remove a client if a game has already started, as client
 // indexes must not change once a game has started.
 func (h *Hub) removeClient(c interfaces.Client) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
 	for i := range h.clients {
 		if h.clients[i] == c {
 			if c.Room() != nil {
@@ -180,6 +184,8 @@ func (h *Hub) removeClient(c interfaces.Client) {
 			if h.configuration.Debug {
 				log.Printf("Client removed from hub, number of clients left: %d\n", len(h.clients))
 			}
+			//close(c.Incoming())
+			c.Close()
 			break
 		}
 	}
@@ -214,9 +220,11 @@ func (h *Hub) registerCallbacks() {
 		clients := event.Args[0].([]interfaces.Client)
 		message := event.Args[1].([]byte)
 
+		h.mu.Lock()
 		for _, cl := range clients {
 			h.sendMessage(cl, message)
 		}
+		h.mu.Unlock()
 	})
 
 	h.emitter.On("clientOut", func(event *emitable.Event) {
