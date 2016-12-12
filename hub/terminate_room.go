@@ -15,8 +15,8 @@ func (h *Hub) terminateRoomAction(m *interfaces.IncomingMessage) {
 }
 
 func (h *Hub) destroyRoom(roomID string, reasonCode string) {
-	mapLock.RLock()
-	defer mapLock.RUnlock()
+	mu.RLock()
+	defer mu.RUnlock()
 	if r, ok := h.rooms[roomID]; ok {
 		r.Timer().Stop()
 		h.expelClientsFromRoom(r, reasonCode)
@@ -30,8 +30,8 @@ func (h *Hub) destroyRoom(roomID string, reasonCode string) {
 }
 
 func (h *Hub) expelClientsFromRoom(r interfaces.Room, reasonCode string) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 	response := messages.New(interfaces.TypeMessageClientOut, reasonCode)
 
 	for _, cl := range r.Clients() {
