@@ -211,6 +211,9 @@ func (r *Room) timeoutPlayer(cl interfaces.Client) {
 }
 
 func (r *Room) addClient(c interfaces.Client) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
 	if err := r.gameBridge.AddPlayer(c.Name()); err != nil {
 		return err
 	}
@@ -308,14 +311,14 @@ func (r *Room) Clients() []interfaces.Client {
 
 // HumanClients returns room's connected human clients
 func (r *Room) HumanClients() []interfaces.Client {
-	human := []interfaces.Client{}
 	r.mu.Lock()
+	defer r.mu.Unlock()
+	human := []interfaces.Client{}
 	for _, c := range r.clients {
 		if c != nil && !c.IsBot() {
 			human = append(human, c)
 		}
 	}
-	r.mu.Unlock()
 	return human
 }
 

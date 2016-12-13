@@ -170,8 +170,8 @@ func (h *Hub) sendMessage(c interfaces.Client, message []byte) {
 // Note that we don't remove a client if a game has already started, as client
 // indexes must not change once a game has started.
 func (h *Hub) removeClient(c interfaces.Client) {
-	mu.RLock()
-	defer mu.RUnlock()
+	mu.Lock()
+	defer mu.Unlock()
 	for i := range h.clients {
 		if h.clients[i] == c {
 			if c.Room() != nil {
