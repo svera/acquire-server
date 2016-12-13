@@ -24,6 +24,10 @@ const (
 	GameStarted = "gameStarted"
 )
 
+var (
+	mutex sync.RWMutex
+)
+
 // Room is a struct that manage the message flow between client (players)
 // and a game. It can work with any game as long as it implements the Bridge
 // interface. It also provides support for some common operations as adding/removing
@@ -55,8 +59,6 @@ type Room struct {
 	clientInTurn interfaces.Client
 
 	playerTimeOut time.Duration
-
-	mu sync.Mutex
 }
 
 // New returns a new Room instance
@@ -211,8 +213,8 @@ func (r *Room) timeoutPlayer(cl interfaces.Client) {
 }
 
 func (r *Room) addClient(c interfaces.Client) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+	mutex.Lock()
+	defer mutex.Unlock()
 
 	if err := r.gameBridge.AddPlayer(c.Name()); err != nil {
 		return err
@@ -251,6 +253,9 @@ func (r *Room) RemoveClient(c interfaces.Client) {
 // deactivatePlayer deactivates a player from a game setting it as nil,
 // and returns an updated game status to all the players as a response
 func (r *Room) deactivatePlayer(playerNumber int) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
 	r.clients[playerNumber] = nil
 	r.gameBridge.DeactivatePlayer(playerNumber)
 	if !r.gameBridge.IsGameOver() {
@@ -272,8 +277,8 @@ func (r *Room) deactivatePlayer(playerNumber int) {
 // removePlayer removes a player from a room,
 // and returns an updated players list to all the clients as a response
 func (r *Room) removePlayer(playerNumber int) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+	mutex.Lock()
+	defer mutex.Unlock()
 	r.clients = append(r.clients[:playerNumber], r.clients[playerNumber+1:]...)
 	r.gameBridge.RemovePlayer(playerNumber)
 	response := messages.New(interfaces.TypeMessageCurrentPlayers, r.playersData())
@@ -304,15 +309,15 @@ func (r *Room) Owner() interfaces.Client {
 
 // Clients returns the room's connected clients
 func (r *Room) Clients() []interfaces.Client {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+	mutex.Lock()
+	defer mutex.Unlock()
 	return r.clients
 }
 
 // HumanClients returns room's connected human clients
 func (r *Room) HumanClients() []interfaces.Client {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+	mutex.Lock()
+	defer mutex.Unlock()
 	human := []interfaces.Client{}
 	for _, c := range r.clients {
 		if c != nil && !c.IsBot() {

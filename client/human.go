@@ -19,6 +19,10 @@ const (
 	maxMessageSize = 1024 * 1024
 )
 
+var (
+	mutex sync.RWMutex
+)
+
 // Human is a struct that implements the client interface,
 // storing data related to a specific user and provides
 // several functions to send/receive data to/from a client using a websocket
@@ -29,7 +33,6 @@ type Human struct {
 	incoming chan []byte // Channel storing incoming messages
 	room     interfaces.Room
 	timer    *time.Timer
-	mu       sync.Mutex
 	quit     chan struct{}
 }
 
@@ -124,22 +127,22 @@ func (c *Human) WritePump() {
 
 // Room returns the room where the client is in
 func (c *Human) Room() interfaces.Room {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	mutex.Lock()
+	defer mutex.Unlock()
 	return c.room
 }
 
 // SetRoom sets the client's room
 func (c *Human) SetRoom(r interfaces.Room) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	mutex.Lock()
+	defer mutex.Unlock()
 	c.room = r
 }
 
 // Incoming returns the client's incoming channel
 func (c *Human) Incoming() chan []byte {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	mutex.Lock()
+	defer mutex.Unlock()
 	return c.incoming
 }
 
@@ -155,8 +158,8 @@ func (c *Human) SetName(v string) interfaces.Client {
 }
 
 func (c *Human) write(mt int, message []byte) error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	mutex.Lock()
+	defer mutex.Unlock()
 	c.ws.SetWriteDeadline(time.Now().Add(writeWait))
 	return c.ws.WriteMessage(mt, message)
 }
