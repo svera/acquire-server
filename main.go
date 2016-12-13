@@ -16,11 +16,10 @@ import (
 )
 
 var (
-	hb         *hub.Hub
-	cfg        *config.Config
-	gitHash    = "No git hash provided"
-	buildstamp = "No date provided"
-	mu         sync.Mutex
+	hb      *hub.Hub
+	cfg     *config.Config
+	gitHash = "No git hash provided"
+	mu      sync.Mutex
 )
 
 func main() {
@@ -42,7 +41,6 @@ func main() {
 		http.Handle("/", r)
 		fmt.Printf("Sackson server listening on port %s\n", cfg.Port)
 		fmt.Printf("Git commit hash: %s\n", gitHash)
-		fmt.Printf("Built on %s\n\n", buildstamp)
 		log.Fatal(http.ListenAndServe(cfg.Port, r))
 	}
 }

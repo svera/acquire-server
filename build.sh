@@ -1,1 +1,1 @@
-go build -ldflags "-X main.buildstamp=`date -u '+%Y-%m-%d_%I:%M:%S%p'` -X main.gitHash=`git rev-parse HEAD`" -o $GOPATH/bin/sackson-server
+go build -ldflags "-X main.gitHash=`git rev-parse HEAD`" -o $GOPATH/bin/sackson-server
