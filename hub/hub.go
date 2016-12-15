@@ -1,6 +1,7 @@
 package hub
 
 import (
+	"fmt"
 	"log"
 	"math/rand"
 	"sync"
@@ -89,6 +90,7 @@ func (h *Hub) Run() {
 			mutex.Lock()
 			h.clients = append(h.clients, c)
 			mutex.Unlock()
+			c.SetName(fmt.Sprintf("Player %d", h.NumberClients()+1))
 			go h.emitter.Emit("messageCreated", h.clients, h.createUpdatedRoomListMessage())
 			if h.configuration.Debug {
 				log.Printf("Client added to hub, number of connected clients: %d\n", len(h.clients))

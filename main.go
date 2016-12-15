@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"net/http"
-	"sync"
 
 	"fmt"
 	"os"
@@ -19,7 +18,6 @@ var (
 	hb      *hub.Hub
 	cfg     *config.Config
 	gitHash = "No git hash provided"
-	mu      sync.Mutex
 )
 
 func main() {
@@ -52,9 +50,6 @@ func newClient(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if c, err := client.NewHuman(w, r, cfg); err == nil {
-		mu.Lock()
-		c.SetName(fmt.Sprintf("Player %d", hb.NumberClients()+1))
-		mu.Unlock()
 		hb.Register <- c
 		go c.WritePump()
 		c.ReadPump(hb.Messages, hb.Unregister)
