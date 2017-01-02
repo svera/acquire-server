@@ -1,0 +1,9 @@
+version: "2"
+services:
+  sackson-server:
+    build: .
+    ports:
+     - "8001:8001"
+    volumes:
+     - .:/go/src/github.com/svera/sackson-server
+    command: ash -c "go get ./... && ./build.sh && sackson-server"

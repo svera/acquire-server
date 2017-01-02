@@ -10,6 +10,7 @@ import (
 	emitable "github.com/olebedev/emitter"
 	"github.com/svera/sackson-server/config"
 	"github.com/svera/sackson-server/interfaces"
+	"github.com/svera/sackson-server/messages"
 	"github.com/svera/sackson-server/room"
 )
 
@@ -194,6 +195,10 @@ func (h *Hub) removeClient(c interfaces.Client) {
 // NumberClients returns the number of connected clients
 func (h *Hub) NumberClients() int {
 	return len(h.clients)
+}
+
+func (h *Hub) createUpdatedRoomListMessage() []byte {
+	return messages.New(interfaces.TypeMessageRoomsList, h.getWaitingRoomsIds())
 }
 
 // Return a list of all rooms IDs which haven't started a game

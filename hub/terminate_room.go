@@ -45,7 +45,3 @@ func (h *Hub) expelClientsFromRoom(r interfaces.Room, reasonCode string) {
 		}
 	}
 }
-
-func (h *Hub) createUpdatedRoomListMessage() []byte {
-	return messages.New(interfaces.TypeMessageRoomsList, h.getWaitingRoomsIds())
-}
