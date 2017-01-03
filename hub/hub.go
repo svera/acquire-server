@@ -14,15 +14,6 @@ import (
 	"github.com/svera/sackson-server/room"
 )
 
-// Error messages returned from hub
-const (
-	InexistentClient  = "inexistent_client"
-	OwnerNotRemovable = "owner_not_removable"
-	Forbidden         = "forbidden"
-	InexistentRoom    = "inexistent_room"
-	InexistentBridge  = "inexistent_bridge"
-)
-
 var (
 	mutex sync.RWMutex
 	rn    *rand.Rand
@@ -136,20 +127,30 @@ func (h *Hub) isControlMessage(m *interfaces.IncomingMessage) bool {
 }
 
 func (h *Hub) parseControlMessage(m *interfaces.IncomingMessage) {
+	var err error
 	switch m.Content.Type {
 
 	case interfaces.ControlMessageTypeCreateRoom:
-		h.createRoomAction(m)
+		err = h.createRoomAction(m)
 
 	case interfaces.ControlMessageTypeJoinRoom:
-		h.joinRoomAction(m)
+		err = h.joinRoomAction(m)
 
 	case interfaces.ControlMessageTypeTerminateRoom:
-		h.terminateRoomAction(m)
+		err = h.terminateRoomAction(m)
+	}
+	if err != nil {
+		response := messages.New(interfaces.TypeMessageError, err.Error())
+		go h.emitter.Emit("messageCreated", []interfaces.Client{m.Author}, response)
 	}
 }
 
 func (h *Hub) passMessageToRoom(m *interfaces.IncomingMessage) {
+	if m.Author.Room() == nil {
+		response := messages.New(interfaces.TypeMessageError, NotInARoom)
+		go h.emitter.Emit("messageCreated", []interfaces.Client{m.Author}, response)
+	}
+
 	m.Author.Room().Parse(m)
 }
 

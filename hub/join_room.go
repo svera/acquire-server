@@ -2,20 +2,24 @@ package hub
 
 import (
 	"encoding/json"
+	"errors"
 
 	"github.com/svera/sackson-server/interfaces"
-	"github.com/svera/sackson-server/messages"
 )
 
-func (h *Hub) joinRoomAction(m *interfaces.IncomingMessage) {
+func (h *Hub) joinRoomAction(m *interfaces.IncomingMessage) error {
 	var parsed interfaces.MessageJoinRoomParams
-	if err := json.Unmarshal(m.Content.Params, &parsed); err == nil {
-		if room, ok := h.rooms[parsed.Room]; ok {
-			room.AddHuman(m.Author)
-		} else {
-			response := messages.New(interfaces.TypeMessageError, InexistentRoom)
-			go h.emitter.Emit("messageCreated", []interfaces.Client{m.Author}, response)
-		}
+	var err error
+	var room interfaces.Room
+	var ok bool
 
+	if err = json.Unmarshal(m.Content.Params, &parsed); err != nil {
+		return err
 	}
+	if room, ok = h.rooms[parsed.Room]; !ok {
+		return errors.New(InexistentRoom)
+	}
+
+	room.AddHuman(m.Author)
+	return nil
 }

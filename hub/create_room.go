@@ -11,19 +11,23 @@ import (
 	"github.com/svera/sackson-server/room"
 )
 
-func (h *Hub) createRoomAction(m *interfaces.IncomingMessage) {
+func (h *Hub) createRoomAction(m *interfaces.IncomingMessage) error {
 	var parsed interfaces.MessageCreateRoomParams
-	if err := json.Unmarshal(m.Content.Params, &parsed); err == nil {
-		if bridge, err := bridges.Create(parsed.BridgeName); err != nil {
-			response := messages.New(interfaces.TypeMessageError, err.Error())
-			go h.emitter.Emit("messageCreated", []interfaces.Client{m.Author}, response)
-		} else {
-			roomParams := map[string]interface{}{
-				"playerTimeout": parsed.PlayerTimeout,
-			}
-			h.createRoom(bridge, roomParams, m.Author)
-		}
+	var err error
+	var bridge interfaces.Bridge
+
+	if err = json.Unmarshal(m.Content.Params, &parsed); err != nil {
+		return err
 	}
+	if bridge, err = bridges.Create(parsed.BridgeName); err != nil {
+		return err
+	}
+
+	roomParams := map[string]interface{}{
+		"playerTimeout": parsed.PlayerTimeout,
+	}
+	h.createRoom(bridge, roomParams, m.Author)
+	return nil
 }
 
 func (h *Hub) createRoom(b interfaces.Bridge, roomParams map[string]interface{}, owner interfaces.Client) string {

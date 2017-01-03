@@ -1,17 +1,22 @@
 package hub
 
 import (
+	"errors"
 	"log"
 
 	"github.com/svera/sackson-server/interfaces"
 	"github.com/svera/sackson-server/messages"
 )
 
-func (h *Hub) terminateRoomAction(m *interfaces.IncomingMessage) {
+func (h *Hub) terminateRoomAction(m *interfaces.IncomingMessage) error {
+	if m.Author.Room() == nil {
+		return errors.New(NotInARoom)
+	}
 	if m.Author != m.Author.Room().Owner() {
-		return
+		return errors.New(Forbidden)
 	}
 	h.destroyRoom(m.Author.Room().ID(), interfaces.ReasonRoomDestroyedTerminated)
+	return nil
 }
 
 func (h *Hub) destroyRoom(roomID string, reasonCode string) {

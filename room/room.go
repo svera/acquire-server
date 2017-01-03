@@ -11,14 +11,6 @@ import (
 	"github.com/svera/sackson-server/messages"
 )
 
-// Error messages returned from Room
-const (
-	InexistentClient  = "inexistent_client"
-	OwnerNotRemovable = "owner_not_removable"
-	Forbidden         = "forbidden"
-	GameOver          = "game_over"
-)
-
 // Events Emited from Room, always in a past tense
 const (
 	GameStarted = "gameStarted"
