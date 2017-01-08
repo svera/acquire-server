@@ -43,6 +43,8 @@ type Hub struct {
 	configuration *config.Config
 
 	emitter *emitable.Emitter
+
+	Quit chan struct{}
 }
 
 func init() {
@@ -60,6 +62,7 @@ func New(cfg *config.Config, emitter *emitable.Emitter) *Hub {
 		rooms:         make(map[string]interfaces.Room),
 		configuration: cfg,
 		emitter:       emitter,
+		Quit:          make(chan struct{}),
 	}
 
 	h.registerCallbacks()
@@ -70,8 +73,14 @@ func New(cfg *config.Config, emitter *emitable.Emitter) *Hub {
 // Run listens for messages coming from several channels and acts accordingly
 func (h *Hub) Run() {
 	defer func() {
+		if h.configuration.Debug {
+			log.Printf("Closing hub...")
+		}
 		for _, cl := range h.clients {
-			cl.Close()
+			h.removeClient(cl)
+		}
+		for id := range h.rooms {
+			h.destroyRoom(id, interfaces.ReasonRoomDestroyedTerminated)
 		}
 	}()
 
@@ -99,6 +108,9 @@ func (h *Hub) Run() {
 
 		case m := <-h.Messages:
 			h.parseMessage(m)
+
+		case <-h.Quit:
+			return
 
 		}
 	}

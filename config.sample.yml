@@ -1,5 +1,5 @@
 port: ":8001"
-# Room live time in minutes (0 for no timeout)
+# Room live time in seconds (0 for no timeout)
 timeout: 10
 # Show debug messages
 debug: true

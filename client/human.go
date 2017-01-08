@@ -167,7 +167,7 @@ func (c *Human) write(mt int, message []byte) error {
 // Close closes connection through the websocket
 func (c *Human) Close() {
 	c.write(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-	c.ws.Close()
+	c.ws.Close() // TODO already done in close(c.quit)?
 	close(c.quit)
 }
 

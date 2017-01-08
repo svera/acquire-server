@@ -1,10 +1,9 @@
 package hub
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
-
-	"encoding/json"
 
 	"github.com/olebedev/emitter"
 	"github.com/svera/sackson-server/config"
@@ -28,23 +27,28 @@ func TestRunStopsAfterXMinutes(t *testing.T) {
 
 }
 */
-var h *Hub
-var e *emitter.Emitter
 var b *mocks.Bridge
-var c *mocks.Client
 
-func setup() {
-	e = &emitter.Emitter{}
-	e.Use("*", emitter.Skip)
-	h = New(&config.Config{Timeout: 1}, e)
-	go h.Run()
-
+func init() {
 	b = &mocks.Bridge{}
-	c = &mocks.Client{FakeIncoming: make(chan []byte, 2)}
+}
+
+func setup() (*Hub, interfaces.Client) {
+	var h *Hub
+	var c *mocks.Client
+	var e *emitter.Emitter
+
+	e = &emitter.Emitter{}
+	h = New(&config.Config{Timeout: 5, Debug: true}, e)
+	c = &mocks.Client{FakeIncoming: make(chan []byte, 2), Quit: make(chan struct{})}
+	return h, c
 }
 
 func TestRegister(t *testing.T) {
-	setup()
+	h, c := setup()
+	go h.Run()
+	defer close(h.Quit)
+
 	go c.WritePump()
 	h.Register <- c
 	if len(h.clients) != 1 {
@@ -53,7 +57,10 @@ func TestRegister(t *testing.T) {
 }
 
 func TestUnregister(t *testing.T) {
-	setup()
+	h, c := setup()
+	go h.Run()
+	defer close(h.Quit)
+
 	go c.WritePump()
 	h.Register <- c
 	h.Unregister <- c
@@ -65,7 +72,11 @@ func TestUnregister(t *testing.T) {
 }
 
 func TestCreateRoom(t *testing.T) {
-	setup()
+	h, c := setup()
+	go h.Run()
+	defer close(h.Quit)
+
+	go c.WritePump()
 	h.Register <- c
 
 	data := []byte(`{"bri": "acquire", "pto": 0}`)
@@ -85,15 +96,18 @@ func TestCreateRoom(t *testing.T) {
 }
 
 func TestDestroyRoom(t *testing.T) {
-	setup()
+	h, c := setup()
+	go h.Run()
+	defer close(h.Quit)
+
 	roomParams := map[string]interface{}{
 		"playerTimeout": time.Duration(0),
 	}
 
+	go c.WritePump()
 	h.Register <- c
 
 	h.createRoom(b, roomParams, c)
-
 	m := &interfaces.IncomingMessage{
 		Author: c,
 		Content: interfaces.IncomingMessageContent{
@@ -110,18 +124,27 @@ func TestDestroyRoom(t *testing.T) {
 }
 
 func TestJoinRoom(t *testing.T) {
-	setup()
+	h, c := setup()
+	c2 := &mocks.Client{FakeIncoming: make(chan []byte, 2), Quit: make(chan struct{})}
+
+	go h.Run()
+	defer close(h.Quit)
+
 	roomParams := map[string]interface{}{
 		"playerTimeout": time.Duration(0),
 	}
 
+	go c.WritePump()
+	go c2.WritePump()
 	h.Register <- c
+	h.Register <- c2
 
 	id := h.createRoom(b, roomParams, c)
+	time.Sleep(time.Millisecond * 100)
 
 	data := []byte(`{"rom": "` + id + `"}`)
 	m := &interfaces.IncomingMessage{
-		Author: c,
+		Author: c2,
 		Content: interfaces.IncomingMessageContent{
 			Type:   interfaces.ControlMessageTypeJoinRoom,
 			Params: (json.RawMessage)(data),
@@ -131,27 +154,6 @@ func TestJoinRoom(t *testing.T) {
 	time.Sleep(time.Millisecond * 100)
 
 	if len(h.rooms[id].Clients()) != 2 {
-		t.Errorf("Hub must have no 2 clients, got %d", len(h.rooms[id].Clients()))
+		t.Errorf("Room must have 2 clients, got %d", len(h.rooms[id].Clients()))
 	}
 }
-
-/*
-func TestDestroyRoomWhenNoHumanClients(t *testing.T) {
-	setup()
-	roomParams := map[string]interface{}{
-		"playerTimeout": time.Duration(0),
-	}
-
-	h.Register <- c
-
-	h.createRoom(b, roomParams, c)
-	//c.SetRoom(h.rooms[id])
-	time.Sleep(time.Millisecond * 100)
-	h.Unregister <- c
-	time.Sleep(time.Millisecond * 100)
-
-	if len(h.rooms) != 0 {
-		t.Errorf("Hub must have no rooms, got %d", len(h.rooms))
-	}
-}
-*/
