@@ -39,6 +39,7 @@ func setup() (*Hub, interfaces.Client) {
 	var e *emitter.Emitter
 
 	e = &emitter.Emitter{}
+	e.Use("*", emitter.Skip)
 	h = New(&config.Config{Timeout: 5, Debug: true}, e)
 	c = &mocks.Client{FakeIncoming: make(chan []byte, 2), Quit: make(chan struct{})}
 	return h, c
@@ -116,6 +117,28 @@ func TestDestroyRoom(t *testing.T) {
 		},
 	}
 	h.Messages <- m
+	time.Sleep(time.Millisecond * 100)
+
+	if len(h.rooms) != 0 {
+		t.Errorf("Hub must have no rooms, got %d", len(h.rooms))
+	}
+}
+
+func TestDestroyRoomWhenNoHumanClients(t *testing.T) {
+	h, c := setup()
+	go h.Run()
+	defer close(h.Quit)
+
+	roomParams := map[string]interface{}{
+		"playerTimeout": time.Duration(0),
+	}
+
+	go c.WritePump()
+	h.Register <- c
+
+	h.createRoom(b, roomParams, c)
+	time.Sleep(time.Millisecond * 100)
+	h.Unregister <- c
 	time.Sleep(time.Millisecond * 100)
 
 	if len(h.rooms) != 0 {
