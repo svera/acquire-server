@@ -11,31 +11,13 @@ import (
 	"github.com/svera/sackson-server/mocks"
 )
 
-/* THIS SHOULD BE MOVED TO THE ROOOM TESTS
-func TestRunStopsAfterXMinutes(t *testing.T) {
-	callbackCalled := false
-	var h *Hub
-	h = New(&config.Config{Timeout: 0})
-
-	h.Run()
-	if !callbackCalled {
-		t.Errorf("Hub must stop running and call selfDestructCallBack")
-	}
-	if !h.wasClosedByTimeout {
-		t.Errorf("hub.wasClosedByTimeout must be true")
-	}
-
-}
-*/
 var b *mocks.Bridge
 
 func init() {
 	b = &mocks.Bridge{}
 }
 
-func setup() (*Hub, interfaces.Client) {
-	var h *Hub
-	var c *mocks.Client
+func setup() (h *Hub, c interfaces.Client) {
 	var e *emitter.Emitter
 
 	e = &emitter.Emitter{}
@@ -118,6 +100,27 @@ func TestDestroyRoom(t *testing.T) {
 	}
 	h.Messages <- m
 	time.Sleep(time.Millisecond * 100)
+
+	if len(h.rooms) != 0 {
+		t.Errorf("Hub must have no rooms, got %d", len(h.rooms))
+	}
+}
+
+func TestDestroyRoomAfterXSeconds(t *testing.T) {
+	h, c := setup()
+	h.configuration.Timeout = 1
+	go h.Run()
+	defer close(h.Quit)
+
+	roomParams := map[string]interface{}{
+		"playerTimeout": time.Duration(0),
+	}
+
+	go c.WritePump()
+	h.Register <- c
+
+	h.createRoom(b, roomParams, c)
+	time.Sleep(time.Millisecond * 1100)
 
 	if len(h.rooms) != 0 {
 		t.Errorf("Hub must have no rooms, got %d", len(h.rooms))

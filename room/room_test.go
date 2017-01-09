@@ -13,12 +13,9 @@ import (
 	"github.com/svera/sackson-server/mocks"
 )
 
-var r *Room
-var e *emitter.Emitter
-var b *mocks.Bridge
-var c *mocks.Client
+func setup() (c interfaces.Client, b *mocks.Bridge, r *Room) {
+	var e *emitter.Emitter
 
-func setup() {
 	e = &emitter.Emitter{}
 	e.Use("*", emitter.Skip)
 	c = &mocks.Client{FakeIncoming: make(chan []byte, 2)}
@@ -31,10 +28,11 @@ func setup() {
 	}
 
 	r = New("test", b, c, make(chan *interfaces.IncomingMessage), make(chan interfaces.Client), &config.Config{Timeout: 1}, e, roomParams)
+	return c, b, r
 }
 
 func TestStartGame(t *testing.T) {
-	setup()
+	c, b, r := setup()
 
 	m := &interfaces.IncomingMessage{
 		Author: c,
@@ -51,7 +49,7 @@ func TestStartGame(t *testing.T) {
 }
 
 func TestAddBot(t *testing.T) {
-	setup()
+	c, _, r := setup()
 
 	data := []byte(`{"lvl": "chaotic"}`)
 	m := &interfaces.IncomingMessage{
@@ -69,7 +67,7 @@ func TestAddBot(t *testing.T) {
 }
 
 func TestKickPlayer(t *testing.T) {
-	setup()
+	c, _, r := setup()
 
 	data := []byte(`{"ply": 0}`)
 	toBeKicked := &mocks.Client{FakeIncoming: make(chan []byte, 2)}
@@ -91,7 +89,7 @@ func TestKickPlayer(t *testing.T) {
 }
 
 func TestKickOwnerNotAllowed(t *testing.T) {
-	setup()
+	c, _, r := setup()
 
 	data := []byte(`{"ply": 0}`)
 
@@ -113,7 +111,7 @@ func TestKickOwnerNotAllowed(t *testing.T) {
 }
 
 func TestPlayerQuits(t *testing.T) {
-	setup()
+	c, _, r := setup()
 
 	m := &interfaces.IncomingMessage{
 		Author: c,
@@ -131,7 +129,7 @@ func TestPlayerQuits(t *testing.T) {
 }
 
 func TestAddHuman(t *testing.T) {
-	setup()
+	c, _, r := setup()
 
 	r.AddHuman(c)
 
