@@ -20,6 +20,9 @@ func (h *Hub) terminateRoomAction(m *interfaces.IncomingMessage) error {
 }
 
 func (h *Hub) destroyRoom(roomID string, reasonCode string) {
+	if h.configuration.Debug {
+		log.Printf("Destroying room %s...", roomID)
+	}
 	mutex.RLock()
 	defer mutex.RUnlock()
 	if r, ok := h.rooms[roomID]; ok {
@@ -45,6 +48,9 @@ func (h *Hub) expelClientsFromRoom(r interfaces.Room, reasonCode string) {
 			cl.Close()
 		} else if cl != nil {
 			go h.emitter.Emit("messageCreated", r.HumanClients(), response)
+			if h.configuration.Debug {
+				log.Printf("Client expeled from room %s\n", cl.Room().ID())
+			}
 			cl.SetRoom(nil)
 			cl.StopTimer()
 		}

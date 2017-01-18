@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"log"
+
 	"github.com/svera/acquire/bots"
 	acquireInterfaces "github.com/svera/acquire/interfaces"
 	serverInterfaces "github.com/svera/sackson-server/interfaces"
@@ -61,8 +63,9 @@ func (c *BotClient) ReadPump(cnl interface{}, unregister chan serverInterfaces.C
 			m = c.bot.Play()
 			bm := m.(bots.Message)
 			msg = c.encodeResponse(bm)
+			log.Printf("Bot manda jugada")
+			channel <- msg
 		}
-		channel <- msg
 	}
 
 }
@@ -229,6 +232,7 @@ func (c *BotClient) WritePump() {
 			}
 			if err := json.Unmarshal(message, &parsed); err == nil {
 				if parsed.PlayerInfo.InTurn {
+					log.Printf("Turno del bot")
 					c.botTurn <- parsed
 				}
 			}

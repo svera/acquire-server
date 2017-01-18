@@ -14,6 +14,7 @@ import (
 // Events Emited from Room, always in a past tense
 const (
 	GameStarted = "gameStarted"
+	ClientOut   = "clientOut"
 )
 
 var (
@@ -40,8 +41,7 @@ type Room struct {
 	// Bots unregistration requests
 	unregister chan interfaces.Client
 
-	// Maximum time this room instance will be kept alive
-	timeout time.Duration
+	configuration *config.Config
 
 	// timer function that will close the room after X minutes
 	timer *time.Timer
@@ -67,13 +67,13 @@ func New(
 		id:            id,
 		clients:       []interfaces.Client{},
 		gameBridge:    b,
-		timeout:       cfg.Timeout,
 		owner:         owner,
 		messages:      messages,
 		unregister:    unregister,
 		emitter:       emitter,
 		clientInTurn:  nil,
 		playerTimeOut: roomParams["playerTimeout"].(time.Duration),
+		configuration: cfg,
 	}
 }
 
@@ -188,11 +188,15 @@ func (r *Room) AddHuman(c interfaces.Client) error {
 	if err = r.addClient(c); err == nil {
 		if r.playerTimeOut > 0 {
 			c.SetTimer(time.AfterFunc(time.Second*r.playerTimeOut, func() {
-				log.Printf("client %s timed out", c.Name())
+				if r.configuration.Debug {
+					log.Printf("Client '%s' timed out", c.Name())
+				}
 				r.timeoutPlayer(c)
 			}))
 		}
-		return nil
+		if r.configuration.Debug {
+			log.Printf("Client '%s' Added to room", c.Name())
+		}
 	}
 	return err
 }
@@ -236,7 +240,7 @@ func (r *Room) RemoveClient(c interfaces.Client) {
 			} else {
 				r.removePlayer(i)
 			}
-			go r.emitter.Emit("clientOut", r)
+			go r.emitter.Emit(ClientOut, r)
 			break
 		}
 	}

@@ -20,20 +20,20 @@ func init() {
 func setup() (h *Hub, c interfaces.Client) {
 	var e *emitter.Emitter
 
-	e = &emitter.Emitter{}
+	e = emitter.New(10)
 	e.Use("*", emitter.Skip)
 	h = New(&config.Config{Timeout: 5, Debug: true}, e)
-	c = &mocks.Client{FakeIncoming: make(chan []byte, 2), Quit: make(chan struct{})}
+	c = &mocks.Client{FakeIncoming: make(chan []byte, 2)}
 	return h, c
 }
 
 func TestRegister(t *testing.T) {
 	h, c := setup()
 	go h.Run()
-	defer close(h.Quit)
 
 	go c.WritePump()
 	h.Register <- c
+	time.Sleep(time.Millisecond * 100)
 	if len(h.clients) != 1 {
 		t.Errorf("Hub must have 1 client connected after adding it")
 	}
@@ -42,12 +42,11 @@ func TestRegister(t *testing.T) {
 func TestUnregister(t *testing.T) {
 	h, c := setup()
 	go h.Run()
-	defer close(h.Quit)
 
 	go c.WritePump()
 	h.Register <- c
+	time.Sleep(time.Millisecond * 100)
 	h.Unregister <- c
-	// We add a little pause to let the hub process the incoming message, as it does it concurrently
 	time.Sleep(time.Millisecond * 100)
 	if len(h.clients) != 0 {
 		t.Errorf("Hub must have no clients connected after removing it, got %d", len(h.clients))
@@ -57,7 +56,6 @@ func TestUnregister(t *testing.T) {
 func TestCreateRoom(t *testing.T) {
 	h, c := setup()
 	go h.Run()
-	defer close(h.Quit)
 
 	go c.WritePump()
 	h.Register <- c
@@ -71,6 +69,7 @@ func TestCreateRoom(t *testing.T) {
 		},
 	}
 	h.Messages <- m
+	// We add a little pause to let the hub process the incoming message, as it does it concurrently
 	time.Sleep(time.Millisecond * 100)
 
 	if len(h.rooms) != 1 {
@@ -81,7 +80,6 @@ func TestCreateRoom(t *testing.T) {
 func TestDestroyRoom(t *testing.T) {
 	h, c := setup()
 	go h.Run()
-	defer close(h.Quit)
 
 	roomParams := map[string]interface{}{
 		"playerTimeout": time.Duration(0),
@@ -89,8 +87,9 @@ func TestDestroyRoom(t *testing.T) {
 
 	go c.WritePump()
 	h.Register <- c
-
+	time.Sleep(time.Millisecond * 100)
 	h.createRoom(b, roomParams, c)
+	time.Sleep(time.Millisecond * 100)
 	m := &interfaces.IncomingMessage{
 		Author: c,
 		Content: interfaces.IncomingMessageContent{
@@ -110,7 +109,6 @@ func TestDestroyRoomAfterXSeconds(t *testing.T) {
 	h, c := setup()
 	h.configuration.Timeout = 1
 	go h.Run()
-	defer close(h.Quit)
 
 	roomParams := map[string]interface{}{
 		"playerTimeout": time.Duration(0),
@@ -130,7 +128,6 @@ func TestDestroyRoomAfterXSeconds(t *testing.T) {
 func TestDestroyRoomWhenNoHumanClients(t *testing.T) {
 	h, c := setup()
 	go h.Run()
-	defer close(h.Quit)
 
 	roomParams := map[string]interface{}{
 		"playerTimeout": time.Duration(0),
@@ -138,7 +135,7 @@ func TestDestroyRoomWhenNoHumanClients(t *testing.T) {
 
 	go c.WritePump()
 	h.Register <- c
-
+	time.Sleep(time.Millisecond * 100)
 	h.createRoom(b, roomParams, c)
 	time.Sleep(time.Millisecond * 100)
 	h.Unregister <- c
@@ -151,10 +148,9 @@ func TestDestroyRoomWhenNoHumanClients(t *testing.T) {
 
 func TestJoinRoom(t *testing.T) {
 	h, c := setup()
-	c2 := &mocks.Client{FakeIncoming: make(chan []byte, 2), Quit: make(chan struct{})}
+	c2 := &mocks.Client{FakeIncoming: make(chan []byte)}
 
 	go h.Run()
-	defer close(h.Quit)
 
 	roomParams := map[string]interface{}{
 		"playerTimeout": time.Duration(0),

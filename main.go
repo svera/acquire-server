@@ -30,7 +30,7 @@ func main() {
 		fmt.Println(err.Error())
 	} else {
 		r := mux.NewRouter()
-		e := &emitter.Emitter{}
+		e := emitter.New(10)
 		e.Use("*", emitter.Skip)
 		hb = hub.New(cfg, e)
 		go hb.Run()

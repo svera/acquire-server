@@ -1,9 +1,14 @@
 package mocks
 
 import (
+	"sync"
 	"time"
 
 	"github.com/svera/sackson-server/interfaces"
+)
+
+var (
+	mutex sync.RWMutex
 )
 
 // Client is a structure that implements the Client interface for testing
@@ -13,7 +18,6 @@ type Client struct {
 	FakeIsBot    bool
 	FakeIncoming chan []byte
 	FakeRoom     interfaces.Room
-	Quit         chan struct{}
 }
 
 // ReadPump mocks the ReadPump method defined in the Client interface
@@ -23,19 +27,8 @@ func (c *Client) ReadPump(channel interface{}, unregister chan interfaces.Client
 
 // WritePump mocks the WritePump method defined in the Client interface
 func (c *Client) WritePump() {
-	//time.AfterFunc(time.Second*5, func() {
-	//	return
-	//})
-
-	for {
-		select {
-
-		case <-c.FakeIncoming:
-			continue
-
-		case <-c.Quit:
-			return
-		}
+	for range c.FakeIncoming {
+		// Do nothing
 	}
 }
 
@@ -66,7 +59,7 @@ func (c *Client) SetName(v string) interfaces.Client {
 
 // Close mocks the Close method defined in the Client interface
 func (c *Client) Close() {
-	close(c.Quit)
+	close(c.FakeIncoming)
 }
 
 // Room mocks the Room method defined in the Client interface

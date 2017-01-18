@@ -100,7 +100,7 @@ func (h *Hub) Run() {
 		case c := <-h.Unregister:
 			for _, val := range h.clients {
 				if val == c {
-					wg.Wait()
+					//wg.Wait()
 					h.removeClient(c)
 					break
 				}
@@ -167,17 +167,18 @@ func (h *Hub) passMessageToRoom(m *interfaces.IncomingMessage) {
 }
 
 func (h *Hub) sendMessage(c interfaces.Client, message []byte) {
+	defer wg.Done()
 	wg.Add(1)
 
 	select {
 	case c.Incoming() <- message:
-		wg.Done()
-		break
+		return
 
 	// We can't reach the client
 	default:
 		wg.Wait()
 		h.removeClient(c)
+		return
 	}
 }
 
@@ -245,7 +246,7 @@ func (h *Hub) registerCallbacks() {
 		mutex.Unlock()
 	})
 
-	h.emitter.On("clientOut", func(event *emitable.Event) {
+	h.emitter.On(room.ClientOut, func(event *emitable.Event) {
 		r := event.Args[0].(interfaces.Room)
 
 		if len(r.HumanClients()) == 0 {
