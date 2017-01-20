@@ -11,35 +11,43 @@ import (
 
 func (r *Room) startGameAction(m *interfaces.IncomingMessage) error {
 	var parsed interfaces.MessageStartGameParams
+	var err error
 
 	if m.Author != r.owner {
 		return errors.New(Forbidden)
 	}
 
-	if err := json.Unmarshal(m.Content.Params, &parsed); err != nil {
+	if err = json.Unmarshal(m.Content.Params, &parsed); err != nil {
 		return err
 	}
-
-	if err := r.startGame(); err != nil {
-		return err
-	}
-
 	r.playerTimeOut = parsed.PlayerTimeout
 
-	for n, cl := range r.clients {
-		st, _ := r.gameBridge.Status(n)
-		r.setUpTimeOut(cl)
-		go r.emitter.Emit("messageCreated", []interfaces.Client{cl}, st)
+	if err = r.gameBridge.StartGame(); err != nil {
+		return err
+	}
+
+	if err = r.sendInitialMessage(); err != nil {
+		return err
 	}
 
 	r.changePlayerSetTimer()
 
 	go r.emitter.Emit(GameStarted)
-	return nil
+	return err
 }
 
-func (r *Room) startGame() error {
-	return r.gameBridge.StartGame()
+func (r *Room) sendInitialMessage() error {
+	var status []byte
+	var err error
+
+	for n, cl := range r.clients {
+		if status, err = r.gameBridge.Status(n); err != nil {
+			return err
+		}
+		r.setUpTimeOut(cl)
+		go r.emitter.Emit("messageCreated", []interfaces.Client{cl}, status)
+	}
+	return nil
 }
 
 // Sets up a timer that will execute when the defined player timeout is reached.
