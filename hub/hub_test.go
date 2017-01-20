@@ -60,7 +60,7 @@ func TestCreateRoom(t *testing.T) {
 	go c.WritePump()
 	h.Register <- c
 
-	data := []byte(`{"bri": "acquire", "pto": 0}`)
+	data := []byte(`{"bri": "acquire"}`)
 	m := &interfaces.IncomingMessage{
 		Author: c,
 		Content: interfaces.IncomingMessageContent{
@@ -81,14 +81,10 @@ func TestDestroyRoom(t *testing.T) {
 	h, c := setup()
 	go h.Run()
 
-	roomParams := map[string]interface{}{
-		"playerTimeout": time.Duration(0),
-	}
-
 	go c.WritePump()
 	h.Register <- c
 	time.Sleep(time.Millisecond * 100)
-	h.createRoom(b, roomParams, c)
+	h.createRoom(b, c)
 	time.Sleep(time.Millisecond * 100)
 	m := &interfaces.IncomingMessage{
 		Author: c,
@@ -110,14 +106,10 @@ func TestDestroyRoomAfterXSeconds(t *testing.T) {
 	h.configuration.Timeout = 1
 	go h.Run()
 
-	roomParams := map[string]interface{}{
-		"playerTimeout": time.Duration(0),
-	}
-
 	go c.WritePump()
 	h.Register <- c
 
-	h.createRoom(b, roomParams, c)
+	h.createRoom(b, c)
 	time.Sleep(time.Millisecond * 1100)
 
 	if len(h.rooms) != 0 {
@@ -129,14 +121,10 @@ func TestDestroyRoomWhenNoHumanClients(t *testing.T) {
 	h, c := setup()
 	go h.Run()
 
-	roomParams := map[string]interface{}{
-		"playerTimeout": time.Duration(0),
-	}
-
 	go c.WritePump()
 	h.Register <- c
 	time.Sleep(time.Millisecond * 100)
-	h.createRoom(b, roomParams, c)
+	h.createRoom(b, c)
 	time.Sleep(time.Millisecond * 100)
 	h.Unregister <- c
 	time.Sleep(time.Millisecond * 100)
@@ -152,16 +140,12 @@ func TestJoinRoom(t *testing.T) {
 
 	go h.Run()
 
-	roomParams := map[string]interface{}{
-		"playerTimeout": time.Duration(0),
-	}
-
 	go c.WritePump()
 	go c2.WritePump()
 	h.Register <- c
 	h.Register <- c2
 
-	id := h.createRoom(b, roomParams, c)
+	id := h.createRoom(b, c)
 	time.Sleep(time.Millisecond * 100)
 
 	data := []byte(`{"rom": "` + id + `"}`)

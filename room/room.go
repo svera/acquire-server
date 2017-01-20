@@ -61,7 +61,6 @@ func New(
 	unregister chan interfaces.Client,
 	cfg *config.Config,
 	emitter *emitable.Emitter,
-	roomParams map[string]interface{},
 ) *Room {
 	return &Room{
 		id:            id,
@@ -72,7 +71,6 @@ func New(
 		unregister:    unregister,
 		emitter:       emitter,
 		clientInTurn:  nil,
-		playerTimeOut: roomParams["playerTimeout"].(time.Duration),
 		configuration: cfg,
 	}
 }
@@ -185,15 +183,8 @@ func (r *Room) currentPlayerClient() (interfaces.Client, error) {
 // AddHuman adds a new client to the room
 func (r *Room) AddHuman(c interfaces.Client) error {
 	var err error
+
 	if err = r.addClient(c); err == nil {
-		if r.playerTimeOut > 0 {
-			c.SetTimer(time.AfterFunc(time.Second*r.playerTimeOut, func() {
-				if r.configuration.Debug {
-					log.Printf("Client '%s' timed out", c.Name())
-				}
-				r.timeoutPlayer(c)
-			}))
-		}
 		if r.configuration.Debug {
 			log.Printf("Client '%s' Added to room", c.Name())
 		}

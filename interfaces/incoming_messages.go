@@ -35,8 +35,7 @@ type IncomingMessageContent struct {
 // MessageCreateRoomParams defines the needed parameters for a create room
 // message
 type MessageCreateRoomParams struct {
-	BridgeName    string        `json:"bri"`
-	PlayerTimeout time.Duration `json:"pto"`
+	BridgeName string `json:"bri"`
 }
 
 // MessageJoinRoomParams defines the needed parameters for a join room message
@@ -54,4 +53,10 @@ type MessageKickPlayerParams struct {
 // message
 type MessageAddBotParams struct {
 	BotLevel string `json:"lvl"`
+}
+
+// MessageStartGameParams defines the needed parameters for a start game
+// message
+type MessageStartGameParams struct {
+	PlayerTimeout time.Duration `json:"pto"`
 }
