@@ -5,8 +5,6 @@ import (
 
 	"encoding/json"
 
-	"time"
-
 	"github.com/olebedev/emitter"
 	"github.com/svera/sackson-server/config"
 	"github.com/svera/sackson-server/interfaces"
@@ -19,25 +17,24 @@ func setup() (c interfaces.Client, b *mocks.Bridge, r *Room) {
 	e = &emitter.Emitter{}
 	e.Use("*", emitter.Skip)
 	c = &mocks.Client{FakeIncoming: make(chan []byte, 2)}
-	roomParams := map[string]interface{}{
-		"playerTimeout": time.Duration(0),
-	}
 	b = &mocks.Bridge{
 		FakeClient: &mocks.Client{FakeIncoming: make(chan []byte, 2)},
 		Calls:      make(map[string]int),
 	}
 
-	r = New("test", b, c, make(chan *interfaces.IncomingMessage), make(chan interfaces.Client), &config.Config{Timeout: 1}, e, roomParams)
+	r = New("test", b, c, make(chan *interfaces.IncomingMessage), make(chan interfaces.Client), &config.Config{Timeout: 1}, e)
 	return c, b, r
 }
 
 func TestStartGame(t *testing.T) {
 	c, b, r := setup()
 
+	data := []byte(`{"pto": 0}`)
 	m := &interfaces.IncomingMessage{
 		Author: c,
 		Content: interfaces.IncomingMessageContent{
-			Type: interfaces.ControlMessageTypeStartGame,
+			Type:   interfaces.ControlMessageTypeStartGame,
+			Params: (json.RawMessage)(data),
 		},
 	}
 	r.clients = append(r.clients, c)

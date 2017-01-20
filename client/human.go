@@ -175,7 +175,7 @@ func (c *Human) IsBot() bool {
 	return false
 }
 
-// SetTimer sets room's timer, which manages when to close a room
+// SetTimer sets room's timer, which manages when to expel a client from a room due to inactivity
 func (c *Human) SetTimer(t *time.Timer) {
 	c.timer = t
 	c.StopTimer()

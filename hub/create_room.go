@@ -23,16 +23,13 @@ func (h *Hub) createRoomAction(m *interfaces.IncomingMessage) error {
 		return err
 	}
 
-	roomParams := map[string]interface{}{
-		"playerTimeout": parsed.PlayerTimeout,
-	}
-	h.createRoom(bridge, roomParams, m.Author)
+	h.createRoom(bridge, m.Author)
 	return nil
 }
 
-func (h *Hub) createRoom(b interfaces.Bridge, roomParams map[string]interface{}, owner interfaces.Client) string {
+func (h *Hub) createRoom(b interfaces.Bridge, owner interfaces.Client) string {
 	id := h.generateID()
-	h.rooms[id] = room.New(id, b, owner, h.Messages, h.Unregister, h.configuration, h.emitter, roomParams)
+	h.rooms[id] = room.New(id, b, owner, h.Messages, h.Unregister, h.configuration, h.emitter)
 
 	timer := time.AfterFunc(time.Second*h.configuration.Timeout, func() {
 		if h.configuration.Debug {
