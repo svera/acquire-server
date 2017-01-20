@@ -21,9 +21,9 @@ var (
 )
 
 func main() {
-	f, err := os.Open("./config.yml")
+	f, err := os.Open("./sackson.yml")
 	if err != nil {
-		fmt.Println("Couldn't load configuration file. Check that config.yml exists and that it can be read. Exiting...")
+		fmt.Println("Couldn't load configuration file. Check that sackson.yml exists and that it can be read. Exiting...")
 		return
 	}
 	if cfg, err = config.Load(f); err != nil {
