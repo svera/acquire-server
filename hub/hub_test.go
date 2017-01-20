@@ -60,7 +60,7 @@ func TestCreateRoom(t *testing.T) {
 	go c.WritePump()
 	h.Register <- c
 
-	data := []byte(`{"bri": "acquire", "pto": 0}`)
+	data := []byte(`{"bri": "acquire"}`)
 	m := &interfaces.IncomingMessage{
 		Author: c,
 		Content: interfaces.IncomingMessageContent{

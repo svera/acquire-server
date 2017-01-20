@@ -180,19 +180,11 @@ func (r *Room) currentPlayerClient() (interfaces.Client, error) {
 	return r.clients[number], err
 }
 
-// AddHuman adds a new client to the room, and sets up a timer that will
-// execute when the defined player timeout is reached. This time is 0 by default,
-// so the timeout function won't be called unless this value changes.
+// AddHuman adds a new client to the room
 func (r *Room) AddHuman(c interfaces.Client) error {
 	var err error
 
 	if err = r.addClient(c); err == nil {
-		c.SetTimer(time.AfterFunc(time.Second*0, func() {
-			if r.configuration.Debug {
-				log.Printf("Client '%s' timed out", c.Name())
-			}
-			r.timeoutPlayer(c)
-		}))
 		if r.configuration.Debug {
 			log.Printf("Client '%s' Added to room", c.Name())
 		}
