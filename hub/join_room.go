@@ -3,6 +3,7 @@ package hub
 import (
 	"encoding/json"
 	"errors"
+	"strings"
 
 	"github.com/svera/sackson-server/interfaces"
 )
@@ -20,6 +21,9 @@ func (h *Hub) joinRoomAction(m *interfaces.IncomingMessage) error {
 		return errors.New(InexistentRoom)
 	}
 
+	if strings.TrimSpace(parsed.ClientName) != "" {
+		m.Author.SetName(parsed.ClientName)
+	}
 	room.AddHuman(m.Author)
 	return nil
 }

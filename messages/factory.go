@@ -46,6 +46,13 @@ func New(typeMessage string, args ...interface{}) []byte {
 		}
 		encoded, _ = json.Marshal(msg)
 
+	case interfaces.TypeMessageJoinedRoom:
+		msg := interfaces.MessageJoinedRoom{
+			Type:         interfaces.TypeMessageJoinedRoom,
+			ClientNumber: args[0].(int),
+		}
+		encoded, _ = json.Marshal(msg)
+
 	}
 	return encoded
 }

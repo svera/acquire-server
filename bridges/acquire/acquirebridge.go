@@ -119,15 +119,14 @@ func (b *AcquireBridge) playersShares(playerNumber int) [7]int {
 	return data
 }
 
-// AddPlayer adds a new player to the game
-func (b *AcquireBridge) AddPlayer(name string) error {
-	if len(b.players) == maximumPlayers {
+// addPlayer adds a new player to the game
+func (b *AcquireBridge) addPlayers(clients []serverInterfaces.Client) error {
+	if len(clients) > maximumPlayers {
 		return errors.New(GameFull)
 	}
-	if b.GameStarted() {
-		return errors.New(GameAlreadyStarted)
+	for _, pl := range clients {
+		b.players = append(b.players, player.New(pl.Name()))
 	}
-	b.players = append(b.players, player.New(name))
 	return nil
 }
 
@@ -157,10 +156,14 @@ func (b *AcquireBridge) DeactivatePlayer(number int) error {
 }
 
 // StartGame starts a new Acquire game
-func (b *AcquireBridge) StartGame() error {
+func (b *AcquireBridge) StartGame(clients []serverInterfaces.Client) error {
 	var err error
+
 	if b.GameStarted() {
 		err = errors.New(GameAlreadyStarted)
+	}
+	if err = b.addPlayers(clients); err != nil {
+		return err
 	}
 
 	if b.game, err = acquire.New(b.players, acquire.Optional{Corporations: b.corporations}); err == nil {
