@@ -130,16 +130,7 @@ func (b *AcquireBridge) addPlayers(clients []serverInterfaces.Client) error {
 	return nil
 }
 
-// RemovePlayer removes a player from the game
-func (b *AcquireBridge) RemovePlayer(number int) error {
-	if number < 0 || number > len(b.players) {
-		return errors.New(InexistentPlayer)
-	}
-	b.players = append(b.players[:number], b.players[number+1:]...)
-	return nil
-}
-
-// DeactivatePlayer removes a player from the game
+// DeactivatePlayer deactivates a player from the game
 func (b *AcquireBridge) DeactivatePlayer(number int) error {
 	if number < 0 || number > len(b.players) {
 		return errors.New(InexistentPlayer)

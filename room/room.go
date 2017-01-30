@@ -273,7 +273,6 @@ func (r *Room) removePlayer(playerNumber int) {
 	mutex.Lock()
 	defer mutex.Unlock()
 	r.clients = append(r.clients[:playerNumber], r.clients[playerNumber+1:]...)
-	r.gameBridge.RemovePlayer(playerNumber)
 	response := messages.New(interfaces.TypeMessageCurrentPlayers, r.playersData())
 	for _, cl := range r.clients {
 		go r.emitter.Emit("messageCreated", []interfaces.Client{cl}, response)
