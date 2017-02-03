@@ -3,6 +3,9 @@ package acquirebridge
 import (
 	"encoding/json"
 	"testing"
+
+	"github.com/svera/sackson-server/interfaces"
+	"github.com/svera/sackson-server/mocks"
 )
 
 func TestParseNonExistingTypeMessage(t *testing.T) {
@@ -15,10 +18,13 @@ func TestParseNonExistingTypeMessage(t *testing.T) {
 
 func TestParseWrongTypeMessage(t *testing.T) {
 	bridge := New()
+	var players []interfaces.Client
+
 	for i := 0; i < 3; i++ {
-		bridge.AddPlayer("test")
+		players = append(players, &mocks.Client{FakeName: "test"})
 	}
-	bridge.StartGame()
+
+	bridge.StartGame(players)
 	data := []byte(`{"aaa": "bbb"}`)
 	raw := (json.RawMessage)(data)
 
@@ -62,10 +68,13 @@ func TestCurrentPlayerNumberWithoutGameStarted(t *testing.T) {
 
 func TestCurrentPlayerNumberWithGameStarted(t *testing.T) {
 	bridge := New()
+	var players []interfaces.Client
+
 	for i := 0; i < 3; i++ {
-		bridge.AddPlayer("test")
+		players = append(players, &mocks.Client{FakeName: "test"})
 	}
-	bridge.StartGame()
+	bridge.StartGame(players)
+
 	if _, err := bridge.CurrentPlayerNumber(); err != nil {
 		t.Errorf("Bridge must not return an error when trying to get the current player number of a started game")
 	}
@@ -73,27 +82,34 @@ func TestCurrentPlayerNumberWithGameStarted(t *testing.T) {
 
 func TestStartGameWithNotEnoughPlayers(t *testing.T) {
 	bridge := New()
-	if err := bridge.StartGame(); err == nil {
+	var players []interfaces.Client
+
+	if err := bridge.StartGame(players); err == nil {
 		t.Errorf("Bridge must return an error when trying to start a game with not enough players")
 	}
 }
 
 func TestStartGameWithEnoughPlayers(t *testing.T) {
 	bridge := New()
+	var players []interfaces.Client
+
 	for i := 0; i < 3; i++ {
-		bridge.AddPlayer("test")
+		players = append(players, &mocks.Client{FakeName: "test"})
 	}
-	if err := bridge.StartGame(); err != nil {
+	if err := bridge.StartGame(players); err != nil {
 		t.Errorf("Bridge must not return an error when trying to start a game with enough players")
 	}
 }
 
 func TestStatusWithGameStarted(t *testing.T) {
 	bridge := New()
+	var players []interfaces.Client
+
 	for i := 0; i < 3; i++ {
-		bridge.AddPlayer("test")
+		players = append(players, &mocks.Client{FakeName: "test"})
 	}
-	bridge.StartGame()
+	bridge.StartGame(players)
+
 	if _, err := bridge.Status(0); err != nil {
 		t.Errorf("Bridge must not return an error when trying to get the status of a started game")
 	}
@@ -101,8 +117,10 @@ func TestStatusWithGameStarted(t *testing.T) {
 
 func TestStatusWithGameNotStarted(t *testing.T) {
 	bridge := New()
+	var players []interfaces.Client
+
 	for i := 0; i < 3; i++ {
-		bridge.AddPlayer("test")
+		players = append(players, &mocks.Client{FakeName: "test"})
 	}
 	if _, err := bridge.Status(0); err == nil {
 		t.Errorf("Bridge must return an error when trying to get the status of a non started game")
@@ -111,32 +129,13 @@ func TestStatusWithGameNotStarted(t *testing.T) {
 
 func TestStatusForInexistentPlayer(t *testing.T) {
 	bridge := New()
+	var players []interfaces.Client
+
 	for i := 0; i < 3; i++ {
-		bridge.AddPlayer("test")
+		players = append(players, &mocks.Client{FakeName: "test"})
 	}
-	bridge.StartGame()
+	bridge.StartGame(players)
 	if _, err := bridge.Status(9); err == nil {
 		t.Errorf("Bridge must return an error when trying to get the game status of an inexistent player")
-	}
-}
-
-func TestAddPlayerToAFullGame(t *testing.T) {
-	bridge := New()
-	for i := 0; i < 7; i++ {
-		bridge.AddPlayer("test")
-	}
-	if err := bridge.AddPlayer("test2"); err == nil {
-		t.Errorf("Bridge must return an error when trying to add a player to an already full game")
-	}
-}
-
-func TestAddPlayerToARunningGame(t *testing.T) {
-	bridge := New()
-	for i := 0; i < 3; i++ {
-		bridge.AddPlayer("test")
-	}
-	bridge.StartGame()
-	if err := bridge.AddPlayer("test2"); err == nil {
-		t.Errorf("Bridge must return an error when trying to add a player to a running game")
 	}
 }

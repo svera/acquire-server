@@ -21,24 +21,23 @@ type AcquireBridge struct {
 	history      []i18n
 }
 
-const (
-	// NotEndGame defines the message returned when a player claims wrongly that end game conditions have been met
-	NotEndGame     = "not_end_game"
-	minimumPlayers = 3
-	maximumPlayers = 6
-	// WrongMessage defines the message returned when AcquireBridge receives a malformed message
-	WrongMessage = "message_parsing_error"
-	// GameAlreadyStarted is an error returned when a player tries to start a game in a hub instance which an already running one
-	GameAlreadyStarted = "game_already_started"
-	// GameNotStarted is an error returned when a player tries to do an action that requires a running game
-	GameNotStarted = "game_not_started"
-	// GameFull is an error returned when a game already has the maximum number of players
-	GameFull = "game_full"
-	// InexistentPlayer is an error returned when someone tries to remove or get information of a non existent player
-	InexistentPlayer = "inexistent_player"
-	// CorporationNotFound is an error returned when someone tries to use a non existent corporation
-	CorporationNotFound = "corporation_not_found"
-)
+// NotEndGame defines the message returned when a player claims wrongly that end game conditions have been met
+const NotEndGame = "not_end_game"
+
+// WrongMessage defines the message returned when AcquireBridge receives a malformed message
+const WrongMessage = "message_parsing_error"
+
+// GameAlreadyStarted is an error returned when a player tries to start a game in a hub instance which an already running one
+const GameAlreadyStarted = "game_already_started"
+
+// GameNotStarted is an error returned when a player tries to do an action that requires a running game
+const GameNotStarted = "game_not_started"
+
+// InexistentPlayer is an error returned when someone tries to remove or get information of a non existent player
+const InexistentPlayer = "inexistent_player"
+
+// CorporationNotFound is an error returned when someone tries to use a non existent corporation
+const CorporationNotFound = "corporation_not_found"
 
 // New initializes a new AcquireBridge instance
 func New() *AcquireBridge {
@@ -119,28 +118,14 @@ func (b *AcquireBridge) playersShares(playerNumber int) [7]int {
 	return data
 }
 
-// AddPlayer adds a new player to the game
-func (b *AcquireBridge) AddPlayer(name string) error {
-	if len(b.players) == maximumPlayers {
-		return errors.New(GameFull)
+// addPlayer adds a new player to the game
+func (b *AcquireBridge) addPlayers(clients []serverInterfaces.Client) {
+	for _, pl := range clients {
+		b.players = append(b.players, player.New(pl.Name()))
 	}
-	if b.GameStarted() {
-		return errors.New(GameAlreadyStarted)
-	}
-	b.players = append(b.players, player.New(name))
-	return nil
 }
 
-// RemovePlayer removes a player from the game
-func (b *AcquireBridge) RemovePlayer(number int) error {
-	if number < 0 || number > len(b.players) {
-		return errors.New(InexistentPlayer)
-	}
-	b.players = append(b.players[:number], b.players[number+1:]...)
-	return nil
-}
-
-// DeactivatePlayer removes a player from the game
+// DeactivatePlayer deactivates a player from the game
 func (b *AcquireBridge) DeactivatePlayer(number int) error {
 	if number < 0 || number > len(b.players) {
 		return errors.New(InexistentPlayer)
@@ -157,11 +142,14 @@ func (b *AcquireBridge) DeactivatePlayer(number int) error {
 }
 
 // StartGame starts a new Acquire game
-func (b *AcquireBridge) StartGame() error {
+func (b *AcquireBridge) StartGame(clients []serverInterfaces.Client) error {
 	var err error
+
 	if b.GameStarted() {
 		err = errors.New(GameAlreadyStarted)
 	}
+
+	b.addPlayers(clients)
 
 	if b.game, err = acquire.New(b.players, acquire.Optional{Corporations: b.corporations}); err == nil {
 		b.history = append(b.history, i18n{

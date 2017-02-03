@@ -22,7 +22,7 @@ func (r *Room) startGameAction(m *interfaces.IncomingMessage) error {
 	}
 	r.playerTimeOut = parsed.PlayerTimeout
 
-	if err = r.gameBridge.StartGame(); err != nil {
+	if err = r.gameBridge.StartGame(r.clients); err != nil {
 		return err
 	}
 

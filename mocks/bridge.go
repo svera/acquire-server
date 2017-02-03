@@ -36,11 +36,6 @@ func (b *Bridge) Status(n int) ([]byte, error) {
 	return b.FakeStatus, nil
 }
 
-// AddPlayer mocks the AddPlayer method defined in the Bridge interface
-func (b *Bridge) AddPlayer(name string) error {
-	return nil
-}
-
 // RemovePlayer mocks the RemovePlayer method defined in the Bridge interface
 func (b *Bridge) RemovePlayer(number int) error {
 	return nil
@@ -57,7 +52,7 @@ func (b *Bridge) AddBot(params interface{}, room interfaces.Room) (interfaces.Cl
 }
 
 // StartGame mocks the StartGame method defined in the Bridge interface
-func (b *Bridge) StartGame() error {
+func (b *Bridge) StartGame(players []interfaces.Client) error {
 	b.Calls["StartGame"]++
 	return nil
 }

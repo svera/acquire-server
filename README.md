@@ -24,101 +24,15 @@ On the other hand, outgoing messages are sent to one or multiple clients to comm
 
 These messages describe server-wide operations, basically game room creation/destroying.
 
-* Create a room.
-```
-{
-  "typ": "cre", // Message type: Create room
-  "par": { // Parameters
-    "bri": "acquire" // Bridge name
-  }
-}
-```
-
-If the room was created, a message with the following format is sent back to the client:
-```
-{
-  "typ": "new", // Message type: New room created
-  "id": "abc"   // Room Identifier
-}
-```
-
-* Destroy a room
-```
-{
-  "typ": "ter", // Message type: Destroy room
-  "par": {} // No parameters needed
-}
-```
-
-If the room was destroyed, a message with the following format is sent back to the client:
-```
-{
-  "typ": "out", // Message type: Room destroyed
-  "rea": "abc"   // Reason code, see below
-}
-```
-The reason code can be one of these:
-  * `tim`: Room timed out
-  * `ncl`: Not enough clients to keep playing
-  * `ter`: Room destroyed by owner
-
-##### Rooms list update
-
-Also, when a room is created or destroyed or a game starts, a message listing all available rooms
-(rooms which haven't started a game yet) is issued. Its format is as follows:
-
-```
-{
-  "typ": "rms", // Message type: room list
-  "val": ["abcde", "opqrst"...] // Available game rooms IDs
-}
-```
+You can check them out at [interfaces/incoming_messages_hub.go](interfaces/incoming_messages_hub.go).
 
 #### Room level messages
 
 The following are the actions that can be executed in a room, and therefore the types of messages it can manage.
 Note that room level messages do not need to specify a room ID because a player
-can only be in one room at a time, and the system tracks it:
+can only be in one room at a time, and the system tracks it.
 
-* Start a game (can only be issued by a room owner):
-```
-{
-  "typ": "ini", // Message type: Init game
-  "par": {}
-}
-```
-
-When a game starts, an _update_ message is broadcast to all clients with the initial status of the game. This _update_ message format depends on the game, look at game bridge documentation for details.
-
-* Add a bot to a game (can only be issued by a room owner):
-```
-{
-  "typ": "bot", // Message type: Add bot
-  "par": {
-    "lvl": "rookie", // Bot game level
-  }
-}
-```
-
-* Kick a player out of a room (can only be issued by a room owner):
-```
-{
-  "typ": "kck",
-  "par": {
-    "ply": 1
-  }
-}
-```
-
-* Manage a player leaving a room.
-```
-{
-  "typ": "qui",
-  "par": {
-    "ply": "slf"
-  }
-}
-```
+You can check them out at [interfaces/incoming_messages_room.go](interfaces/incoming_messages_room.go).
 
 #### Game level messages
 

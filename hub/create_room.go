@@ -5,6 +5,8 @@ import (
 	"log"
 	"time"
 
+	"strings"
+
 	"github.com/svera/sackson-server/bridges"
 	"github.com/svera/sackson-server/interfaces"
 	"github.com/svera/sackson-server/messages"
@@ -23,6 +25,9 @@ func (h *Hub) createRoomAction(m *interfaces.IncomingMessage) error {
 		return err
 	}
 
+	if strings.TrimSpace(parsed.ClientName) != "" {
+		m.Author.SetName(parsed.ClientName)
+	}
 	h.createRoom(bridge, m.Author)
 	return nil
 }

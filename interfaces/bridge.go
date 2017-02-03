@@ -10,11 +10,9 @@ type Bridge interface {
 	Execute(clientName string, t string, content json.RawMessage) error
 	CurrentPlayerNumber() (int, error)
 	Status(n int) ([]byte, error)
-	AddPlayer(name string) error
-	RemovePlayer(number int) error
 	DeactivatePlayer(number int) error
 	AddBot(params interface{}, room Room) (Client, error)
-	StartGame() error
+	StartGame([]Client) error
 	GameStarted() bool
 	IsGameOver() bool
 }

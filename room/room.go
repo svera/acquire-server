@@ -94,7 +94,8 @@ func (r *Room) isControlMessage(m *interfaces.IncomingMessage) bool {
 		interfaces.ControlMessageTypeAddBot,
 		interfaces.ControlMessageTypeStartGame,
 		interfaces.ControlMessageTypeKickPlayer,
-		interfaces.ControlMessageTypePlayerQuits:
+		interfaces.ControlMessageTypePlayerQuits,
+		interfaces.ControlMessageTypeSetClientData:
 		return true
 	}
 	return false
@@ -115,7 +116,11 @@ func (r *Room) parseControlMessage(m *interfaces.IncomingMessage) {
 
 	case interfaces.ControlMessageTypePlayerQuits:
 		err = r.clientQuits(m.Author)
+
+	case interfaces.ControlMessageTypeSetClientData:
+		err = r.setClientDataAction(m)
 	}
+
 	if err != nil {
 		response := messages.New(interfaces.TypeMessageError, err.Error())
 		go r.emitter.Emit("messageCreated", []interfaces.Client{m.Author}, response)
@@ -180,14 +185,18 @@ func (r *Room) currentPlayerClient() (interfaces.Client, error) {
 	return r.clients[number], err
 }
 
-// AddHuman adds a new client to the room
-func (r *Room) AddHuman(c interfaces.Client) error {
+// AddHuman adds a new client to the room. If the client has successfully joined,
+// a message with his/her number in the room is send back to the client.
+func (r *Room) AddHuman(cl interfaces.Client) error {
 	var err error
+	var clientNumber int
 
-	if err = r.addClient(c); err == nil {
+	if clientNumber, err = r.addClient(cl); err == nil {
 		if r.configuration.Debug {
-			log.Printf("Client '%s' Added to room", c.Name())
+			log.Printf("Client '%s' added to room", cl.Name())
 		}
+		response := messages.New(interfaces.TypeMessageJoinedRoom, clientNumber)
+		go r.emitter.Emit("messageCreated", []interfaces.Client{cl}, response)
 	}
 	return err
 }
@@ -199,13 +208,10 @@ func (r *Room) timeoutPlayer(cl interfaces.Client) {
 	r.RemoveClient(cl)
 }
 
-func (r *Room) addClient(c interfaces.Client) error {
+func (r *Room) addClient(c interfaces.Client) (int, error) {
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	if err := r.gameBridge.AddPlayer(c.Name()); err != nil {
-		return err
-	}
 	r.clients = append(r.clients, c)
 
 	if len(r.clients) == 1 {
@@ -214,7 +220,7 @@ func (r *Room) addClient(c interfaces.Client) error {
 	c.SetRoom(r)
 	response := messages.New(interfaces.TypeMessageCurrentPlayers, r.playersData())
 	go r.emitter.Emit("messageCreated", r.clients, response)
-	return nil
+	return len(r.clients) - 1, nil
 }
 
 // RemoveClient removes / sets as nil a client and removes / deactivates its player
@@ -267,7 +273,6 @@ func (r *Room) removePlayer(playerNumber int) {
 	mutex.Lock()
 	defer mutex.Unlock()
 	r.clients = append(r.clients[:playerNumber], r.clients[playerNumber+1:]...)
-	r.gameBridge.RemovePlayer(playerNumber)
 	response := messages.New(interfaces.TypeMessageCurrentPlayers, r.playersData())
 	for _, cl := range r.clients {
 		go r.emitter.Emit("messageCreated", []interfaces.Client{cl}, response)

@@ -62,7 +62,7 @@ func New(cfg *config.Config, emitter *emitable.Emitter) *Hub {
 		rooms:         make(map[string]interfaces.Room),
 		configuration: cfg,
 		emitter:       emitter,
-		Quit:          make(chan struct{}),
+		//Quit:          make(chan struct{}),
 	}
 
 	h.registerCallbacks()
@@ -72,18 +72,19 @@ func New(cfg *config.Config, emitter *emitable.Emitter) *Hub {
 
 // Run listens for messages coming from several channels and acts accordingly
 func (h *Hub) Run() {
-	defer func() {
-		if h.configuration.Debug {
-			log.Printf("Closing hub...")
-		}
-		for _, cl := range h.clients {
-			h.removeClient(cl)
-		}
-		for id := range h.rooms {
-			h.destroyRoom(id, interfaces.ReasonRoomDestroyedTerminated)
-		}
-	}()
-
+	/*
+		defer func() {
+			if h.configuration.Debug {
+				log.Printf("Closing hub...")
+			}
+			for _, cl := range h.clients {
+				h.removeClient(cl)
+			}
+			for id := range h.rooms {
+				h.destroyRoom(id, interfaces.ReasonRoomDestroyedTerminated)
+			}
+		}()
+	*/
 	for {
 		select {
 
@@ -91,7 +92,7 @@ func (h *Hub) Run() {
 			mutex.Lock()
 			h.clients = append(h.clients, c)
 			mutex.Unlock()
-			c.SetName(fmt.Sprintf("Player %d", h.NumberClients()+1))
+			c.SetName(fmt.Sprintf("Player %d", h.NumberClients()))
 			go h.emitter.Emit("messageCreated", h.clients, h.createUpdatedRoomListMessage())
 			if h.configuration.Debug {
 				log.Printf("Client added to hub, number of connected clients: %d\n", len(h.clients))
@@ -109,9 +110,10 @@ func (h *Hub) Run() {
 		case m := <-h.Messages:
 			h.parseMessage(m)
 
-		case <-h.Quit:
-			return
-
+			/*
+				case <-h.Quit:
+					return
+			*/
 		}
 	}
 }
@@ -151,6 +153,7 @@ func (h *Hub) parseControlMessage(m *interfaces.IncomingMessage) {
 	case interfaces.ControlMessageTypeTerminateRoom:
 		err = h.terminateRoomAction(m)
 	}
+
 	if err != nil {
 		response := messages.New(interfaces.TypeMessageError, err.Error())
 		go h.emitter.Emit("messageCreated", []interfaces.Client{m.Author}, response)
