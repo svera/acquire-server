@@ -101,7 +101,7 @@ func (h *Hub) Run() {
 		case c := <-h.Unregister:
 			for _, val := range h.clients {
 				if val == c {
-					//wg.Wait()
+					wg.Wait()
 					h.removeClient(c)
 					break
 				}
@@ -170,6 +170,7 @@ func (h *Hub) passMessageToRoom(m *interfaces.IncomingMessage) {
 }
 
 func (h *Hub) sendMessage(c interfaces.Client, message []byte) {
+	log.Printf("Sending message %s to client\n", string(message[:]))
 	defer wg.Done()
 	wg.Add(1)
 
@@ -204,7 +205,7 @@ func (h *Hub) removeClient(c interfaces.Client) {
 			}
 			//close(c.Incoming())
 			c.Close()
-			break
+			return
 		}
 	}
 }

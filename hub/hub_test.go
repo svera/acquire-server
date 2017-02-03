@@ -163,3 +163,17 @@ func TestJoinRoom(t *testing.T) {
 		t.Errorf("Room must have 2 clients, got %d", len(h.rooms[id].Clients()))
 	}
 }
+
+func TestUnregisterWhenDestroyingRoom(t *testing.T) {
+	h, c := setup()
+	go h.Run()
+
+	go c.WritePump()
+	h.Register <- c
+	time.Sleep(time.Millisecond * 100)
+	id := h.createRoom(b, c)
+	time.Sleep(time.Millisecond * 100)
+	go h.destroyRoom(id, "test")
+	h.Unregister <- c
+	time.Sleep(time.Millisecond * 100)
+}
