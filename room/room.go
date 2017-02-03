@@ -171,8 +171,7 @@ func (r *Room) playersData() []interfaces.PlayerData {
 			players = append(
 				players,
 				interfaces.PlayerData{
-					Name:  c.Name(),
-					Owner: c.Room().Owner() == c,
+					Name: c.Name(),
 				},
 			)
 		}
@@ -195,7 +194,7 @@ func (r *Room) AddHuman(cl interfaces.Client) error {
 		if r.configuration.Debug {
 			log.Printf("Client '%s' added to room", cl.Name())
 		}
-		response := messages.New(interfaces.TypeMessageJoinedRoom, clientNumber)
+		response := messages.New(interfaces.TypeMessageJoinedRoom, clientNumber, r.id, cl == r.owner)
 		go r.emitter.Emit("messageCreated", []interfaces.Client{cl}, response)
 	}
 	return err

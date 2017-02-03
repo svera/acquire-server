@@ -3,9 +3,9 @@ package interfaces
 // ControlMessageTypeCreateRoom defines the value that create room
 // messages must have in the Type field.
 //
-// A MessageRoomCreated message is sent to its owner if room is created.
+// A MessageJoinedRoom message is sent to the client when the room is create.
 //
-// A MessageRoomsList message is sent to all clients if room is created.
+// A MessageRoomsList message is sent to all clients when the room is created.
 //
 // The following is a CreateRoom message example:
 //   {

@@ -32,13 +32,6 @@ func New(typeMessage string, args ...interface{}) []byte {
 		}
 		encoded, _ = json.Marshal(msg)
 
-	case interfaces.TypeMessageRoomCreated:
-		msg := interfaces.MessageRoomCreated{
-			Type: interfaces.TypeMessageRoomCreated,
-			ID:   args[0].(string),
-		}
-		encoded, _ = json.Marshal(msg)
-
 	case interfaces.TypeMessageRoomsList:
 		msg := interfaces.MessageRoomsList{
 			Type:   interfaces.TypeMessageRoomsList,
@@ -50,6 +43,8 @@ func New(typeMessage string, args ...interface{}) []byte {
 		msg := interfaces.MessageJoinedRoom{
 			Type:         interfaces.TypeMessageJoinedRoom,
 			ClientNumber: args[0].(int),
+			ID:           args[1].(string),
+			Owner:        args[2].(bool),
 		}
 		encoded, _ = json.Marshal(msg)
 

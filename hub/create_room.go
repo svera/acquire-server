@@ -9,7 +9,6 @@ import (
 
 	"github.com/svera/sackson-server/bridges"
 	"github.com/svera/sackson-server/interfaces"
-	"github.com/svera/sackson-server/messages"
 	"github.com/svera/sackson-server/room"
 )
 
@@ -43,9 +42,6 @@ func (h *Hub) createRoom(b interfaces.Bridge, owner interfaces.Client) string {
 		h.destroyRoom(id, interfaces.ReasonRoomDestroyedTimeout)
 	})
 	h.rooms[id].SetTimer(timer)
-
-	response := messages.New(interfaces.TypeMessageRoomCreated, id)
-	go h.emitter.Emit("messageCreated", []interfaces.Client{owner}, response)
 
 	go h.emitter.Emit("messageCreated", h.clients, h.createUpdatedRoomListMessage())
 

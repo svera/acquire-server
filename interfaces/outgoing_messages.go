@@ -16,24 +16,12 @@ const (
 
 // Types for the messages sent to the clients.
 const (
-	TypeMessageRoomCreated    = "new"
 	TypeMessageClientOut      = "out"
 	TypeMessageRoomsList      = "rms"
 	TypeMessageCurrentPlayers = "pls"
 	TypeMessageError          = "err"
 	TypeMessageJoinedRoom     = "joi"
 )
-
-// MessageRoomCreated is sent to its owner when a new room is created.
-// The following is a MessageRoomCreated message example:
-//   {
-//     "typ": "new",
-//     "id": "VWXYZ"
-//   }
-type MessageRoomCreated struct {
-	Type string `json:"typ"`
-	ID   string `json:"id"`
-}
 
 // MessageClientOut is sent to a client when he/she is expelled from a room.
 // The following is a MessageClientOut message example:
@@ -64,14 +52,8 @@ type MessageRoomsList struct {
 //     "typ": "pls",
 //     "val":
 //     [
-//       {
-//         "nam": "Miguel",
-//         "own": true
-//       },
-//       {
-//         "nam": "Sergio",
-//         "own": false
-//       },
+//       {"nam": "Miguel"},
+//       {"nam": "Sergio"}
 //     ]
 //   }
 type MessageCurrentPlayers struct {
@@ -83,8 +65,6 @@ type MessageCurrentPlayers struct {
 // user
 type PlayerData struct {
 	Name string `json:"nam"`
-	// Owner signals if this client is the owner of the room
-	Owner bool `json:"own"`
 }
 
 // MessageError is a message sent to a specific player
@@ -104,9 +84,14 @@ type MessageError struct {
 // The following is a MessageJoinedRoom message example:
 //   {
 //     "typ": "joi",
-//     "num": 2
+//     "num": 2,
+//     "id": "VWXYZ",
+//     "own": false
 //   }
 type MessageJoinedRoom struct {
 	Type         string `json:"typ"`
 	ClientNumber int    `json:"num"`
+	ID           string `json:"id"`
+	// Owner signals if this client is the owner of the room
+	Owner bool `json:"own"`
 }
