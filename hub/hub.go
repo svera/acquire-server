@@ -164,6 +164,7 @@ func (h *Hub) passMessageToRoom(m *interfaces.IncomingMessage) {
 	if m.Author.Room() == nil {
 		response := messages.New(interfaces.TypeMessageError, NotInARoom)
 		go h.emitter.Emit("messageCreated", []interfaces.Client{m.Author}, response)
+		return
 	}
 
 	m.Author.Room().Parse(m)
