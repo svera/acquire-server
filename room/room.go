@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	emitable "github.com/olebedev/emitter"
 	"github.com/svera/sackson-server/config"
 	"github.com/svera/sackson-server/interfaces"
 	"github.com/svera/sackson-server/messages"
@@ -46,7 +45,7 @@ type Room struct {
 	// timer function that will close the room after X minutes
 	timer *time.Timer
 
-	emitter *emitable.Emitter
+	callbacks map[string]func(...interface{})
 
 	clientInTurn interfaces.Client
 
@@ -60,7 +59,7 @@ func New(
 	messages chan *interfaces.IncomingMessage,
 	unregister chan interfaces.Client,
 	cfg *config.Config,
-	emitter *emitable.Emitter,
+	cb map[string]func(...interface{}),
 ) *Room {
 	return &Room{
 		id:            id,
@@ -69,7 +68,7 @@ func New(
 		owner:         owner,
 		messages:      messages,
 		unregister:    unregister,
-		emitter:       emitter,
+		callbacks:     cb,
 		clientInTurn:  nil,
 		configuration: cfg,
 	}
@@ -82,7 +81,7 @@ func (r *Room) Parse(m *interfaces.IncomingMessage) {
 		r.parseControlMessage(m)
 	} else if r.gameBridge.IsGameOver() {
 		response := messages.New(interfaces.TypeMessageError, GameOver)
-		go r.emitter.Emit("messageCreated", []interfaces.Client{m.Author}, response)
+		go r.callbacks["messageCreated"]([]interfaces.Client{m.Author}, response)
 	} else {
 		r.passMessageToGame(m)
 	}
@@ -123,7 +122,7 @@ func (r *Room) parseControlMessage(m *interfaces.IncomingMessage) {
 
 	if err != nil {
 		response := messages.New(interfaces.TypeMessageError, err.Error())
-		go r.emitter.Emit("messageCreated", []interfaces.Client{m.Author}, response)
+		go r.callbacks["messageCreated"]([]interfaces.Client{m.Author}, response)
 	}
 }
 
@@ -140,7 +139,7 @@ func (r *Room) passMessageToGame(m *interfaces.IncomingMessage) {
 				}
 				if cl != nil {
 					response, _ := r.gameBridge.Status(n)
-					go r.emitter.Emit("messageCreated", []interfaces.Client{cl}, response)
+					go r.callbacks["messageCreated"]([]interfaces.Client{cl}, response)
 				}
 			}
 			currentPlayerClient, _ := r.currentPlayerClient()
@@ -149,7 +148,7 @@ func (r *Room) passMessageToGame(m *interfaces.IncomingMessage) {
 			}
 		} else {
 			response := messages.New(interfaces.TypeMessageError, err.Error())
-			go r.emitter.Emit("messageCreated", []interfaces.Client{m.Author}, response)
+			go r.callbacks["messageCreated"]([]interfaces.Client{m.Author}, response)
 		}
 	}
 }
@@ -195,7 +194,7 @@ func (r *Room) AddHuman(cl interfaces.Client) error {
 			log.Printf("Client '%s' added to room", cl.Name())
 		}
 		response := messages.New(interfaces.TypeMessageJoinedRoom, clientNumber, r.id, cl == r.owner)
-		go r.emitter.Emit("messageCreated", []interfaces.Client{cl}, response)
+		go r.callbacks["messageCreated"]([]interfaces.Client{cl}, response)
 	}
 	return err
 }
@@ -203,7 +202,7 @@ func (r *Room) AddHuman(cl interfaces.Client) error {
 func (r *Room) timeoutPlayer(cl interfaces.Client) {
 	response := messages.New(interfaces.TypeMessageClientOut, interfaces.ReasonPlayerTimedOut)
 
-	go r.emitter.Emit("messageCreated", []interfaces.Client{cl}, response)
+	go r.callbacks["messageCreated"]([]interfaces.Client{cl}, response)
 	r.RemoveClient(cl)
 }
 
@@ -218,7 +217,7 @@ func (r *Room) addClient(c interfaces.Client) (int, error) {
 	}
 	c.SetRoom(r)
 	response := messages.New(interfaces.TypeMessageCurrentPlayers, r.playersData())
-	go r.emitter.Emit("messageCreated", r.clients, response)
+	go r.callbacks["messageCreated"](r.clients, response)
 	return len(r.clients) - 1, nil
 }
 
@@ -236,7 +235,7 @@ func (r *Room) RemoveClient(c interfaces.Client) {
 			} else {
 				r.removePlayer(i)
 			}
-			go r.emitter.Emit(ClientOut, r)
+			go r.callbacks[ClientOut](r)
 			break
 		}
 	}
@@ -262,7 +261,7 @@ func (r *Room) deactivatePlayer(playerNumber int) {
 			continue
 		}
 		st, _ := r.gameBridge.Status(i)
-		go r.emitter.Emit("messageCreated", []interfaces.Client{cl}, st)
+		go r.callbacks["messageCreated"]([]interfaces.Client{cl}, st)
 	}
 }
 
@@ -274,7 +273,7 @@ func (r *Room) removePlayer(playerNumber int) {
 	r.clients = append(r.clients[:playerNumber], r.clients[playerNumber+1:]...)
 	response := messages.New(interfaces.TypeMessageCurrentPlayers, r.playersData())
 	for _, cl := range r.clients {
-		go r.emitter.Emit("messageCreated", []interfaces.Client{cl}, response)
+		go r.callbacks["messageCreated"]([]interfaces.Client{cl}, response)
 	}
 }
 

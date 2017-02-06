@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	emitable "github.com/olebedev/emitter"
 	"github.com/svera/sackson-server/config"
 	"github.com/svera/sackson-server/interfaces"
 	"github.com/svera/sackson-server/messages"
@@ -42,9 +41,9 @@ type Hub struct {
 	// Configuration
 	configuration *config.Config
 
-	emitter *emitable.Emitter
-
 	Quit chan struct{}
+
+	callbacks map[string]func(...interface{})
 }
 
 func init() {
@@ -53,7 +52,7 @@ func init() {
 }
 
 // New returns a new Hub instance
-func New(cfg *config.Config, emitter *emitable.Emitter) *Hub {
+func New(cfg *config.Config) *Hub {
 	h := &Hub{
 		Messages:      make(chan *interfaces.IncomingMessage),
 		Register:      make(chan interfaces.Client),
@@ -61,7 +60,7 @@ func New(cfg *config.Config, emitter *emitable.Emitter) *Hub {
 		clients:       []interfaces.Client{},
 		rooms:         make(map[string]interfaces.Room),
 		configuration: cfg,
-		emitter:       emitter,
+		callbacks:     make(map[string]func(...interface{})),
 		//Quit:          make(chan struct{}),
 	}
 
@@ -88,21 +87,21 @@ func (h *Hub) Run() {
 	for {
 		select {
 
-		case c := <-h.Register:
+		case cl := <-h.Register:
 			mutex.Lock()
-			h.clients = append(h.clients, c)
+			h.clients = append(h.clients, cl)
 			mutex.Unlock()
-			c.SetName(fmt.Sprintf("Player %d", h.NumberClients()))
-			go h.emitter.Emit("messageCreated", h.clients, h.createUpdatedRoomListMessage())
+			cl.SetName(fmt.Sprintf("Player %d", h.NumberClients()))
+			h.callbacks["messageCreated"]([]interfaces.Client{cl}, h.createUpdatedRoomListMessage())
 			if h.configuration.Debug {
 				log.Printf("Client added to hub, number of connected clients: %d\n", len(h.clients))
 			}
 
-		case c := <-h.Unregister:
+		case cl := <-h.Unregister:
 			for _, val := range h.clients {
-				if val == c {
-					wg.Wait()
-					h.removeClient(c)
+				if val == cl {
+					//wg.Wait()
+					h.removeClient(cl)
 					break
 				}
 			}
@@ -156,14 +155,14 @@ func (h *Hub) parseControlMessage(m *interfaces.IncomingMessage) {
 
 	if err != nil {
 		response := messages.New(interfaces.TypeMessageError, err.Error())
-		go h.emitter.Emit("messageCreated", []interfaces.Client{m.Author}, response)
+		h.callbacks["messageCreated"]([]interfaces.Client{m.Author}, response)
 	}
 }
 
 func (h *Hub) passMessageToRoom(m *interfaces.IncomingMessage) {
 	if m.Author.Room() == nil {
 		response := messages.New(interfaces.TypeMessageError, NotInARoom)
-		go h.emitter.Emit("messageCreated", []interfaces.Client{m.Author}, response)
+		h.callbacks["messageCreated"]([]interfaces.Client{m.Author}, response)
 		return
 	}
 
@@ -172,8 +171,6 @@ func (h *Hub) passMessageToRoom(m *interfaces.IncomingMessage) {
 
 func (h *Hub) sendMessage(c interfaces.Client, message []byte) {
 	log.Printf("Sending message %s to client\n", string(message[:]))
-	defer wg.Done()
-	wg.Add(1)
 
 	select {
 	case c.Incoming() <- message:
@@ -181,7 +178,6 @@ func (h *Hub) sendMessage(c interfaces.Client, message []byte) {
 
 	// We can't reach the client
 	default:
-		wg.Wait()
 		h.removeClient(c)
 		return
 	}
@@ -232,30 +228,30 @@ func (h *Hub) getWaitingRoomsIds() []string {
 }
 
 func (h *Hub) registerCallbacks() {
-	h.emitter.On(room.GameStarted, func(event *emitable.Event) {
+	h.callbacks[room.GameStarted] = func(args ...interface{}) {
 		message := h.createUpdatedRoomListMessage()
 
 		for _, cl := range h.clients {
 			h.sendMessage(cl, message)
 		}
-	})
+	}
 
-	h.emitter.On("messageCreated", func(event *emitable.Event) {
-		clients := event.Args[0].([]interfaces.Client)
-		message := event.Args[1].([]byte)
+	h.callbacks["messageCreated"] = func(args ...interface{}) {
+		clients := args[0].([]interfaces.Client)
+		message := args[1].([]byte)
 
 		mutex.Lock()
 		for _, cl := range clients {
 			h.sendMessage(cl, message)
 		}
 		mutex.Unlock()
-	})
+	}
 
-	h.emitter.On(room.ClientOut, func(event *emitable.Event) {
-		r := event.Args[0].(interfaces.Room)
+	h.callbacks[room.ClientOut] = func(args ...interface{}) {
+		r := args[0].(interfaces.Room)
 
 		if len(r.HumanClients()) == 0 {
 			h.destroyRoom(r.ID(), interfaces.ReasonRoomDestroyedNoClients)
 		}
-	})
+	}
 }

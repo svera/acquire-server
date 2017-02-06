@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/olebedev/emitter"
 	"github.com/svera/sackson-server/config"
 	"github.com/svera/sackson-server/interfaces"
 	"github.com/svera/sackson-server/mocks"
@@ -18,11 +17,7 @@ func init() {
 }
 
 func setup() (h *Hub, c interfaces.Client) {
-	var e *emitter.Emitter
-
-	e = emitter.New(10)
-	e.Use("*", emitter.Skip)
-	h = New(&config.Config{Timeout: 5, Debug: true}, e)
+	h = New(&config.Config{Timeout: 5, Debug: true})
 	c = &mocks.Client{FakeIncoming: make(chan []byte, 2)}
 	return h, c
 }

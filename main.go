@@ -8,7 +8,6 @@ import (
 	"os"
 
 	"github.com/gorilla/mux"
-	"github.com/olebedev/emitter"
 	"github.com/svera/sackson-server/client"
 	"github.com/svera/sackson-server/config"
 	"github.com/svera/sackson-server/hub"
@@ -30,9 +29,7 @@ func main() {
 		fmt.Println(err.Error())
 	} else {
 		r := mux.NewRouter()
-		e := emitter.New(10)
-		e.Use("*", emitter.Skip)
-		hb = hub.New(cfg, e)
+		hb = hub.New(cfg)
 		go hb.Run()
 
 		r.HandleFunc("/", newClient)
