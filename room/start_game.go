@@ -32,7 +32,7 @@ func (r *Room) startGameAction(m *interfaces.IncomingMessage) error {
 
 	r.changePlayerSetTimer()
 
-	go r.emitter.Emit(GameStarted)
+	r.callbacks[GameStarted]()
 	return err
 }
 
@@ -45,7 +45,7 @@ func (r *Room) sendInitialMessage() error {
 			return err
 		}
 		r.setUpTimeOut(cl)
-		go r.emitter.Emit("messageCreated", []interfaces.Client{cl}, status)
+		r.callbacks["messageCreated"]([]interfaces.Client{cl}, status)
 	}
 	return nil
 }
