@@ -236,7 +236,7 @@ func (h *Hub) registerCallbacks() {
 
 		if len(r.HumanClients()) == 0 {
 			wg.Add(1)
-			go h.destroyRoomWithoutHumans(r.ID(), interfaces.ReasonRoomDestroyedNoClients)
+			go h.destroyRoomWithoutHumansAction(r.ID(), interfaces.ReasonRoomDestroyedNoClients)
 		}
 	}
 }
