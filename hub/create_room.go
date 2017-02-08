@@ -43,7 +43,7 @@ func (h *Hub) createRoom(b interfaces.Bridge, owner interfaces.Client) string {
 	})
 	h.rooms[id].SetTimer(timer)
 
-	go h.callbacks["messageCreated"](h.clients, h.createUpdatedRoomListMessage())
+	h.callbacks["messageCreated"](h.clients, h.createUpdatedRoomListMessage())
 
 	if h.configuration.Debug {
 		log.Printf("Room %s created\n", id)

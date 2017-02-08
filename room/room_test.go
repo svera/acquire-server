@@ -5,24 +5,24 @@ import (
 
 	"encoding/json"
 
-	"github.com/olebedev/emitter"
 	"github.com/svera/sackson-server/config"
 	"github.com/svera/sackson-server/interfaces"
 	"github.com/svera/sackson-server/mocks"
 )
 
 func setup() (c interfaces.Client, b *mocks.Bridge, r *Room) {
-	var e *emitter.Emitter
+	callbacks := make(map[string]func(...interface{}))
+	callbacks["messageCreated"] = func(...interface{}) {}
+	callbacks[GameStarted] = func(...interface{}) {}
+	callbacks[ClientOut] = func(...interface{}) {}
 
-	e = &emitter.Emitter{}
-	e.Use("*", emitter.Skip)
 	c = &mocks.Client{FakeIncoming: make(chan []byte, 2)}
 	b = &mocks.Bridge{
 		FakeClient: &mocks.Client{FakeIncoming: make(chan []byte, 2)},
 		Calls:      make(map[string]int),
 	}
 
-	r = New("test", b, c, make(chan *interfaces.IncomingMessage), make(chan interfaces.Client), &config.Config{Timeout: 1}, e)
+	r = New("test", b, c, make(chan *interfaces.IncomingMessage), make(chan interfaces.Client), &config.Config{Timeout: 1}, callbacks)
 	return c, b, r
 }
 

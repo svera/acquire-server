@@ -19,9 +19,15 @@ func (h *Hub) terminateRoomAction(m *interfaces.IncomingMessage) error {
 	return nil
 }
 
+func (h *Hub) destroyRoomWithoutHumans(roomID string, reasonCode string) {
+	defer wg.Done()
+	h.destroyRoom(roomID, reasonCode)
+}
+
 func (h *Hub) destroyRoom(roomID string, reasonCode string) {
 	mutex.Lock()
 	defer mutex.Unlock()
+
 	if h.configuration.Debug {
 		log.Printf("Destroying room %s...", roomID)
 	}
@@ -29,7 +35,7 @@ func (h *Hub) destroyRoom(roomID string, reasonCode string) {
 		r.Timer().Stop()
 		h.expelClientsFromRoom(r, reasonCode)
 		delete(h.rooms, roomID)
-		go h.callbacks["messageCreated"](h.clients, h.createUpdatedRoomListMessage())
+		h.callbacks["messageCreated"](h.clients, h.createUpdatedRoomListMessage())
 
 		if h.configuration.Debug {
 			log.Printf("Room %s destroyed\n", roomID)
@@ -47,7 +53,7 @@ func (h *Hub) expelClientsFromRoom(r interfaces.Room, reasonCode string) {
 			}
 			cl.Close()
 		} else if cl != nil {
-			go h.callbacks["messageCreated"]([]interfaces.Client{cl}, response)
+			h.callbacks["messageCreated"]([]interfaces.Client{cl}, response)
 			if h.configuration.Debug {
 				log.Printf("Client expeled from room %s\n", cl.Room().ID())
 			}

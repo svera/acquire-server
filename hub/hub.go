@@ -41,8 +41,6 @@ type Hub struct {
 	// Configuration
 	configuration *config.Config
 
-	Quit chan struct{}
-
 	callbacks map[string]func(...interface{})
 }
 
@@ -61,7 +59,6 @@ func New(cfg *config.Config) *Hub {
 		rooms:         make(map[string]interfaces.Room),
 		configuration: cfg,
 		callbacks:     make(map[string]func(...interface{})),
-		//Quit:          make(chan struct{}),
 	}
 
 	h.registerCallbacks()
@@ -71,19 +68,6 @@ func New(cfg *config.Config) *Hub {
 
 // Run listens for messages coming from several channels and acts accordingly
 func (h *Hub) Run() {
-	/*
-		defer func() {
-			if h.configuration.Debug {
-				log.Printf("Closing hub...")
-			}
-			for _, cl := range h.clients {
-				h.removeClient(cl)
-			}
-			for id := range h.rooms {
-				h.destroyRoom(id, interfaces.ReasonRoomDestroyedTerminated)
-			}
-		}()
-	*/
 	for {
 		select {
 
@@ -100,7 +84,7 @@ func (h *Hub) Run() {
 		case cl := <-h.Unregister:
 			for _, val := range h.clients {
 				if val == cl {
-					//wg.Wait()
+					wg.Wait()
 					h.removeClient(cl)
 					break
 				}
@@ -109,10 +93,6 @@ func (h *Hub) Run() {
 		case m := <-h.Messages:
 			h.parseMessage(m)
 
-			/*
-				case <-h.Quit:
-					return
-			*/
 		}
 	}
 }
@@ -170,7 +150,8 @@ func (h *Hub) passMessageToRoom(m *interfaces.IncomingMessage) {
 }
 
 func (h *Hub) sendMessage(c interfaces.Client, message []byte) {
-	log.Printf("Sending message %s to client\n", string(message[:]))
+	log.Printf("Sending message %s to client '%s'\n", string(message[:]), c.Name())
+	defer wg.Done()
 
 	select {
 	case c.Incoming() <- message:
@@ -178,6 +159,7 @@ func (h *Hub) sendMessage(c interfaces.Client, message []byte) {
 
 	// We can't reach the client
 	default:
+		wg.Wait()
 		h.removeClient(c)
 		return
 	}
@@ -231,8 +213,9 @@ func (h *Hub) registerCallbacks() {
 	h.callbacks[room.GameStarted] = func(args ...interface{}) {
 		message := h.createUpdatedRoomListMessage()
 
+		wg.Add(len(h.clients))
 		for _, cl := range h.clients {
-			h.sendMessage(cl, message)
+			go h.sendMessage(cl, message)
 		}
 	}
 
@@ -240,18 +223,20 @@ func (h *Hub) registerCallbacks() {
 		clients := args[0].([]interfaces.Client)
 		message := args[1].([]byte)
 
-		mutex.Lock()
+		wg.Add(len(clients))
+		//mutex.Lock()
 		for _, cl := range clients {
-			h.sendMessage(cl, message)
+			go h.sendMessage(cl, message)
 		}
-		mutex.Unlock()
+		//mutex.Unlock()
 	}
 
 	h.callbacks[room.ClientOut] = func(args ...interface{}) {
 		r := args[0].(interfaces.Room)
 
 		if len(r.HumanClients()) == 0 {
-			h.destroyRoom(r.ID(), interfaces.ReasonRoomDestroyedNoClients)
+			wg.Add(1)
+			go h.destroyRoomWithoutHumans(r.ID(), interfaces.ReasonRoomDestroyedNoClients)
 		}
 	}
 }
