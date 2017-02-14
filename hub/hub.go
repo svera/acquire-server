@@ -236,7 +236,15 @@ func (h *Hub) registerCallbacks() {
 
 		if len(r.HumanClients()) == 0 {
 			wg.Add(1)
-			go h.destroyRoomWithoutHumansAction(r.ID(), interfaces.ReasonRoomDestroyedNoClients)
+			go h.destroyRoomConcurrently(r.ID(), interfaces.ReasonRoomDestroyedNoClients)
 		}
 	}
+
+	h.callbacks[room.GamePanicked] = func(args ...interface{}) {
+		r := args[0].(interfaces.Room)
+
+		wg.Add(1)
+		go h.destroyRoomConcurrently(r.ID(), interfaces.ReasonRoomDestroyedGamePanicked)
+	}
+
 }

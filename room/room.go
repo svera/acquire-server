@@ -1,6 +1,7 @@
 package room
 
 import (
+	"fmt"
 	"log"
 	"sync"
 	"time"
@@ -12,8 +13,9 @@ import (
 
 // Events Emited from Room, always in a past tense
 const (
-	GameStarted = "gameStarted"
-	ClientOut   = "clientOut"
+	GameStarted  = "gameStarted"
+	ClientOut    = "clientOut"
+	GamePanicked = "gamePanicked"
 )
 
 var (
@@ -129,6 +131,13 @@ func (r *Room) parseControlMessage(m *interfaces.IncomingMessage) {
 func (r *Room) passMessageToGame(m *interfaces.IncomingMessage) {
 	var err error
 	var currentPlayer interfaces.Client
+
+	defer func() {
+		if rc := recover(); rc != nil {
+			fmt.Printf("Panic in room '%s': %s", r.id, rc)
+			r.callbacks[GamePanicked](r)
+		}
+	}()
 
 	if currentPlayer, err = r.currentPlayerClient(); m.Author == currentPlayer && err == nil {
 		err = r.gameBridge.Execute(m.Author.Name(), m.Content.Type, m.Content.Params)
