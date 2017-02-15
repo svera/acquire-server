@@ -13,11 +13,15 @@ type Bridge struct {
 	FakeClient              interfaces.Client
 	FakeGameStarted         bool
 	FakeIsGameOver          bool
+	FakeExecute             func(clientName string, t string, content json.RawMessage) error
 	Calls                   map[string]int
 }
 
 // Execute mocks the Execute method defined in the Bridge interface
 func (b *Bridge) Execute(clientName string, t string, content json.RawMessage) error {
+	if b.FakeExecute != nil {
+		return b.FakeExecute(clientName, t, content)
+	}
 	return nil
 }
 

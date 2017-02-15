@@ -19,7 +19,7 @@ func (h *Hub) terminateRoomAction(m *interfaces.IncomingMessage) error {
 	return nil
 }
 
-func (h *Hub) destroyRoomWithoutHumansAction(roomID string, reasonCode string) {
+func (h *Hub) destroyRoomConcurrently(roomID string, reasonCode string) {
 	defer wg.Done()
 	h.destroyRoom(roomID, reasonCode)
 }

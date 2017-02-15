@@ -6,12 +6,13 @@ package interfaces
 // Possible reasons why a room can be destroyed or why a player leaves a room.
 // Used in MessageClientOut messages.
 const (
-	ReasonRoomDestroyedTimeout    = "tim"
-	ReasonRoomDestroyedTerminated = "ter"
-	ReasonRoomDestroyedNoClients  = "ncl"
-	ReasonPlayerTimedOut          = "ptm"
-	ReasonPlayerKicked            = "kck"
-	ReasonPlayerQuitted           = "qui"
+	ReasonRoomDestroyedTimeout      = "tim"
+	ReasonRoomDestroyedTerminated   = "ter"
+	ReasonRoomDestroyedNoClients    = "ncl"
+	ReasonRoomDestroyedGamePanicked = "pan"
+	ReasonPlayerTimedOut            = "ptm"
+	ReasonPlayerKicked              = "kck"
+	ReasonPlayerQuitted             = "qui"
 )
 
 // Types for the messages sent to the clients.
