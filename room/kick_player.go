@@ -21,7 +21,7 @@ func (r *Room) kickPlayerAction(m *interfaces.IncomingMessage) error {
 }
 
 func (r *Room) kickClient(number int) error {
-	if number < 0 || number >= len(r.clients) {
+	if _, exist := r.clients[number]; !exist {
 		return errors.New(InexistentClient)
 	}
 	cl := r.clients[number]

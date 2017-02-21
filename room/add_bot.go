@@ -29,7 +29,7 @@ func (r *Room) addBot(level string) error {
 	var c interfaces.Client
 
 	if c, err = r.gameBridge.AddBot(level, r); err == nil {
-		c.SetName(fmt.Sprintf("Bot %d", len(r.clients)+1))
+		c.SetName(fmt.Sprintf("Bot %d", r.clientCounter))
 		if _, err = r.addClient(c); err == nil {
 			go c.WritePump()
 			go c.ReadPump(r.messages, r.unregister)

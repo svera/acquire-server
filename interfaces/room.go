@@ -11,7 +11,7 @@ type Room interface {
 	RemoveClient(c Client)
 	ID() string
 	Owner() Client
-	Clients() []Client
+	Clients() map[int]Client
 	HumanClients() []Client
 	AddHuman(c Client) error
 	SetTimer(t *time.Timer)

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -146,6 +147,15 @@ func (h *Hub) passMessageToRoom(m *interfaces.IncomingMessage) {
 		return
 	}
 
+	defer func() {
+		if rc := recover(); rc != nil {
+			fmt.Printf("Panic in room '%s': %s\n", m.Author.Room().ID(), rc)
+			debug.PrintStack()
+			wg.Add(1)
+			go h.destroyRoomConcurrently(m.Author.Room().ID(), interfaces.ReasonRoomDestroyedGamePanicked)
+		}
+	}()
+
 	m.Author.Room().Parse(m)
 }
 
@@ -238,13 +248,6 @@ func (h *Hub) registerCallbacks() {
 			wg.Add(1)
 			go h.destroyRoomConcurrently(r.ID(), interfaces.ReasonRoomDestroyedNoClients)
 		}
-	}
-
-	h.callbacks[room.GamePanicked] = func(args ...interface{}) {
-		r := args[0].(interfaces.Room)
-
-		wg.Add(1)
-		go h.destroyRoomConcurrently(r.ID(), interfaces.ReasonRoomDestroyedGamePanicked)
 	}
 
 }

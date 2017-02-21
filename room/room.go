@@ -1,8 +1,8 @@
 package room
 
 import (
-	"fmt"
 	"log"
+	"strconv"
 	"sync"
 	"time"
 
@@ -13,9 +13,8 @@ import (
 
 // Events Emited from Room, always in a past tense
 const (
-	GameStarted  = "gameStarted"
-	ClientOut    = "clientOut"
-	GamePanicked = "gamePanicked"
+	GameStarted = "gameStarted"
+	ClientOut   = "clientOut"
 )
 
 var (
@@ -30,7 +29,7 @@ type Room struct {
 	id string
 
 	// Registered clients
-	clients []interfaces.Client
+	clients map[int]interfaces.Client
 
 	owner interfaces.Client
 
@@ -52,6 +51,8 @@ type Room struct {
 	clientInTurn interfaces.Client
 
 	playerTimeOut time.Duration
+
+	clientCounter int
 }
 
 // New returns a new Room instance
@@ -65,7 +66,7 @@ func New(
 ) *Room {
 	return &Room{
 		id:            id,
-		clients:       []interfaces.Client{},
+		clients:       map[int]interfaces.Client{},
 		gameBridge:    b,
 		owner:         owner,
 		messages:      messages,
@@ -73,6 +74,7 @@ func New(
 		callbacks:     cb,
 		clientInTurn:  nil,
 		configuration: cfg,
+		clientCounter: 0,
 	}
 }
 
@@ -132,24 +134,15 @@ func (r *Room) passMessageToGame(m *interfaces.IncomingMessage) {
 	var err error
 	var currentPlayer interfaces.Client
 
-	defer func() {
-		if rc := recover(); rc != nil {
-			fmt.Printf("Panic in room '%s': %s", r.id, rc)
-			r.callbacks[GamePanicked](r)
-		}
-	}()
-
 	if currentPlayer, err = r.currentPlayerClient(); m.Author == currentPlayer && err == nil {
 		err = r.gameBridge.Execute(m.Author.Name(), m.Content.Type, m.Content.Params)
 		if err == nil {
 			for n, cl := range r.clients {
-				if cl != nil && cl.IsBot() && r.IsGameOver() {
+				if cl.IsBot() && r.IsGameOver() {
 					continue
 				}
-				if cl != nil {
-					response, _ := r.gameBridge.Status(n)
-					r.callbacks["messageCreated"]([]interfaces.Client{cl}, response)
-				}
+				response, _ := r.gameBridge.Status(n)
+				r.callbacks["messageCreated"]([]interfaces.Client{cl}, response)
 			}
 			currentPlayerClient, _ := r.currentPlayerClient()
 			if r.clientInTurn != currentPlayerClient {
@@ -172,16 +165,11 @@ func (r *Room) changePlayerSetTimer() {
 	}
 }
 
-func (r *Room) playersData() []interfaces.PlayerData {
-	players := []interfaces.PlayerData{}
-	for _, c := range r.clients {
-		if c != nil {
-			players = append(
-				players,
-				interfaces.PlayerData{
-					Name: c.Name(),
-				},
-			)
+func (r *Room) playersData() map[string]interfaces.PlayerData {
+	players := make(map[string]interfaces.PlayerData, len(r.clients))
+	for n, c := range r.clients {
+		players[strconv.Itoa(n)] = interfaces.PlayerData{
+			Name: c.Name(),
 		}
 	}
 	return players
@@ -219,70 +207,60 @@ func (r *Room) addClient(c interfaces.Client) (int, error) {
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	r.clients = append(r.clients, c)
-
+	r.clients[r.clientCounter] = c
+	newClientNumber := r.clientCounter
+	r.clientCounter++
 	if len(r.clients) == 1 {
 		r.owner = c
 	}
 	c.SetRoom(r)
 	response := messages.New(interfaces.TypeMessageCurrentPlayers, r.playersData())
-	r.callbacks["messageCreated"](r.clients, response)
-	return len(r.clients) - 1, nil
+	r.callbacks["messageCreated"](mapToSlice(r.clients), response)
+	return newClientNumber, nil
 }
 
-// RemoveClient removes / sets as nil a client and removes / deactivates its player
+// RemoveClient removes a client and its player
 // depending wheter the game has already started or not.
-// Note that we don't remove a client if a game has already started, as client
-// indexes must not change once a game has started.
 func (r *Room) RemoveClient(c interfaces.Client) {
 	for i := range r.clients {
 		if r.clients[i] == c {
 			r.clients[i].SetRoom(nil)
 			c.StopTimer()
+
+			r.gameBridge.RemovePlayer(i)
+			delete(r.clients, i)
+
 			if r.gameBridge.GameStarted() {
-				r.deactivatePlayer(i)
-			} else {
 				r.removePlayer(i)
+			} else {
+				response := messages.New(interfaces.TypeMessageCurrentPlayers, r.playersData())
+				r.callbacks["messageCreated"](mapToSlice(r.clients), response)
 			}
+
 			r.callbacks[ClientOut](r)
 			break
 		}
 	}
 }
 
-// deactivatePlayer deactivates a player from a game setting it as nil,
+// removePlayer removes a player from a game,
 // and returns an updated game status to all the players as a response
-func (r *Room) deactivatePlayer(playerNumber int) {
+func (r *Room) removePlayer(playerNumber int) {
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	r.clients[playerNumber] = nil
-	r.gameBridge.DeactivatePlayer(playerNumber)
 	if !r.gameBridge.IsGameOver() {
 		currentPlayerClient, _ := r.currentPlayerClient()
 		if r.clientInTurn != currentPlayerClient {
 			r.changePlayerSetTimer()
 		}
 	}
-
 	for i, cl := range r.clients {
-		if cl == nil || cl.IsBot() {
+		if cl.IsBot() {
 			continue
 		}
 		st, _ := r.gameBridge.Status(i)
 		r.callbacks["messageCreated"]([]interfaces.Client{cl}, st)
-	}
-}
-
-// removePlayer removes a player from a room,
-// and returns an updated players list to all the clients as a response
-func (r *Room) removePlayer(playerNumber int) {
-	mutex.Lock()
-	defer mutex.Unlock()
-	r.clients = append(r.clients[:playerNumber], r.clients[playerNumber+1:]...)
-	response := messages.New(interfaces.TypeMessageCurrentPlayers, r.playersData())
-	for _, cl := range r.clients {
-		r.callbacks["messageCreated"]([]interfaces.Client{cl}, response)
 	}
 }
 
@@ -307,7 +285,7 @@ func (r *Room) Owner() interfaces.Client {
 }
 
 // Clients returns the room's connected clients
-func (r *Room) Clients() []interfaces.Client {
+func (r *Room) Clients() map[int]interfaces.Client {
 	mutex.Lock()
 	defer mutex.Unlock()
 	return r.clients
@@ -319,7 +297,7 @@ func (r *Room) HumanClients() []interfaces.Client {
 	defer mutex.Unlock()
 	human := []interfaces.Client{}
 	for _, c := range r.clients {
-		if c != nil && !c.IsBot() {
+		if !c.IsBot() {
 			human = append(human, c)
 		}
 	}
@@ -334,4 +312,12 @@ func (r *Room) SetTimer(t *time.Timer) {
 // Timer returns the room's timer
 func (r *Room) Timer() *time.Timer {
 	return r.timer
+}
+
+func mapToSlice(in map[int]interfaces.Client) []interfaces.Client {
+	var out []interfaces.Client
+	for _, cl := range in {
+		out = append(out, cl)
+	}
+	return out
 }

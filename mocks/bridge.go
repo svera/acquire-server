@@ -56,7 +56,7 @@ func (b *Bridge) AddBot(params interface{}, room interfaces.Room) (interfaces.Cl
 }
 
 // StartGame mocks the StartGame method defined in the Bridge interface
-func (b *Bridge) StartGame(players []interfaces.Client) error {
+func (b *Bridge) StartGame(players map[int]interfaces.Client) error {
 	b.Calls["StartGame"]++
 	return nil
 }
