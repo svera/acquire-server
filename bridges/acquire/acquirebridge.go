@@ -136,7 +136,7 @@ func (b *AcquireBridge) RemovePlayer(number int) error {
 	playerName := b.players[number].(*player.Player).Name()
 	b.game.RemovePlayer(b.players[number])
 	delete(b.players, number)
-	b.history = append(b.history, i18n{
+	b.history = append([]i18n{}, i18n{
 		Key: "game.history.player_left",
 		Arguments: map[string]string{
 			"player": playerName,

@@ -256,9 +256,6 @@ func (r *Room) removePlayer(playerNumber int) {
 		}
 	}
 	for i, cl := range r.clients {
-		if cl.IsBot() {
-			continue
-		}
 		st, _ := r.gameBridge.Status(i)
 		r.callbacks["messageCreated"]([]interfaces.Client{cl}, st)
 	}
