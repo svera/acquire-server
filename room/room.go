@@ -222,6 +222,9 @@ func (r *Room) addClient(c interfaces.Client) (int, error) {
 // RemoveClient removes a client and its player
 // depending wheter the game has already started or not.
 func (r *Room) RemoveClient(c interfaces.Client) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
 	for i := range r.clients {
 		if r.clients[i] == c {
 			r.clients[i].SetRoom(nil)
@@ -246,9 +249,6 @@ func (r *Room) RemoveClient(c interfaces.Client) {
 // removePlayer removes a player from a game,
 // and returns an updated game status to all the players as a response
 func (r *Room) removePlayer(playerNumber int) {
-	mutex.Lock()
-	defer mutex.Unlock()
-
 	if !r.gameBridge.IsGameOver() {
 		currentPlayerClient, _ := r.currentPlayerClient()
 		if r.clientInTurn != currentPlayerClient {
