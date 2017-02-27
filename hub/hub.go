@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -146,6 +147,15 @@ func (h *Hub) passMessageToRoom(m *interfaces.IncomingMessage) {
 		return
 	}
 
+	defer func() {
+		if rc := recover(); rc != nil {
+			fmt.Printf("Panic in room '%s': %s\n", m.Author.Room().ID(), rc)
+			debug.PrintStack()
+			wg.Add(1)
+			go h.destroyRoomConcurrently(m.Author.Room().ID(), interfaces.ReasonRoomDestroyedGamePanicked)
+		}
+	}()
+
 	m.Author.Room().Parse(m)
 }
 
@@ -165,10 +175,7 @@ func (h *Hub) sendMessage(c interfaces.Client, message []byte) {
 	}
 }
 
-// Removes /sets as nil a client and removes / deactivates its player
-// depending wheter the game has already started or not.
-// Note that we don't remove a client if a game has already started, as client
-// indexes must not change once a game has started.
+// Removes a client from the hub and also from a room if it's in one
 func (h *Hub) removeClient(c interfaces.Client) {
 	mutex.Lock()
 	defer mutex.Unlock()
@@ -182,7 +189,6 @@ func (h *Hub) removeClient(c interfaces.Client) {
 			if h.configuration.Debug {
 				log.Printf("Client removed from hub, number of clients left: %d\n", len(h.clients))
 			}
-			//close(c.Incoming())
 			c.Close()
 			return
 		}
@@ -233,18 +239,10 @@ func (h *Hub) registerCallbacks() {
 
 	h.callbacks[room.ClientOut] = func(args ...interface{}) {
 		r := args[0].(interfaces.Room)
-
 		if len(r.HumanClients()) == 0 {
 			wg.Add(1)
 			go h.destroyRoomConcurrently(r.ID(), interfaces.ReasonRoomDestroyedNoClients)
 		}
-	}
-
-	h.callbacks[room.GamePanicked] = func(args ...interface{}) {
-		r := args[0].(interfaces.Room)
-
-		wg.Add(1)
-		go h.destroyRoomConcurrently(r.ID(), interfaces.ReasonRoomDestroyedGamePanicked)
 	}
 
 }

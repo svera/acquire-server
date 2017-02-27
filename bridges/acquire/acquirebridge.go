@@ -16,7 +16,7 @@ import (
 // and acquire game through the turn based game server
 type AcquireBridge struct {
 	game         *acquire.Game
-	players      []acquireInterfaces.Player
+	players      map[int]acquireInterfaces.Player
 	corporations [7]acquireInterfaces.Corporation
 	history      []i18n
 }
@@ -24,7 +24,7 @@ type AcquireBridge struct {
 // NotEndGame defines the message returned when a player claims wrongly that end game conditions have been met
 const NotEndGame = "not_end_game"
 
-// WrongMessage defines the message returned when AcquireBridge receives a malformed message
+// WrongMessage defines the message returned when AcquireBridge receives a bad formed message
 const WrongMessage = "message_parsing_error"
 
 // GameAlreadyStarted is an error returned when a player tries to start a game in a hub instance which an already running one
@@ -43,6 +43,7 @@ const CorporationNotFound = "corporation_not_found"
 func New() *AcquireBridge {
 	return &AcquireBridge{
 		corporations: defaultCorporations(),
+		players:      make(map[int]acquireInterfaces.Player),
 	}
 }
 
@@ -92,7 +93,7 @@ func (b *AcquireBridge) CurrentPlayerNumber() (int, error) {
 	if !b.GameStarted() {
 		return 0, errors.New(GameNotStarted)
 	}
-	return b.game.CurrentPlayerNumber(), nil
+	return b.game.CurrentPlayer().Number(), nil
 }
 
 // GameStarted returns true if there's a game in progress, false otherwise
@@ -119,20 +120,21 @@ func (b *AcquireBridge) playersShares(playerNumber int) [7]int {
 }
 
 // addPlayer adds a new player to the game
-func (b *AcquireBridge) addPlayers(clients []serverInterfaces.Client) {
-	for _, pl := range clients {
-		b.players = append(b.players, player.New(pl.Name()))
+func (b *AcquireBridge) addPlayers(clients map[int]serverInterfaces.Client) {
+	for n, pl := range clients {
+		b.players[n] = player.New(pl.Name(), n)
 	}
 }
 
-// DeactivatePlayer deactivates a player from the game
-func (b *AcquireBridge) DeactivatePlayer(number int) error {
-	if number < 0 || number > len(b.players) {
+// RemovePlayer removes a player from the game
+func (b *AcquireBridge) RemovePlayer(number int) error {
+	if _, exists := b.players[number]; !exists {
 		return errors.New(InexistentPlayer)
 	}
 	playerName := b.players[number].(*player.Player).Name()
-	b.game.DeactivatePlayer(b.players[number])
-	b.history = append(b.history, i18n{
+	b.game.RemovePlayer(b.players[number])
+	delete(b.players, number)
+	b.history = append([]i18n{}, i18n{
 		Key: "game.history.player_left",
 		Arguments: map[string]string{
 			"player": playerName,
@@ -142,7 +144,7 @@ func (b *AcquireBridge) DeactivatePlayer(number int) error {
 }
 
 // StartGame starts a new Acquire game
-func (b *AcquireBridge) StartGame(clients []serverInterfaces.Client) error {
+func (b *AcquireBridge) StartGame(clients map[int]serverInterfaces.Client) error {
 	var err error
 
 	if b.GameStarted() {

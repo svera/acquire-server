@@ -91,14 +91,14 @@ func (b *AcquireBridge) playersInfo(n int) (playerData, []playerData, error) {
 	var ply playerData
 	var err error
 
-	if n < 0 || n >= len(b.players) {
+	if _, exist := b.players[n]; !exist {
 		err = errors.New(InexistentPlayer)
 	}
+
 	for i, p := range b.players {
 		if n != i {
 			rivals = append(rivals, playerData{
 				Name:        p.(*player.Player).Name(),
-				Active:      p.Active(),
 				Cash:        p.Cash(),
 				OwnedShares: b.playersShares(i),
 				InTurn:      b.isCurrentPlayer(i),
@@ -106,7 +106,6 @@ func (b *AcquireBridge) playersInfo(n int) (playerData, []playerData, error) {
 		} else {
 			ply = playerData{
 				Name:        p.(*player.Player).Name(),
-				Active:      p.Active(),
 				Cash:        p.Cash(),
 				OwnedShares: b.playersShares(n),
 				InTurn:      b.isCurrentPlayer(n),

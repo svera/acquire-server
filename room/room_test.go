@@ -17,7 +17,6 @@ func setup() (c interfaces.Client, b *mocks.Bridge, r *Room) {
 	callbacks["messageCreated"] = func(...interface{}) {}
 	callbacks[GameStarted] = func(...interface{}) {}
 	callbacks[ClientOut] = func(...interface{}) {}
-	callbacks[GamePanicked] = func(...interface{}) { gamePanickedTriggered++ }
 
 	c = &mocks.Client{FakeIncoming: make(chan []byte, 2)}
 	b = &mocks.Bridge{
@@ -40,7 +39,7 @@ func TestStartGame(t *testing.T) {
 			Params: (json.RawMessage)(data),
 		},
 	}
-	r.clients = append(r.clients, c)
+	r.clients[0] = c
 	r.Parse(m)
 
 	if b.Calls["StartGame"] != 1 {
@@ -80,7 +79,7 @@ func TestKickPlayer(t *testing.T) {
 		},
 	}
 
-	r.clients = append(r.clients, toBeKicked)
+	r.clients[0] = toBeKicked
 	r.Parse(m)
 
 	if len(r.clients) != 0 {
@@ -101,7 +100,7 @@ func TestKickOwnerNotAllowed(t *testing.T) {
 		},
 	}
 
-	r.clients = append(r.clients, c)
+	r.clients[0] = c
 	r.owner = c
 	r.Parse(m)
 
@@ -120,7 +119,7 @@ func TestPlayerQuits(t *testing.T) {
 		},
 	}
 
-	r.clients = append(r.clients, c)
+	r.clients[0] = c
 	r.Parse(m)
 
 	if len(r.clients) != 0 {
@@ -135,47 +134,5 @@ func TestAddHuman(t *testing.T) {
 
 	if len(r.clients) != 1 {
 		t.Errorf("Room must have 1 client, got %d", len(r.clients))
-	}
-}
-
-func ExampleRecoveredGameBridgePanic() {
-	c, b, r := setup()
-
-	b.FakeExecute = func(clientName string, t string, content json.RawMessage) error {
-		panic("A panic")
-	}
-
-	m := &interfaces.IncomingMessage{
-		Author: c,
-		Content: interfaces.IncomingMessageContent{
-			Type: "Bridge specific message",
-		},
-	}
-
-	r.clients = append(r.clients, c)
-	r.Parse(m)
-	// Output:
-	// Panic in room 'test': A panic
-}
-
-func TestRecoveredGameBridgePanic(t *testing.T) {
-	c, b, r := setup()
-	gamePanickedTriggered = 0
-
-	b.FakeExecute = func(clientName string, t string, content json.RawMessage) error {
-		panic("A panic")
-	}
-
-	m := &interfaces.IncomingMessage{
-		Author: c,
-		Content: interfaces.IncomingMessageContent{
-			Type: "Bridge specific message",
-		},
-	}
-
-	r.clients = append(r.clients, c)
-	r.Parse(m)
-	if gamePanickedTriggered != 1 {
-		t.Errorf("Room must have triggered GamePanicked event once, got %d", gamePanickedTriggered)
 	}
 }

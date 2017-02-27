@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/svera/sackson-server/interfaces"
+	"github.com/svera/sackson-server/messages"
 )
 
 func (r *Room) startGameAction(m *interfaces.IncomingMessage) error {
@@ -52,7 +53,7 @@ func (r *Room) sendInitialMessage() error {
 
 // Sets up a timer that will execute when the defined player timeout is reached.
 func (r *Room) setUpTimeOut(cl interfaces.Client) {
-	if r.playerTimeOut > 0 {
+	if r.playerTimeOut > 0 && !cl.IsBot() {
 		cl.SetTimer(time.AfterFunc(time.Second*r.playerTimeOut, func() {
 			if r.configuration.Debug {
 				log.Printf("Client '%s' timed out", cl.Name())
@@ -60,4 +61,11 @@ func (r *Room) setUpTimeOut(cl interfaces.Client) {
 			r.timeoutPlayer(cl)
 		}))
 	}
+}
+
+func (r *Room) timeoutPlayer(cl interfaces.Client) {
+	response := messages.New(interfaces.TypeMessageClientOut, interfaces.ReasonPlayerTimedOut)
+
+	r.callbacks["messageCreated"]([]interfaces.Client{cl}, response)
+	r.RemoveClient(cl)
 }

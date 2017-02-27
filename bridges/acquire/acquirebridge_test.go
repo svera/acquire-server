@@ -18,10 +18,10 @@ func TestParseNonExistingTypeMessage(t *testing.T) {
 
 func TestParseWrongTypeMessage(t *testing.T) {
 	bridge := New()
-	var players []interfaces.Client
+	players := make(map[int]interfaces.Client, 3)
 
 	for i := 0; i < 3; i++ {
-		players = append(players, &mocks.Client{FakeName: "test"})
+		players[i] = &mocks.Client{FakeName: "test"}
 	}
 
 	bridge.StartGame(players)
@@ -68,10 +68,10 @@ func TestCurrentPlayerNumberWithoutGameStarted(t *testing.T) {
 
 func TestCurrentPlayerNumberWithGameStarted(t *testing.T) {
 	bridge := New()
-	var players []interfaces.Client
+	players := make(map[int]interfaces.Client, 3)
 
 	for i := 0; i < 3; i++ {
-		players = append(players, &mocks.Client{FakeName: "test"})
+		players[i] = &mocks.Client{FakeName: "test"}
 	}
 	bridge.StartGame(players)
 
@@ -82,7 +82,7 @@ func TestCurrentPlayerNumberWithGameStarted(t *testing.T) {
 
 func TestStartGameWithNotEnoughPlayers(t *testing.T) {
 	bridge := New()
-	var players []interfaces.Client
+	players := make(map[int]interfaces.Client, 3)
 
 	if err := bridge.StartGame(players); err == nil {
 		t.Errorf("Bridge must return an error when trying to start a game with not enough players")
@@ -91,10 +91,10 @@ func TestStartGameWithNotEnoughPlayers(t *testing.T) {
 
 func TestStartGameWithEnoughPlayers(t *testing.T) {
 	bridge := New()
-	var players []interfaces.Client
+	players := make(map[int]interfaces.Client, 3)
 
 	for i := 0; i < 3; i++ {
-		players = append(players, &mocks.Client{FakeName: "test"})
+		players[i] = &mocks.Client{FakeName: "test"}
 	}
 	if err := bridge.StartGame(players); err != nil {
 		t.Errorf("Bridge must not return an error when trying to start a game with enough players")
@@ -103,10 +103,10 @@ func TestStartGameWithEnoughPlayers(t *testing.T) {
 
 func TestStatusWithGameStarted(t *testing.T) {
 	bridge := New()
-	var players []interfaces.Client
+	players := make(map[int]interfaces.Client, 3)
 
 	for i := 0; i < 3; i++ {
-		players = append(players, &mocks.Client{FakeName: "test"})
+		players[i] = &mocks.Client{FakeName: "test"}
 	}
 	bridge.StartGame(players)
 
@@ -117,10 +117,10 @@ func TestStatusWithGameStarted(t *testing.T) {
 
 func TestStatusWithGameNotStarted(t *testing.T) {
 	bridge := New()
-	var players []interfaces.Client
+	players := make(map[int]interfaces.Client, 3)
 
 	for i := 0; i < 3; i++ {
-		players = append(players, &mocks.Client{FakeName: "test"})
+		players[i] = &mocks.Client{FakeName: "test"}
 	}
 	if _, err := bridge.Status(0); err == nil {
 		t.Errorf("Bridge must return an error when trying to get the status of a non started game")
@@ -129,10 +129,10 @@ func TestStatusWithGameNotStarted(t *testing.T) {
 
 func TestStatusForInexistentPlayer(t *testing.T) {
 	bridge := New()
-	var players []interfaces.Client
+	players := make(map[int]interfaces.Client, 3)
 
 	for i := 0; i < 3; i++ {
-		players = append(players, &mocks.Client{FakeName: "test"})
+		players[i] = &mocks.Client{FakeName: "test"}
 	}
 	bridge.StartGame(players)
 	if _, err := bridge.Status(9); err == nil {

@@ -10,9 +10,9 @@ type Player struct {
 }
 
 // New initialises and returns a new instance of Player
-func New(name string) *Player {
+func New(name string, number int) *Player {
 	return &Player{
-		acquirePlayer.New(),
+		acquirePlayer.New(number),
 		name,
 	}
 }

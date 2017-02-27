@@ -160,6 +160,27 @@ func TestJoinRoom(t *testing.T) {
 }
 
 /*
+func ExampleRecoveredGameBridgePanic() {
+	h, c := setup()
+
+	h.createRoom(b, c)
+	b.FakeExecute = func(clientName string, t string, content json.RawMessage) error {
+		panic("A panic")
+	}
+
+	m := &interfaces.IncomingMessage{
+		Author: c,
+		Content: interfaces.IncomingMessageContent{
+			Type: interfaces.ControlMessageTypeAddBot,
+		},
+	}
+
+	h.Messages <- m
+
+	// Output:
+	// Panic in room 'test': A panic
+}
+
 func TestUnregisterWhenDestroyingRoom(t *testing.T) {
 	h, c := setup()
 	go h.Run()

@@ -52,14 +52,14 @@ type MessageRoomsList struct {
 //   {
 //     "typ": "pls",
 //     "val":
-//     [
-//       {"nam": "Miguel"},
-//       {"nam": "Sergio"}
-//     ]
+//     { // Indexed by player number
+//	     "0": {"nam": "Miguel"},
+//       "1": {"nam": "Sergio"}
+//     }
 //   }
 type MessageCurrentPlayers struct {
-	Type   string       `json:"typ"`
-	Values []PlayerData `json:"val"`
+	Type   string                `json:"typ"`
+	Values map[string]PlayerData `json:"val"`
 }
 
 // PlayerData is a struct used inside MessageCurrentPlayers with data of a specific
