@@ -43,7 +43,6 @@ const CorporationNotFound = "corporation_not_found"
 func New() *AcquireBridge {
 	return &AcquireBridge{
 		corporations: defaultCorporations(),
-		players:      make(map[int]acquireInterfaces.Player),
 	}
 }
 
@@ -119,13 +118,6 @@ func (b *AcquireBridge) playersShares(playerNumber int) [7]int {
 	return data
 }
 
-// addPlayer adds a new player to the game
-func (b *AcquireBridge) addPlayers(clients map[int]serverInterfaces.Client) {
-	for n, pl := range clients {
-		b.players[n] = player.New(pl.Name(), n)
-	}
-}
-
 // RemovePlayer removes a player from the game
 func (b *AcquireBridge) RemovePlayer(number int) error {
 	if _, exists := b.players[number]; !exists {
@@ -162,6 +154,15 @@ func (b *AcquireBridge) StartGame(clients map[int]serverInterfaces.Client) error
 		})
 	}
 	return err
+}
+
+// addPlayers adds players to the game
+func (b *AcquireBridge) addPlayers(clients map[int]serverInterfaces.Client) {
+	b.players = make(map[int]acquireInterfaces.Player)
+
+	for n, pl := range clients {
+		b.players[n] = player.New(pl.Name(), n)
+	}
 }
 
 func (b *AcquireBridge) currentPlayerName() string {
