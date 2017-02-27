@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 
-	"log"
-
 	"github.com/svera/acquire"
 	"github.com/svera/acquire/bots"
 	acquireInterfaces "github.com/svera/acquire/interfaces"
@@ -175,7 +173,6 @@ func (b *AcquireBridge) currentPlayerName() string {
 // enough players to continue playing
 func (b *AcquireBridge) IsGameOver() bool {
 	if b.GameStarted() {
-		log.Printf("Game status: %s\n", b.game.GameStateName())
 		return b.game.GameStateName() == acquireInterfaces.EndGameStateName ||
 			b.game.GameStateName() == acquireInterfaces.InsufficientPlayersStateName
 	}

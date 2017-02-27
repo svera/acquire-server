@@ -196,13 +196,6 @@ func (r *Room) AddHuman(cl interfaces.Client) error {
 	return err
 }
 
-func (r *Room) timeoutPlayer(cl interfaces.Client) {
-	response := messages.New(interfaces.TypeMessageClientOut, interfaces.ReasonPlayerTimedOut)
-
-	r.callbacks["messageCreated"]([]interfaces.Client{cl}, response)
-	r.RemoveClient(cl)
-}
-
 func (r *Room) addClient(c interfaces.Client) (int, error) {
 	mutex.Lock()
 	defer mutex.Unlock()
@@ -230,7 +223,6 @@ func (r *Room) RemoveClient(c interfaces.Client) {
 			r.clients[i].SetRoom(nil)
 			c.StopTimer()
 
-			r.gameBridge.RemovePlayer(i)
 			delete(r.clients, i)
 
 			if r.gameBridge.GameStarted() {
@@ -241,7 +233,7 @@ func (r *Room) RemoveClient(c interfaces.Client) {
 			}
 
 			r.callbacks[ClientOut](r)
-			break
+			return
 		}
 	}
 }
@@ -249,13 +241,19 @@ func (r *Room) RemoveClient(c interfaces.Client) {
 // removePlayer removes a player from a game,
 // and returns an updated game status to all the players as a response
 func (r *Room) removePlayer(playerNumber int) {
+	r.gameBridge.RemovePlayer(playerNumber)
+
 	if !r.gameBridge.IsGameOver() {
 		currentPlayerClient, _ := r.currentPlayerClient()
 		if r.clientInTurn != currentPlayerClient {
 			r.changePlayerSetTimer()
 		}
 	}
+
 	for i, cl := range r.clients {
+		if r.gameBridge.IsGameOver() && cl.IsBot() {
+			continue
+		}
 		st, _ := r.gameBridge.Status(i)
 		r.callbacks["messageCreated"]([]interfaces.Client{cl}, st)
 	}
@@ -290,8 +288,8 @@ func (r *Room) Clients() map[int]interfaces.Client {
 
 // HumanClients returns room's connected human clients
 func (r *Room) HumanClients() []interfaces.Client {
-	mutex.Lock()
-	defer mutex.Unlock()
+	//mutex.Lock()
+	//defer mutex.Unlock()
 	human := []interfaces.Client{}
 	for _, c := range r.clients {
 		if !c.IsBot() {
