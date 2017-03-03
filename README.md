@@ -38,3 +38,14 @@ You can check them out at [interfaces/incoming_messages_room.go](interfaces/inco
 
 If a message does not fall into any of the above two categories, it is considered to be a game-specific message and thus will be managed by
 the room game bridge. Check the bridge documentation for information regarding its messages.
+
+## Deployment
+
+Currently we're following [this guide](https://docs.docker.com/compose/production) to do production deployments. Basicly:
+* Update source code: `git pull origin master`
+* Rebuild image: `docker-compose build sackson-server`
+* Recreate container: `docker-compose -f docker-compose.yml -f docker-compose.prod.yml up`. Add `-d` at the end if you want to run the container in detached mode.
+
+## Running tests
+
+Just type `docker-compose run sackson-server govendor test +local` to run application tests.

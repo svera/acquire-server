@@ -1,4 +1,6 @@
-FROM golang:1.7-alpine
+FROM golang:1.8-alpine
 # Git is needed for go get
-RUN apk add --no-cache git
+RUN apk add --no-cache git gcc libc-dev
+COPY . /go/src/github.com/svera/sackson-server
 WORKDIR /go/src/github.com/svera/sackson-server
+RUN go get github.com/kardianos/govendor
