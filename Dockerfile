@@ -4,3 +4,4 @@ RUN apk add --no-cache git gcc libc-dev
 COPY . /go/src/github.com/svera/sackson-server
 WORKDIR /go/src/github.com/svera/sackson-server
 RUN go get github.com/kardianos/govendor
+RUN go get github.com/pilu/fresh

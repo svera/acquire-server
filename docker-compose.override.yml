@@ -3,7 +3,7 @@ services:
   sackson-server:
     volumes:
      - .:/go/src/github.com/svera/sackson-server
-    command: ash -c "/go/bin/govendor sync && ./build.sh && sackson-server"
+    command: ash -c "/go/bin/govendor sync && fresh"
     # TODO There is a bug preventing to use the race detector with Alpine linux
     # Use line below when this problem is solved
     # Check https://github.com/golang/go/issues/14481
