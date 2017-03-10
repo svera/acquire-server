@@ -1,0 +1,85 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "g/V4qrXjUGG9B+e3hB+4NAYJ5Gs=",
+			"path": "github.com/gorilla/context",
+			"revision": "08b5f424b9271eedf6f9f0ce86cb9396ed337a42",
+			"revisionTime": "2016-08-17T18:46:32Z"
+		},
+		{
+			"checksumSHA1": "zmCk+lgIeiOf0Ng9aFP9aFy8ksE=",
+			"path": "github.com/gorilla/mux",
+			"revision": "599cba5e7b6137d46ddf58fb1765f5d928e69604",
+			"revisionTime": "2017-02-28T22:43:54Z"
+		},
+		{
+			"checksumSHA1": "+UTK3xcNU2xXNJVkKqhE5T/tyh0=",
+			"path": "github.com/gorilla/websocket",
+			"revision": "4873052237e4eeda85cf50c071ef33836fe8e139",
+			"revisionTime": "2017-03-01T17:42:05Z"
+		},
+		{
+			"checksumSHA1": "05dqJDjvQ2SvTu+1mJOeW2BJXx8=",
+			"path": "github.com/svera/acquire",
+			"revision": "a1cd717642456790f55b55d837b5c69f3c53f51a",
+			"revisionTime": "2017-02-27T20:16:25Z"
+		},
+		{
+			"checksumSHA1": "tNP2gUD/IS4XxxESW5IW9s1u1vY=",
+			"path": "github.com/svera/acquire/board",
+			"revision": "a1cd717642456790f55b55d837b5c69f3c53f51a",
+			"revisionTime": "2017-02-27T20:16:25Z"
+		},
+		{
+			"checksumSHA1": "xmQ+qfRYbQ4m2GuMeUR1VeuYVEA=",
+			"path": "github.com/svera/acquire/bots",
+			"revision": "a1cd717642456790f55b55d837b5c69f3c53f51a",
+			"revisionTime": "2017-02-27T20:16:25Z"
+		},
+		{
+			"checksumSHA1": "pghaxwDzs6uXy52qn7j/o3V0VwM=",
+			"path": "github.com/svera/acquire/corporation",
+			"revision": "a1cd717642456790f55b55d837b5c69f3c53f51a",
+			"revisionTime": "2017-02-27T20:16:25Z"
+		},
+		{
+			"checksumSHA1": "AjkEUzDH95h4TkIdwoiGJ9+xe/E=",
+			"path": "github.com/svera/acquire/fsm",
+			"revision": "a1cd717642456790f55b55d837b5c69f3c53f51a",
+			"revisionTime": "2017-02-27T20:16:25Z"
+		},
+		{
+			"checksumSHA1": "GD65nNcI2S8ty8NgImyRyJ9MIzE=",
+			"path": "github.com/svera/acquire/interfaces",
+			"revision": "a1cd717642456790f55b55d837b5c69f3c53f51a",
+			"revisionTime": "2017-02-27T20:16:25Z"
+		},
+		{
+			"checksumSHA1": "k1rwu9zJ5K7vJU5TUPRkfnXBMKs=",
+			"path": "github.com/svera/acquire/player",
+			"revision": "a1cd717642456790f55b55d837b5c69f3c53f51a",
+			"revisionTime": "2017-02-27T20:16:25Z"
+		},
+		{
+			"checksumSHA1": "oCv4S/+uB34ACXLJe3S1oeZfjc0=",
+			"path": "github.com/svera/acquire/tile",
+			"revision": "a1cd717642456790f55b55d837b5c69f3c53f51a",
+			"revisionTime": "2017-02-27T20:16:25Z"
+		},
+		{
+			"checksumSHA1": "IdGX+uCBBxVf8OLipRErdhsfBnw=",
+			"path": "github.com/svera/acquire/tileset",
+			"revision": "a1cd717642456790f55b55d837b5c69f3c53f51a",
+			"revisionTime": "2017-02-27T20:16:25Z"
+		},
+		{
+			"checksumSHA1": "0KwOlQV1dNUh9X8t+5s7nX5bqfk=",
+			"path": "gopkg.in/yaml.v2",
+			"revision": "a3f3340b5840cee44f372bddb5880fcbc419b46a",
+			"revisionTime": "2017-02-08T14:18:51Z"
+		}
+	],
+	"rootPath": "github.com/svera/sackson-server"
+}
