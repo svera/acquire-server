@@ -44,7 +44,7 @@ the room game bridge. Check the bridge documentation for information regarding i
 ### Requirements
 * [Docker & Docker-compose](docker.com).
 
-### Installation steps
+### Usage
 
 * `git clone github.com/svera/sackson-server`
 * Create a configuration file called `sackson-server` and place it in the source code folder. Use `sackson.sample.yml` as reference.
