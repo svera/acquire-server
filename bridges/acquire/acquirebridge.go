@@ -175,7 +175,8 @@ func (b *AcquireBridge) currentPlayerName() string {
 func (b *AcquireBridge) IsGameOver() bool {
 	if b.GameStarted() {
 		return b.game.GameStateName() == acquireInterfaces.EndGameStateName ||
-			b.game.GameStateName() == acquireInterfaces.InsufficientPlayersStateName
+			b.game.GameStateName() == acquireInterfaces.InsufficientPlayersStateName ||
+			b.game.GameStateName() == acquireInterfaces.ErrorStateName
 	}
 	return false
 }

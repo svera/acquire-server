@@ -225,11 +225,11 @@ func (r *Room) RemoveClient(c interfaces.Client) {
 
 			delete(r.clients, i)
 
-			if r.gameBridge.GameStarted() {
+			if r.gameBridge.GameStarted() && !r.gameBridge.IsGameOver() {
 				r.removePlayer(i)
 			} else {
 				response := messages.New(interfaces.TypeMessageCurrentPlayers, r.playersData())
-				r.callbacks["messageCreated"](mapToSlice(r.clients), response)
+				r.callbacks["messageCreated"](r.HumanClients(), response)
 			}
 
 			r.callbacks[ClientOut](r)
@@ -243,15 +243,13 @@ func (r *Room) RemoveClient(c interfaces.Client) {
 func (r *Room) removePlayer(playerNumber int) {
 	r.gameBridge.RemovePlayer(playerNumber)
 
-	if !r.gameBridge.IsGameOver() {
-		currentPlayerClient, _ := r.currentPlayerClient()
-		if r.clientInTurn != currentPlayerClient {
-			r.changePlayerSetTimer()
-		}
+	currentPlayerClient, _ := r.currentPlayerClient()
+	if r.clientInTurn != currentPlayerClient {
+		r.changePlayerSetTimer()
 	}
 
 	for i, cl := range r.clients {
-		if r.gameBridge.IsGameOver() && cl.IsBot() {
+		if cl.IsBot() {
 			continue
 		}
 		st, _ := r.gameBridge.Status(i)
