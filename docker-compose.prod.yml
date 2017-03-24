@@ -1,5 +1,0 @@
-version: "2"
-services:
-  sackson-server:
-    command: ash -c "govendor sync && ./build.sh && sackson-server"
-restart: always
