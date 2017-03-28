@@ -160,7 +160,9 @@ func (h *Hub) passMessageToRoom(m *interfaces.IncomingMessage) {
 }
 
 func (h *Hub) sendMessage(c interfaces.Client, message []byte) {
-	log.Printf("Sending message %s to client '%s'\n", string(message[:]), c.Name())
+	if h.configuration.Debug {
+		log.Printf("Sending message %s to client '%s'\n", string(message[:]), c.Name())
+	}
 	defer wg.Done()
 
 	select {
