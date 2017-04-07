@@ -8,6 +8,6 @@ import (
 func (r *Room) clientQuits(cl interfaces.Client) error {
 	r.RemoveClient(cl)
 	response := messages.New(interfaces.TypeMessageClientOut, interfaces.ReasonPlayerQuitted)
-	r.callbacks["messageCreated"]([]interfaces.Client{cl}, response)
+	r.observer.Trigger("messageCreated", []interfaces.Client{cl}, response)
 	return nil
 }

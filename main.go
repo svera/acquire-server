@@ -11,6 +11,7 @@ import (
 	"github.com/svera/sackson-server/client"
 	"github.com/svera/sackson-server/config"
 	"github.com/svera/sackson-server/hub"
+	"github.com/svera/sackson-server/observer"
 )
 
 var (
@@ -29,7 +30,8 @@ func main() {
 		fmt.Println(err.Error())
 	} else {
 		r := mux.NewRouter()
-		hb = hub.New(cfg)
+		obs := observer.New()
+		hb = hub.New(cfg, obs)
 		go hb.Run()
 
 		r.HandleFunc("/", newClient)

@@ -8,6 +8,7 @@ import (
 	"github.com/svera/sackson-server/config"
 	"github.com/svera/sackson-server/interfaces"
 	"github.com/svera/sackson-server/mocks"
+	"github.com/svera/sackson-server/observer"
 )
 
 var b *mocks.Bridge
@@ -17,7 +18,7 @@ func init() {
 }
 
 func setup() (h *Hub, c interfaces.Client) {
-	h = New(&config.Config{Timeout: 5, Debug: true})
+	h = New(&config.Config{Timeout: 5, Debug: true}, observer.New())
 	c = &mocks.Client{FakeIncoming: make(chan []byte, 2), FakeName: "TestClient"}
 	return h, c
 }

@@ -33,7 +33,7 @@ func (h *Hub) createRoomAction(m *interfaces.IncomingMessage) error {
 
 func (h *Hub) createRoom(b interfaces.Bridge, owner interfaces.Client) string {
 	id := h.generateID()
-	h.rooms[id] = room.New(id, b, owner, h.Messages, h.Unregister, h.configuration, h.callbacks)
+	h.rooms[id] = room.New(id, b, owner, h.Messages, h.Unregister, h.configuration, h.observer)
 
 	timer := time.AfterFunc(time.Second*h.configuration.Timeout, func() {
 		if h.configuration.Debug {
@@ -43,7 +43,7 @@ func (h *Hub) createRoom(b interfaces.Bridge, owner interfaces.Client) string {
 	})
 	h.rooms[id].SetTimer(timer)
 
-	h.callbacks["messageCreated"](h.clients, h.createUpdatedRoomListMessage())
+	h.observer.Trigger("messageCreated", h.clients, h.createUpdatedRoomListMessage())
 
 	if h.configuration.Debug {
 		log.Printf("Room %s created\n", id)

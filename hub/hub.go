@@ -42,7 +42,7 @@ type Hub struct {
 	// Configuration
 	configuration *config.Config
 
-	callbacks map[string]func(...interface{})
+	observer interfaces.Observer
 }
 
 func init() {
@@ -51,7 +51,7 @@ func init() {
 }
 
 // New returns a new Hub instance
-func New(cfg *config.Config) *Hub {
+func New(cfg *config.Config, obs interfaces.Observer) *Hub {
 	h := &Hub{
 		Messages:      make(chan *interfaces.IncomingMessage),
 		Register:      make(chan interfaces.Client),
@@ -59,10 +59,10 @@ func New(cfg *config.Config) *Hub {
 		clients:       []interfaces.Client{},
 		rooms:         make(map[string]interfaces.Room),
 		configuration: cfg,
-		callbacks:     make(map[string]func(...interface{})),
+		observer:      obs,
 	}
 
-	h.registerCallbacks()
+	h.registerEvents()
 
 	return h
 }
@@ -77,7 +77,7 @@ func (h *Hub) Run() {
 			h.clients = append(h.clients, cl)
 			mutex.Unlock()
 			cl.SetName(fmt.Sprintf("Player %d", h.NumberClients()))
-			h.callbacks["messageCreated"]([]interfaces.Client{cl}, h.createUpdatedRoomListMessage())
+			h.observer.Trigger("messageCreated", []interfaces.Client{cl}, h.createUpdatedRoomListMessage())
 			if h.configuration.Debug {
 				log.Printf("Client added to hub, number of connected clients: %d\n", len(h.clients))
 			}
@@ -136,14 +136,14 @@ func (h *Hub) parseControlMessage(m *interfaces.IncomingMessage) {
 
 	if err != nil {
 		response := messages.New(interfaces.TypeMessageError, err.Error())
-		h.callbacks["messageCreated"]([]interfaces.Client{m.Author}, response)
+		h.observer.Trigger("messageCreated", []interfaces.Client{m.Author}, response)
 	}
 }
 
 func (h *Hub) passMessageToRoom(m *interfaces.IncomingMessage) {
 	if m.Author.Room() == nil {
 		response := messages.New(interfaces.TypeMessageError, NotInARoom)
-		h.callbacks["messageCreated"]([]interfaces.Client{m.Author}, response)
+		h.observer.Trigger("messageCreated", []interfaces.Client{m.Author}, response)
 		return
 	}
 
@@ -157,24 +157,6 @@ func (h *Hub) passMessageToRoom(m *interfaces.IncomingMessage) {
 	}()
 
 	m.Author.Room().Parse(m)
-}
-
-func (h *Hub) sendMessage(c interfaces.Client, message []byte) {
-	if h.configuration.Debug {
-		log.Printf("Sending message %s to client '%s'\n", string(message[:]), c.Name())
-	}
-	defer wg.Done()
-
-	select {
-	case c.Incoming() <- message:
-		return
-
-	// We can't reach the client
-	default:
-		wg.Wait()
-		h.removeClient(c)
-		return
-	}
 }
 
 // Removes a client from the hub and also from a room if it's in one
@@ -217,34 +199,49 @@ func (h *Hub) getWaitingRoomsIds() []string {
 	return ids
 }
 
-func (h *Hub) registerCallbacks() {
-	h.callbacks[room.GameStarted] = func(args ...interface{}) {
+func (h *Hub) registerEvents() {
+	h.observer.On(room.GameStarted, func(args ...interface{}) {
 		message := h.createUpdatedRoomListMessage()
 
 		wg.Add(len(h.clients))
 		for _, cl := range h.clients {
 			go h.sendMessage(cl, message)
 		}
-	}
+	})
 
-	h.callbacks["messageCreated"] = func(args ...interface{}) {
+	h.observer.On("messageCreated", func(args ...interface{}) {
 		clients := args[0].([]interfaces.Client)
 		message := args[1].([]byte)
 
 		wg.Add(len(clients))
-		//mutex.Lock()
 		for _, cl := range clients {
 			go h.sendMessage(cl, message)
 		}
-		//mutex.Unlock()
-	}
+	})
 
-	h.callbacks[room.ClientOut] = func(args ...interface{}) {
+	h.observer.On(room.ClientOut, func(args ...interface{}) {
 		r := args[0].(interfaces.Room)
 		if len(r.HumanClients()) == 0 {
 			wg.Add(1)
 			go h.destroyRoomConcurrently(r.ID(), interfaces.ReasonRoomDestroyedNoClients)
 		}
-	}
+	})
+}
 
+func (h *Hub) sendMessage(c interfaces.Client, message []byte) {
+	if h.configuration.Debug {
+		log.Printf("Sending message %s to client '%s'\n", string(message[:]), c.Name())
+	}
+	defer wg.Done()
+
+	select {
+	case c.Incoming() <- message:
+		return
+
+	// We can't reach the client
+	default:
+		wg.Wait()
+		h.removeClient(c)
+		return
+	}
 }

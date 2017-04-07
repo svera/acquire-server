@@ -31,7 +31,7 @@ func (r *Room) kickClient(number int) error {
 	cl.SetRoom(nil)
 	r.RemoveClient(r.clients[number])
 	response := messages.New(interfaces.TypeMessageClientOut, interfaces.ReasonPlayerKicked)
-	r.callbacks["messageCreated"]([]interfaces.Client{cl}, response)
+	r.observer.Trigger("messageCreated", []interfaces.Client{cl}, response)
 
 	return nil
 }

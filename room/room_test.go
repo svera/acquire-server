@@ -8,15 +8,16 @@ import (
 	"github.com/svera/sackson-server/config"
 	"github.com/svera/sackson-server/interfaces"
 	"github.com/svera/sackson-server/mocks"
+	"github.com/svera/sackson-server/observer"
 )
 
 var gamePanickedTriggered int
 
 func setup() (c interfaces.Client, b *mocks.Bridge, r *Room) {
-	callbacks := make(map[string]func(...interface{}))
-	callbacks["messageCreated"] = func(...interface{}) {}
-	callbacks[GameStarted] = func(...interface{}) {}
-	callbacks[ClientOut] = func(...interface{}) {}
+	obs := observer.New()
+	obs.On("messageCreated", func(...interface{}) {})
+	obs.On(GameStarted, func(...interface{}) {})
+	obs.On(ClientOut, func(...interface{}) {})
 
 	c = &mocks.Client{FakeIncoming: make(chan []byte, 2)}
 	b = &mocks.Bridge{
@@ -24,7 +25,7 @@ func setup() (c interfaces.Client, b *mocks.Bridge, r *Room) {
 		Calls:      make(map[string]int),
 	}
 
-	r = New("test", b, c, make(chan *interfaces.IncomingMessage), make(chan interfaces.Client), &config.Config{Timeout: 1}, callbacks)
+	r = New("test", b, c, make(chan *interfaces.IncomingMessage), make(chan interfaces.Client), &config.Config{Timeout: 1}, obs)
 	return c, b, r
 }
 
