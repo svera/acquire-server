@@ -16,7 +16,7 @@ func (r *Room) setClientDataAction(m *interfaces.IncomingMessage) error {
 	}
 	m.Author.SetName(parsed.Name)
 	response := messages.New(interfaces.TypeMessageCurrentPlayers, r.playersData())
-	r.callbacks["messageCreated"](mapToSlice(r.clients), response)
+	r.observer.Trigger("messageCreated", mapToSlice(r.clients), response)
 
 	return nil
 }

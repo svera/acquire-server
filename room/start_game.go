@@ -33,7 +33,7 @@ func (r *Room) startGameAction(m *interfaces.IncomingMessage) error {
 
 	r.changePlayerSetTimer()
 
-	r.callbacks[GameStarted]()
+	r.observer.Trigger(GameStarted)
 	return err
 }
 
@@ -46,7 +46,7 @@ func (r *Room) sendInitialMessage() error {
 			return err
 		}
 		r.setUpTimeOut(cl)
-		r.callbacks["messageCreated"]([]interfaces.Client{cl}, status)
+		r.observer.Trigger("messageCreated", []interfaces.Client{cl}, status)
 	}
 	return nil
 }
@@ -66,6 +66,6 @@ func (r *Room) setUpTimeOut(cl interfaces.Client) {
 func (r *Room) timeoutPlayer(cl interfaces.Client) {
 	response := messages.New(interfaces.TypeMessageClientOut, interfaces.ReasonPlayerTimedOut)
 
-	r.callbacks["messageCreated"]([]interfaces.Client{cl}, response)
+	r.observer.Trigger("messageCreated", []interfaces.Client{cl}, response)
 	r.RemoveClient(cl)
 }

@@ -46,7 +46,7 @@ type Room struct {
 	// timer function that will close the room after X minutes
 	timer *time.Timer
 
-	callbacks map[string]func(...interface{})
+	observer interfaces.Observer
 
 	clientInTurn interfaces.Client
 
@@ -62,7 +62,7 @@ func New(
 	messages chan *interfaces.IncomingMessage,
 	unregister chan interfaces.Client,
 	cfg *config.Config,
-	cb map[string]func(...interface{}),
+	ob interfaces.Observer,
 ) *Room {
 	return &Room{
 		id:            id,
@@ -71,7 +71,7 @@ func New(
 		owner:         owner,
 		messages:      messages,
 		unregister:    unregister,
-		callbacks:     cb,
+		observer:      ob,
 		clientInTurn:  nil,
 		configuration: cfg,
 		clientCounter: 0,
@@ -85,7 +85,7 @@ func (r *Room) Parse(m *interfaces.IncomingMessage) {
 		r.parseControlMessage(m)
 	} else if r.gameBridge.IsGameOver() {
 		response := messages.New(interfaces.TypeMessageError, GameOver)
-		r.callbacks["messageCreated"]([]interfaces.Client{m.Author}, response)
+		r.observer.Trigger("messageCreated", []interfaces.Client{m.Author}, response)
 	} else {
 		r.passMessageToGame(m)
 	}
@@ -126,7 +126,7 @@ func (r *Room) parseControlMessage(m *interfaces.IncomingMessage) {
 
 	if err != nil {
 		response := messages.New(interfaces.TypeMessageError, err.Error())
-		r.callbacks["messageCreated"]([]interfaces.Client{m.Author}, response)
+		r.observer.Trigger("messageCreated", []interfaces.Client{m.Author}, response)
 	}
 }
 
@@ -142,7 +142,7 @@ func (r *Room) passMessageToGame(m *interfaces.IncomingMessage) {
 					continue
 				}
 				response, _ := r.gameBridge.Status(n)
-				r.callbacks["messageCreated"]([]interfaces.Client{cl}, response)
+				r.observer.Trigger("messageCreated", []interfaces.Client{cl}, response)
 			}
 			currentPlayerClient, _ := r.currentPlayerClient()
 			if r.clientInTurn != currentPlayerClient {
@@ -150,7 +150,7 @@ func (r *Room) passMessageToGame(m *interfaces.IncomingMessage) {
 			}
 		} else {
 			response := messages.New(interfaces.TypeMessageError, err.Error())
-			r.callbacks["messageCreated"]([]interfaces.Client{m.Author}, response)
+			r.observer.Trigger("messageCreated", []interfaces.Client{m.Author}, response)
 		}
 	}
 }
@@ -191,7 +191,7 @@ func (r *Room) AddHuman(cl interfaces.Client) error {
 			log.Printf("Client '%s' added to room", cl.Name())
 		}
 		response := messages.New(interfaces.TypeMessageJoinedRoom, clientNumber, r.id, cl == r.owner)
-		r.callbacks["messageCreated"]([]interfaces.Client{cl}, response)
+		r.observer.Trigger("messageCreated", []interfaces.Client{cl}, response)
 	}
 	return err
 }
@@ -208,7 +208,8 @@ func (r *Room) addClient(c interfaces.Client) (int, error) {
 	}
 	c.SetRoom(r)
 	response := messages.New(interfaces.TypeMessageCurrentPlayers, r.playersData())
-	r.callbacks["messageCreated"](mapToSlice(r.clients), response)
+	r.observer.Trigger("messageCreated", mapToSlice(r.clients), response)
+
 	return newClientNumber, nil
 }
 
@@ -229,10 +230,11 @@ func (r *Room) RemoveClient(c interfaces.Client) {
 				r.removePlayer(i)
 			} else {
 				response := messages.New(interfaces.TypeMessageCurrentPlayers, r.playersData())
-				r.callbacks["messageCreated"](r.HumanClients(), response)
+				r.observer.Trigger("messageCreated", r.HumanClients(), response)
 			}
 
-			r.callbacks[ClientOut](r)
+			r.observer.Trigger(ClientOut, r)
+
 			return
 		}
 	}
@@ -253,7 +255,7 @@ func (r *Room) removePlayer(playerNumber int) {
 			continue
 		}
 		st, _ := r.gameBridge.Status(i)
-		r.callbacks["messageCreated"]([]interfaces.Client{cl}, st)
+		r.observer.Trigger("messageCreated", []interfaces.Client{cl}, st)
 	}
 }
 
