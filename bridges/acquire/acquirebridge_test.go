@@ -59,14 +59,14 @@ func TestParseWrongTypeMessage(t *testing.T) {
 	}
 }
 
-func TestCurrentPlayerNumberWithoutGameStarted(t *testing.T) {
+func TestCurrentPlayerNumbersWithoutGameStarted(t *testing.T) {
 	bridge := New()
-	if _, err := bridge.CurrentPlayerNumber(); err == nil {
-		t.Errorf("Bridge must return an error when trying to get the current player number without a game started")
+	if _, err := bridge.CurrentPlayersNumbers(); err == nil {
+		t.Errorf("Bridge must return an error when trying to get the current players numbers without a game started")
 	}
 }
 
-func TestCurrentPlayerNumberWithGameStarted(t *testing.T) {
+func TestCurrentPlayerNumbersWithGameStarted(t *testing.T) {
 	bridge := New()
 	players := make(map[int]interfaces.Client, 3)
 
@@ -75,8 +75,8 @@ func TestCurrentPlayerNumberWithGameStarted(t *testing.T) {
 	}
 	bridge.StartGame(players)
 
-	if _, err := bridge.CurrentPlayerNumber(); err != nil {
-		t.Errorf("Bridge must not return an error when trying to get the current player number of a started game")
+	if _, err := bridge.CurrentPlayersNumbers(); err != nil {
+		t.Errorf("Bridge must not return an error when trying to get the current players numbers of a started game")
 	}
 }
 

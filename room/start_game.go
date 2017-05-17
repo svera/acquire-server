@@ -31,7 +31,7 @@ func (r *Room) startGameAction(m *interfaces.IncomingMessage) error {
 		return err
 	}
 
-	r.changePlayerSetTimer()
+	r.changeClientsInTurn()
 
 	r.observer.Trigger(GameStarted)
 	return err

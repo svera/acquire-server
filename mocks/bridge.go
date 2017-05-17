@@ -8,13 +8,13 @@ import (
 
 // Bridge is a structure that implements the Bridge interface for testing
 type Bridge struct {
-	FakeCurrentPlayerNumber int
-	FakeStatus              []byte
-	FakeClient              interfaces.Client
-	FakeGameStarted         bool
-	FakeIsGameOver          bool
-	FakeExecute             func(clientName string, t string, content json.RawMessage) error
-	Calls                   map[string]int
+	FakeCurrentPlayersNumbers []int
+	FakeStatus                []byte
+	FakeClient                interfaces.Client
+	FakeGameStarted           bool
+	FakeIsGameOver            bool
+	FakeExecute               func(clientName string, t string, content json.RawMessage) error
+	Calls                     map[string]int
 }
 
 // Execute mocks the Execute method defined in the Bridge interface
@@ -30,9 +30,9 @@ func (b *Bridge) ParseMessage(t string, content json.RawMessage) error {
 	return nil
 }
 
-// CurrentPlayerNumber mocks the CurrentPlayerNumber method defined in the Bridge interface
-func (b *Bridge) CurrentPlayerNumber() (int, error) {
-	return b.FakeCurrentPlayerNumber, nil
+// CurrentPlayersNumbers mocks the CurrentPlayesrNumbers method defined in the Bridge interface
+func (b *Bridge) CurrentPlayersNumbers() ([]int, error) {
+	return b.FakeCurrentPlayersNumbers, nil
 }
 
 // Status mocks the Status method defined in the Bridge interface
