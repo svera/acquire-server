@@ -162,14 +162,14 @@ func (r *Room) messageAuthorIsInTurn(m *interfaces.IncomingMessage) bool {
 }
 
 func (r *Room) turnMovedToNewPlayers() bool {
-	currentPlayersClients, _ := r.currentPlayersClients()
+	gameCurrentPlayersClients, _ := r.gameCurrentPlayersClients()
 
-	if len(currentPlayersClients) != len(r.clientsInTurn) {
+	if len(gameCurrentPlayersClients) != len(r.clientsInTurn) {
 		return true
 	}
 
-	for i, cl := range currentPlayersClients {
-		if cl != r.clientsInTurn[i] {
+	for i := range gameCurrentPlayersClients {
+		if gameCurrentPlayersClients[i] != r.clientsInTurn[i] {
 			return true
 		}
 	}
@@ -180,7 +180,7 @@ func (r *Room) changeClientsInTurn() {
 	for _, cl := range r.clientsInTurn {
 		cl.StopTimer()
 	}
-	r.clientsInTurn, _ = r.currentPlayersClients()
+	r.clientsInTurn, _ = r.gameCurrentPlayersClients()
 	r.startClientsInTurnTimers()
 }
 
@@ -202,7 +202,7 @@ func (r *Room) playersData() map[string]interfaces.PlayerData {
 	return players
 }
 
-func (r *Room) currentPlayersClients() ([]interfaces.Client, error) {
+func (r *Room) gameCurrentPlayersClients() ([]interfaces.Client, error) {
 	currentPlayerClients := []interfaces.Client{}
 	numbers, err := r.gameBridge.CurrentPlayersNumbers()
 	for _, n := range numbers {
