@@ -48,7 +48,7 @@ type Room struct {
 
 	observer interfaces.Observer
 
-	clientInTurn interfaces.Client
+	clientsInTurn []interfaces.Client
 
 	playerTimeOut time.Duration
 
@@ -72,7 +72,7 @@ func New(
 		messages:      messages,
 		unregister:    unregister,
 		observer:      ob,
-		clientInTurn:  nil,
+		clientsInTurn: nil,
 		configuration: cfg,
 		clientCounter: 0,
 	}
@@ -132,11 +132,9 @@ func (r *Room) parseControlMessage(m *interfaces.IncomingMessage) {
 
 func (r *Room) passMessageToGame(m *interfaces.IncomingMessage) {
 	var err error
-	var currentPlayer interfaces.Client
 
-	if currentPlayer, err = r.currentPlayerClient(); m.Author == currentPlayer && err == nil {
-		err = r.gameBridge.Execute(m.Author.Name(), m.Content.Type, m.Content.Params)
-		if err == nil {
+	if r.messageAuthorIsInTurn(m) {
+		if err = r.gameBridge.Execute(m.Author.Name(), m.Content.Type, m.Content.Params); err == nil {
 			for n, cl := range r.clients {
 				if cl.IsBot() && r.IsGameOver() {
 					continue
@@ -144,9 +142,8 @@ func (r *Room) passMessageToGame(m *interfaces.IncomingMessage) {
 				response, _ := r.gameBridge.Status(n)
 				r.observer.Trigger("messageCreated", []interfaces.Client{cl}, response)
 			}
-			currentPlayerClient, _ := r.currentPlayerClient()
-			if r.clientInTurn != currentPlayerClient {
-				r.changePlayerSetTimer()
+			if r.turnMovedToNewPlayers() {
+				r.changeClientsInTurn()
 			}
 		} else {
 			response := messages.New(interfaces.TypeMessageError, err.Error())
@@ -155,13 +152,43 @@ func (r *Room) passMessageToGame(m *interfaces.IncomingMessage) {
 	}
 }
 
-func (r *Room) changePlayerSetTimer() {
-	if r.clientInTurn != nil {
-		r.clientInTurn.StopTimer()
+func (r *Room) messageAuthorIsInTurn(m *interfaces.IncomingMessage) bool {
+	for _, cl := range r.clientsInTurn {
+		if m.Author == cl {
+			return true
+		}
 	}
-	r.clientInTurn, _ = r.currentPlayerClient()
-	if !r.clientInTurn.IsBot() && r.playerTimeOut > 0 {
-		r.clientInTurn.StartTimer(time.Second * r.playerTimeOut)
+	return false
+}
+
+func (r *Room) turnMovedToNewPlayers() bool {
+	gameCurrentPlayersClients, _ := r.gameCurrentPlayersClients()
+
+	if len(gameCurrentPlayersClients) != len(r.clientsInTurn) {
+		return true
+	}
+
+	for i := range gameCurrentPlayersClients {
+		if gameCurrentPlayersClients[i] != r.clientsInTurn[i] {
+			return true
+		}
+	}
+	return false
+}
+
+func (r *Room) changeClientsInTurn() {
+	for _, cl := range r.clientsInTurn {
+		cl.StopTimer()
+	}
+	r.clientsInTurn, _ = r.gameCurrentPlayersClients()
+	r.startClientsInTurnTimers()
+}
+
+func (r *Room) startClientsInTurnTimers() {
+	for _, cl := range r.clientsInTurn {
+		if !cl.IsBot() && r.playerTimeOut > 0 {
+			cl.StartTimer(time.Second * r.playerTimeOut)
+		}
 	}
 }
 
@@ -175,9 +202,13 @@ func (r *Room) playersData() map[string]interfaces.PlayerData {
 	return players
 }
 
-func (r *Room) currentPlayerClient() (interfaces.Client, error) {
-	number, err := r.gameBridge.CurrentPlayerNumber()
-	return r.clients[number], err
+func (r *Room) gameCurrentPlayersClients() ([]interfaces.Client, error) {
+	currentPlayerClients := []interfaces.Client{}
+	numbers, err := r.gameBridge.CurrentPlayersNumbers()
+	for _, n := range numbers {
+		currentPlayerClients = append(currentPlayerClients, r.clients[n])
+	}
+	return currentPlayerClients, err
 }
 
 // AddHuman adds a new client to the room. If the client has successfully joined,
@@ -245,9 +276,8 @@ func (r *Room) RemoveClient(c interfaces.Client) {
 func (r *Room) removePlayer(playerNumber int) {
 	r.gameBridge.RemovePlayer(playerNumber)
 
-	currentPlayerClient, _ := r.currentPlayerClient()
-	if r.clientInTurn != currentPlayerClient {
-		r.changePlayerSetTimer()
+	if r.turnMovedToNewPlayers() {
+		r.changeClientsInTurn()
 	}
 
 	for i, cl := range r.clients {

@@ -8,7 +8,7 @@ import (
 // to implement a game bridge which can be used within a hub instance
 type Bridge interface {
 	Execute(clientName string, t string, content json.RawMessage) error
-	CurrentPlayerNumber() (int, error)
+	CurrentPlayersNumbers() ([]int, error)
 	Status(n int) ([]byte, error)
 	RemovePlayer(number int) error
 	AddBot(params interface{}, room Room) (Client, error)

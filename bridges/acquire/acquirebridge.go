@@ -87,12 +87,14 @@ func (b *AcquireBridge) Execute(clientName string, t string, params json.RawMess
 	return err
 }
 
-// CurrentPlayerNumber returns the number of the player currently in turn
-func (b *AcquireBridge) CurrentPlayerNumber() (int, error) {
+// CurrentPlayersNumbers returns a slice containing the number of each player currently in turn
+func (b *AcquireBridge) CurrentPlayersNumbers() ([]int, error) {
+	currentPlayersNumbers := []int{}
 	if !b.GameStarted() {
-		return 0, errors.New(GameNotStarted)
+		return currentPlayersNumbers, errors.New(GameNotStarted)
 	}
-	return b.game.CurrentPlayer().Number(), nil
+	currentPlayersNumbers = append(currentPlayersNumbers, b.game.CurrentPlayer().Number())
+	return currentPlayersNumbers, nil
 }
 
 // GameStarted returns true if there's a game in progress, false otherwise
@@ -104,7 +106,7 @@ func (b *AcquireBridge) GameStarted() bool {
 }
 
 func (b *AcquireBridge) isCurrentPlayer(n int) bool {
-	if number, err := b.CurrentPlayerNumber(); number == n && err == nil {
+	if b.game.CurrentPlayer().Number() == n {
 		return true
 	}
 	return false
@@ -166,7 +168,7 @@ func (b *AcquireBridge) addPlayers(clients map[int]serverInterfaces.Client) {
 }
 
 func (b *AcquireBridge) currentPlayerName() string {
-	currentPlayerNumber, _ := b.CurrentPlayerNumber()
+	currentPlayerNumber := b.game.CurrentPlayer().Number()
 	return b.players[currentPlayerNumber].(*player.Player).Name()
 }
 
