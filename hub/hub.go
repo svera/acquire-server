@@ -1,6 +1,7 @@
 package hub
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
@@ -8,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	uuid "github.com/satori/go.uuid"
 	"github.com/svera/sackson-server/config"
 	"github.com/svera/sackson-server/interfaces"
 	"github.com/svera/sackson-server/messages"
@@ -183,7 +185,7 @@ func (h *Hub) NumberClients() int {
 	return len(h.clients)
 }
 
-func (h *Hub) createUpdatedRoomListMessage() []byte {
+func (h *Hub) createUpdatedRoomListMessage() interface{} {
 	return messages.New(interfaces.TypeMessageRoomsList, h.getWaitingRoomsIds())
 }
 
@@ -198,14 +200,17 @@ func (h *Hub) getWaitingRoomsIds() []string {
 	return ids
 }
 
-func (h *Hub) sendMessage(c interfaces.Client, message []byte) {
-	if h.configuration.Debug {
-		log.Printf("Sending message %s to client '%s'\n", string(message[:]), c.Name())
-	}
+func (h *Hub) sendMessage(c interfaces.Client, message interface{}) {
 	defer wg.Done()
 
+	encoded := encodeMessage(message)
+
+	if h.configuration.Debug {
+		log.Printf("Sending message %s to client '%s'\n", string(encoded[:]), c.Name())
+	}
+
 	select {
-	case c.Incoming() <- message:
+	case c.Incoming() <- encoded:
 		return
 
 	// We can't reach the client
@@ -214,4 +219,16 @@ func (h *Hub) sendMessage(c interfaces.Client, message []byte) {
 		h.removeClient(c)
 		return
 	}
+}
+
+func encodeMessage(message interface{}) []byte {
+	encodedContent, _ := json.Marshal(message)
+
+	wrappedMessage := interfaces.OutgoingMessage{
+		ID:      uuid.NewV4().String(),
+		Content: encodedContent,
+	}
+
+	encoded, _ := json.Marshal(wrappedMessage)
+	return encoded
 }

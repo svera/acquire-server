@@ -38,7 +38,7 @@ func (r *Room) startGameAction(m *interfaces.IncomingMessage) error {
 }
 
 func (r *Room) sendInitialMessage() error {
-	var status []byte
+	var status interface{}
 	var err error
 
 	for n, cl := range r.clients {

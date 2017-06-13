@@ -12,7 +12,9 @@ import (
 )
 
 // Status return a JSON string with the current status of the game
-func (b *AcquireBridge) Status(n int) ([]byte, error) {
+func (b *AcquireBridge) Status(n int) (interface{}, error) {
+	var msg interface{}
+
 	if !b.GameStarted() {
 		return nil, errors.New(GameNotStarted)
 	}
@@ -21,7 +23,7 @@ func (b *AcquireBridge) Status(n int) ([]byte, error) {
 	if err != nil {
 		return json.RawMessage{}, err
 	}
-	msg := statusMessage{
+	msg = statusMessage{
 		Type:        "upd",
 		Board:       b.boardOwnership(),
 		State:       b.game.GameStateName(),
@@ -33,8 +35,7 @@ func (b *AcquireBridge) Status(n int) ([]byte, error) {
 		IsLastRound: b.game.IsLastRound(),
 		History:     b.history,
 	}
-	response, _ := json.Marshal(msg)
-	return response, err
+	return msg, err
 }
 
 func (b *AcquireBridge) boardOwnership() map[string]string {

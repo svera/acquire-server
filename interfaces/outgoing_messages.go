@@ -1,5 +1,7 @@
 package interfaces
 
+import "encoding/json"
+
 // Control messages sent to the different players.
 // These messages are common to all games.
 
@@ -23,6 +25,15 @@ const (
 	TypeMessageError          = "err"
 	TypeMessageJoinedRoom     = "joi"
 )
+
+// OutgoingMessage is a container struct used by
+// the hub to encapsulate the messages sent to clients, adding common fields
+// such as ID.
+// The actual message coming from the backend is in Content.
+type OutgoingMessage struct {
+	ID      string
+	Content json.RawMessage `json:"cnt"`
+}
 
 // MessageClientOut is sent to a client when he/she is expelled from a room.
 // The following is a MessageClientOut message example:

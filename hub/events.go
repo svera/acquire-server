@@ -17,7 +17,7 @@ func (h *Hub) registerEvents() {
 
 	h.observer.On("messageCreated", func(args ...interface{}) {
 		clients := args[0].([]interfaces.Client)
-		message := args[1].([]byte)
+		message := args[1]
 
 		wg.Add(len(clients))
 		for _, cl := range clients {
