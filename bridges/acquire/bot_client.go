@@ -223,13 +223,16 @@ func (c *BotClient) WritePump() {
 			return
 
 		case message, ok := <-c.incoming:
-			var parsed statusMessage
+			var parsed serverInterfaces.OutgoingMessage
+			var content statusMessage
 			if !ok {
 				return
 			}
 			if err := json.Unmarshal(message, &parsed); err == nil {
-				if parsed.PlayerInfo.InTurn {
-					c.botTurn <- parsed
+				if err := json.Unmarshal(parsed.Content, &content); err == nil {
+					if content.PlayerInfo.InTurn {
+						c.botTurn <- content
+					}
 				}
 			}
 		}
