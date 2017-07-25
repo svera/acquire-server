@@ -13,8 +13,9 @@ import (
 
 // Events Emited from Room, always in a past tense
 const (
-	GameStarted = "gameStarted"
-	ClientOut   = "clientOut"
+	GameStarted       = "gameStarted"
+	ClientOut         = "clientOut"
+	GameStatusUpdated = "gameStatusUpdated"
 )
 
 var (
@@ -132,6 +133,7 @@ func (r *Room) parseControlMessage(m *interfaces.IncomingMessage) {
 
 func (r *Room) passMessageToGame(m *interfaces.IncomingMessage) {
 	var err error
+	var st interface{}
 
 	if r.messageAuthorIsInTurn(m) {
 		if err = r.gameBridge.Execute(m.Author.Name(), m.Content.Type, m.Content.Params); err == nil {
@@ -139,8 +141,8 @@ func (r *Room) passMessageToGame(m *interfaces.IncomingMessage) {
 				if cl.IsBot() && r.IsGameOver() {
 					continue
 				}
-				response, _ := r.gameBridge.Status(n)
-				r.observer.Trigger("messageCreated", []interfaces.Client{cl}, response)
+				st, _ = r.gameBridge.Status(n)
+				r.observer.Trigger(GameStatusUpdated, cl, st)
 			}
 			if r.turnMovedToNewPlayers() {
 				r.changeClientsInTurn()
@@ -285,7 +287,7 @@ func (r *Room) removePlayer(playerNumber int) {
 			continue
 		}
 		st, _ := r.gameBridge.Status(i)
-		r.observer.Trigger("messageCreated", []interfaces.Client{cl}, st)
+		r.observer.Trigger(GameStatusUpdated, cl, st)
 	}
 }
 

@@ -36,7 +36,7 @@ func (b *Bridge) CurrentPlayersNumbers() ([]int, error) {
 }
 
 // Status mocks the Status method defined in the Bridge interface
-func (b *Bridge) Status(n int) ([]byte, error) {
+func (b *Bridge) Status(playerNumber int) (interface{}, error) {
 	return b.FakeStatus, nil
 }
 

@@ -12,14 +12,14 @@ import (
 )
 
 // Status return a JSON string with the current status of the game
-func (b *AcquireBridge) Status(n int) (interface{}, error) {
+func (b *AcquireBridge) Status(playerNumber int) (interface{}, error) {
 	var msg interface{}
 
 	if !b.GameStarted() {
 		return nil, errors.New(GameNotStarted)
 	}
 
-	playerInfo, rivalsInfo, err := b.playersInfo(n)
+	playerInfo, rivalsInfo, err := b.playersInfo(playerNumber)
 	if err != nil {
 		return json.RawMessage{}, err
 	}
@@ -28,7 +28,7 @@ func (b *AcquireBridge) Status(n int) (interface{}, error) {
 		Board:       b.boardOwnership(),
 		State:       b.game.GameStateName(),
 		Corps:       b.corpsData(),
-		Hand:        b.tilesData(b.players[n]),
+		Hand:        b.tilesData(b.players[playerNumber]),
 		PlayerInfo:  playerInfo,
 		RivalsInfo:  rivalsInfo,
 		RoundNumber: b.game.Round(),

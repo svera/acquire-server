@@ -9,7 +9,7 @@ import (
 type Bridge interface {
 	Execute(clientName string, t string, content json.RawMessage) error
 	CurrentPlayersNumbers() ([]int, error)
-	Status(n int) (interface{}, error)
+	Status(playerNumber int) (interface{}, error)
 	RemovePlayer(number int) error
 	AddBot(params interface{}, room Room) (Client, error)
 	StartGame(map[int]Client) error
