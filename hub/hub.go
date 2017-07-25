@@ -203,7 +203,8 @@ func (h *Hub) getWaitingRoomsIds() []string {
 func (h *Hub) sendMessage(c interfaces.Client, message interface{}) {
 	defer wg.Done()
 
-	encoded := encodeMessage(message)
+	id := uuid.NewV4().String()
+	encoded := encodeMessage(message, id)
 
 	if h.configuration.Debug {
 		log.Printf("Sending message %s to client '%s'\n", string(encoded[:]), c.Name())
@@ -221,11 +222,11 @@ func (h *Hub) sendMessage(c interfaces.Client, message interface{}) {
 	}
 }
 
-func encodeMessage(message interface{}) []byte {
+func encodeMessage(message interface{}, id string) []byte {
 	encodedContent, _ := json.Marshal(message)
 
 	wrappedMessage := interfaces.OutgoingMessage{
-		ID:      uuid.NewV4().String(),
+		ID:      id,
 		Content: encodedContent,
 	}
 

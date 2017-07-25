@@ -25,6 +25,14 @@ func (h *Hub) registerEvents() {
 		}
 	})
 
+	h.observer.On(room.GameStatusUpdated, func(args ...interface{}) {
+		client := args[0].(interfaces.Client)
+		message := args[1]
+
+		wg.Add(1)
+		go h.sendMessage(client, message)
+	})
+
 	h.observer.On(room.ClientOut, func(args ...interface{}) {
 		r := args[0].(interfaces.Room)
 		if len(r.HumanClients()) == 0 {
