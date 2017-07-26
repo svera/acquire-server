@@ -18,7 +18,7 @@ func (r *Room) addBotAction(m *interfaces.IncomingMessage) error {
 	if err = json.Unmarshal(m.Content.Params, &parsed); err == nil {
 		if err = r.addBot(parsed.BotLevel); err != nil {
 			response := messages.New(interfaces.TypeMessageError, err.Error())
-			r.observer.Trigger("messageCreated", []interfaces.Client{m.Author}, response)
+			r.observer.Trigger("messageCreated", []interfaces.Client{m.Author}, response, interfaces.TypeMessageError)
 		}
 	}
 	return err

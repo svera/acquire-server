@@ -6,7 +6,6 @@ package acquirebridge
 // statusMessage is a struct which contains the status of the game at the moment
 // it is issued. It is sent to each player after every action made by one of them.
 type statusMessage struct {
-	Type        string            `json:"typ"`
 	Board       map[string]string `json:"brd"`
 	State       string            `json:"sta"`
 	Hand        map[string]bool   `json:"hnd"`

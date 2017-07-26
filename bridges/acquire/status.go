@@ -24,7 +24,6 @@ func (b *AcquireBridge) Status(playerNumber int) (interface{}, error) {
 		return json.RawMessage{}, err
 	}
 	msg = statusMessage{
-		Type:        "upd",
 		Board:       b.boardOwnership(),
 		State:       b.game.GameStateName(),
 		Corps:       b.corpsData(),
