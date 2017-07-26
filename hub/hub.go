@@ -78,7 +78,7 @@ func (h *Hub) Run() {
 			h.clients = append(h.clients, cl)
 			mutex.Unlock()
 			cl.SetName(fmt.Sprintf("Player %d", h.NumberClients()))
-			h.observer.Trigger("messageCreated", []interfaces.Client{cl}, h.createUpdatedRoomListMessage())
+			h.observer.Trigger("messageCreated", []interfaces.Client{cl}, h.createUpdatedRoomListMessage(), interfaces.TypeMessageRoomsList)
 			if h.configuration.Debug {
 				log.Printf("Client added to hub, number of connected clients: %d\n", len(h.clients))
 			}
@@ -137,14 +137,14 @@ func (h *Hub) parseControlMessage(m *interfaces.IncomingMessage) {
 
 	if err != nil {
 		response := messages.New(interfaces.TypeMessageError, err.Error())
-		h.observer.Trigger("messageCreated", []interfaces.Client{m.Author}, response)
+		h.observer.Trigger("messageCreated", []interfaces.Client{m.Author}, response, interfaces.TypeMessageError)
 	}
 }
 
 func (h *Hub) passMessageToRoom(m *interfaces.IncomingMessage) {
 	if m.Author.Room() == nil {
 		response := messages.New(interfaces.TypeMessageError, NotInARoom)
-		h.observer.Trigger("messageCreated", []interfaces.Client{m.Author}, response)
+		h.observer.Trigger("messageCreated", []interfaces.Client{m.Author}, response, interfaces.TypeMessageError)
 		return
 	}
 
@@ -200,11 +200,11 @@ func (h *Hub) getWaitingRoomsIds() []string {
 	return ids
 }
 
-func (h *Hub) sendMessage(c interfaces.Client, message interface{}) {
+func (h *Hub) sendMessage(c interfaces.Client, message interface{}, typeName string, sequenceNumber int) {
 	defer wg.Done()
 
 	id := uuid.NewV4().String()
-	encoded := encodeMessage(message, id)
+	encoded := encodeMessage(message, id, typeName, sequenceNumber)
 
 	if h.configuration.Debug {
 		log.Printf("Sending message %s to client '%s'\n", string(encoded[:]), c.Name())
@@ -222,12 +222,14 @@ func (h *Hub) sendMessage(c interfaces.Client, message interface{}) {
 	}
 }
 
-func encodeMessage(message interface{}, id string) []byte {
+func encodeMessage(message interface{}, id string, typeName string, sequenceNumber int) []byte {
 	encodedContent, _ := json.Marshal(message)
 
 	wrappedMessage := interfaces.OutgoingMessage{
-		ID:      id,
-		Content: encodedContent,
+		ID:             id,
+		Type:           typeName,
+		SequenceNumber: sequenceNumber,
+		Content:        encodedContent,
 	}
 
 	encoded, _ := json.Marshal(wrappedMessage)

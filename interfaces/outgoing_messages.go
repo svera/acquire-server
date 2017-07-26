@@ -19,11 +19,12 @@ const (
 
 // Types for the messages sent to the clients.
 const (
-	TypeMessageClientOut      = "out"
-	TypeMessageRoomsList      = "rms"
-	TypeMessageCurrentPlayers = "pls"
-	TypeMessageError          = "err"
-	TypeMessageJoinedRoom     = "joi"
+	TypeMessageClientOut        = "out"
+	TypeMessageRoomsList        = "rms"
+	TypeMessageCurrentPlayers   = "pls"
+	TypeMessageError            = "err"
+	TypeMessageJoinedRoom       = "joi"
+	TypeMessageUpdateGameStatus = "upd"
 )
 
 // OutgoingMessage is a container struct used by
@@ -31,8 +32,10 @@ const (
 // such as ID.
 // The actual message coming from the backend is in Content.
 type OutgoingMessage struct {
-	ID      string
-	Content json.RawMessage `json:"cnt"`
+	ID             string
+	Type           string          `json:"typ"`
+	SequenceNumber int             `json:"seq"`
+	Content        json.RawMessage `json:"cnt"`
 }
 
 // MessageClientOut is sent to a client when he/she is expelled from a room.
@@ -42,7 +45,6 @@ type OutgoingMessage struct {
 //     "rea": "tim"
 //   }
 type MessageClientOut struct {
-	Type   string `json:"typ"`
 	Reason string `json:"rea"`
 }
 
@@ -54,7 +56,6 @@ type MessageClientOut struct {
 //     "val": ["VWXYZ", "ABCDE"]
 //   }
 type MessageRoomsList struct {
-	Type   string   `json:"typ"`
 	Values []string `json:"val"`
 }
 
@@ -69,7 +70,6 @@ type MessageRoomsList struct {
 //     }
 //   }
 type MessageCurrentPlayers struct {
-	Type   string                `json:"typ"`
 	Values map[string]PlayerData `json:"val"`
 }
 
@@ -87,7 +87,6 @@ type PlayerData struct {
 //     "cnt": "Whatever"
 //   }
 type MessageError struct {
-	Type    string `json:"typ"`
 	Content string `json:"cnt"`
 }
 
@@ -101,7 +100,6 @@ type MessageError struct {
 //     "own": false
 //   }
 type MessageJoinedRoom struct {
-	Type         string `json:"typ"`
 	ClientNumber int    `json:"num"`
 	ID           string `json:"id"`
 	// Owner signals if this client is the owner of the room

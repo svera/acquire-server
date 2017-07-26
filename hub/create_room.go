@@ -43,7 +43,7 @@ func (h *Hub) createRoom(b interfaces.Bridge, owner interfaces.Client) string {
 	})
 	h.rooms[id].SetTimer(timer)
 
-	h.observer.Trigger("messageCreated", h.clients, h.createUpdatedRoomListMessage())
+	h.observer.Trigger("messageCreated", h.clients, h.createUpdatedRoomListMessage(), interfaces.TypeMessageRoomsList)
 
 	if h.configuration.Debug {
 		log.Printf("Room %s created\n", id)

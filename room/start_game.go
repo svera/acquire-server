@@ -41,12 +41,13 @@ func (r *Room) sendInitialMessage() error {
 	var status interface{}
 	var err error
 
+	r.updateSequenceNumber++
 	for n, cl := range r.clients {
 		if status, err = r.gameBridge.Status(n); err != nil {
 			return err
 		}
 		r.setUpTimeOut(cl)
-		r.observer.Trigger("messageCreated", []interfaces.Client{cl}, status)
+		r.observer.Trigger(GameStatusUpdated, cl, status, r.updateSequenceNumber)
 	}
 	return nil
 }
@@ -66,6 +67,6 @@ func (r *Room) setUpTimeOut(cl interfaces.Client) {
 func (r *Room) timeoutPlayer(cl interfaces.Client) {
 	response := messages.New(interfaces.TypeMessageClientOut, interfaces.ReasonPlayerTimedOut)
 
-	r.observer.Trigger("messageCreated", []interfaces.Client{cl}, response)
+	r.observer.Trigger("messageCreated", []interfaces.Client{cl}, response, interfaces.TypeMessageClientOut)
 	r.RemoveClient(cl)
 }

@@ -9,31 +9,26 @@ func New(typeMessage string, args ...interface{}) interface{} {
 	switch typeMessage {
 	case interfaces.TypeMessageError:
 		msg = &interfaces.MessageError{
-			Type:    interfaces.TypeMessageError,
 			Content: args[0].(string),
 		}
 
 	case interfaces.TypeMessageCurrentPlayers:
 		msg = interfaces.MessageCurrentPlayers{
-			Type:   interfaces.TypeMessageCurrentPlayers,
 			Values: args[0].(map[string]interfaces.PlayerData),
 		}
 
 	case interfaces.TypeMessageClientOut:
 		msg = interfaces.MessageClientOut{
-			Type:   interfaces.TypeMessageClientOut,
 			Reason: args[0].(string),
 		}
 
 	case interfaces.TypeMessageRoomsList:
 		msg = interfaces.MessageRoomsList{
-			Type:   interfaces.TypeMessageRoomsList,
 			Values: args[0].([]string),
 		}
 
 	case interfaces.TypeMessageJoinedRoom:
 		msg = interfaces.MessageJoinedRoom{
-			Type:         interfaces.TypeMessageJoinedRoom,
 			ClientNumber: args[0].(int),
 			ID:           args[1].(string),
 			Owner:        args[2].(bool),

@@ -35,7 +35,7 @@ func (h *Hub) destroyRoom(roomID string, reasonCode string) {
 		r.Timer().Stop()
 		h.expelClientsFromRoom(r, reasonCode)
 		delete(h.rooms, roomID)
-		h.observer.Trigger("messageCreated", h.clients, h.createUpdatedRoomListMessage())
+		h.observer.Trigger("messageCreated", h.clients, h.createUpdatedRoomListMessage(), interfaces.TypeMessageRoomsList)
 
 		if h.configuration.Debug {
 			log.Printf("Room %s destroyed\n", roomID)
@@ -53,7 +53,7 @@ func (h *Hub) expelClientsFromRoom(r interfaces.Room, reasonCode string) {
 			}
 			cl.Close()
 		} else if cl != nil {
-			h.observer.Trigger("messageCreated", []interfaces.Client{cl}, response)
+			h.observer.Trigger("messageCreated", []interfaces.Client{cl}, response, interfaces.TypeMessageClientOut)
 			if h.configuration.Debug {
 				log.Printf("Client expeled from room %s\n", cl.Room().ID())
 			}
