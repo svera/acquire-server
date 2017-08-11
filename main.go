@@ -38,7 +38,11 @@ func main() {
 		http.Handle("/", r)
 		fmt.Printf("Sackson server listening on port %s\n", cfg.Port)
 		fmt.Printf("Git commit hash: %s\n", gitHash)
-		log.Fatal(http.ListenAndServe(cfg.Port, r))
+		if cfg.Secure {
+			log.Fatal(http.ListenAndServeTLS(cfg.Port, cfg.SecureCertFileName, cfg.SecureKeyFileName, r))
+		} else {
+			log.Fatal(http.ListenAndServe(cfg.Port, r))
+		}
 	}
 }
 

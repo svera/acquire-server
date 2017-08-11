@@ -6,3 +6,7 @@ debug: true
 # Allowed origin for connections (* for any)
 # e.g. "http://localhost:8080"
 allowed_origin: "*"
+# Use secure websocket connection (WSS)
+secure: false
+secure_cert_file_name: "/full/path/to/server.crt"
+secure_key_file_name: "/full/path/to/server.key"
