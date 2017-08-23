@@ -33,6 +33,6 @@ func coordsToTile(tl string) (acquireInterfaces.Tile, error) {
 		return &tile.Tile{}, errors.New("Not a valid tile")
 	}
 	number, _ := strconv.Atoi(tl[:len(tl)-1])
-	letter := string(tl[len(tl)-1 : len(tl)])
+	letter := string(tl[len(tl)-1:])
 	return tile.New(number, letter), nil
 }

@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-// Observer holds the functions to be called when registered events are triggered-
+// Observer holds the functions to be called when registered events are triggered.
 type Observer struct {
 	callbacks map[string][]func(...interface{})
 }

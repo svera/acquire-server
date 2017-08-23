@@ -11,7 +11,7 @@ import (
 	"github.com/svera/sackson-server/messages"
 )
 
-// Events Emited from Room, always in a past tense
+// Events emitted from Room, always in a past tense
 const (
 	GameStarted       = "gameStarted"
 	ClientOut         = "clientOut"

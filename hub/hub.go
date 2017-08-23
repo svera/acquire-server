@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	uuid "github.com/satori/go.uuid"
 	"github.com/svera/sackson-server/config"
 	"github.com/svera/sackson-server/interfaces"
 	"github.com/svera/sackson-server/messages"
@@ -200,11 +199,10 @@ func (h *Hub) getWaitingRoomsIds() []string {
 	return ids
 }
 
-func (h *Hub) sendMessage(c interfaces.Client, message interface{}, typeName string, sequenceNumber int) {
+func (h *Hub) sendMessage(c interfaces.Client, message interface{}, typeName string, optArgs ...interface{}) {
 	defer wg.Done()
 
-	id := uuid.NewV4().String()
-	encoded := encodeMessage(message, id, typeName, sequenceNumber)
+	encoded := encodeMessage(message, typeName, optArgs)
 
 	if h.configuration.Debug {
 		log.Printf("Sending message %s to client '%s'\n", string(encoded[:]), c.Name())
@@ -222,14 +220,16 @@ func (h *Hub) sendMessage(c interfaces.Client, message interface{}, typeName str
 	}
 }
 
-func encodeMessage(message interface{}, id string, typeName string, sequenceNumber int) []byte {
+func encodeMessage(message interface{}, typeName string, optArgs []interface{}) []byte {
 	encodedContent, _ := json.Marshal(message)
 
 	wrappedMessage := interfaces.OutgoingMessage{
-		ID:             id,
-		Type:           typeName,
-		SequenceNumber: sequenceNumber,
-		Content:        encodedContent,
+		Type:    typeName,
+		Content: encodedContent,
+	}
+
+	if len(optArgs) > 0 {
+		wrappedMessage.SequenceNumber = optArgs[0].(int)
 	}
 
 	encoded, _ := json.Marshal(wrappedMessage)

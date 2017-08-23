@@ -5,17 +5,13 @@ import (
 	"github.com/svera/sackson-server/room"
 )
 
-// Not all messages need to be processed in a specific order, in that case
-// we just use this noSequenceNumber to indicate this
-const noSequenceNumber = 0
-
 func (h *Hub) registerEvents() {
 	h.observer.On(room.GameStarted, func(args ...interface{}) {
 		message := h.createUpdatedRoomListMessage()
 
 		wg.Add(len(h.clients))
 		for _, cl := range h.clients {
-			go h.sendMessage(cl, message, interfaces.TypeMessageRoomsList, noSequenceNumber)
+			go h.sendMessage(cl, message, interfaces.TypeMessageRoomsList)
 		}
 	})
 
@@ -26,7 +22,7 @@ func (h *Hub) registerEvents() {
 
 		wg.Add(len(clients))
 		for _, cl := range clients {
-			go h.sendMessage(cl, message, typeName, noSequenceNumber)
+			go h.sendMessage(cl, message, typeName)
 		}
 	})
 
