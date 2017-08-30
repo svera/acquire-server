@@ -23,7 +23,7 @@ func (r *Room) startGameAction(m *interfaces.IncomingMessage) error {
 	}
 	r.playerTimeOut = parsed.PlayerTimeout
 
-	if err = r.gameBridge.StartGame(r.clients); err != nil {
+	if err = r.gameBridge.StartGame(r.mapPlayerNames()); err != nil {
 		return err
 	}
 
@@ -69,4 +69,12 @@ func (r *Room) timeoutPlayer(cl interfaces.Client) {
 
 	r.observer.Trigger("messageCreated", []interfaces.Client{cl}, response, interfaces.TypeMessageClientOut)
 	r.RemoveClient(cl)
+}
+
+func (r *Room) mapPlayerNames() map[int]string {
+	names := map[int]string{}
+	for n, cl := range r.clients {
+		names[n] = cl.Name()
+	}
+	return names
 }
