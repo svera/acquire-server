@@ -9,7 +9,6 @@ import (
 	acquireInterfaces "github.com/svera/acquire/interfaces"
 	"github.com/svera/sackson-server/bridges/acquire/corporation"
 	"github.com/svera/sackson-server/bridges/acquire/player"
-	serverInterfaces "github.com/svera/sackson-server/interfaces"
 )
 
 // AcquireBridge implements the bridge interface in order to be able to have
@@ -138,14 +137,14 @@ func (b *AcquireBridge) RemovePlayer(number int) error {
 }
 
 // StartGame starts a new Acquire game
-func (b *AcquireBridge) StartGame(clients map[int]serverInterfaces.Client) error {
+func (b *AcquireBridge) StartGame(clientNames map[int]string) error {
 	var err error
 
 	if b.GameStarted() {
 		err = errors.New(GameAlreadyStarted)
 	}
 
-	b.addPlayers(clients)
+	b.addPlayers(clientNames)
 
 	if b.game, err = acquire.New(b.players, acquire.Optional{Corporations: b.corporations}); err == nil {
 		b.history = append(b.history, i18n{
@@ -159,11 +158,11 @@ func (b *AcquireBridge) StartGame(clients map[int]serverInterfaces.Client) error
 }
 
 // addPlayers adds players to the game
-func (b *AcquireBridge) addPlayers(clients map[int]serverInterfaces.Client) {
+func (b *AcquireBridge) addPlayers(clientNames map[int]string) {
 	b.players = make(map[int]acquireInterfaces.Player)
 
-	for n, pl := range clients {
-		b.players[n] = player.New(pl.Name(), n)
+	for n, playerName := range clientNames {
+		b.players[n] = player.New(playerName, n)
 	}
 }
 
@@ -183,17 +182,19 @@ func (b *AcquireBridge) IsGameOver() bool {
 	return false
 }
 
-// AddBot adds a new bot
-func (b *AcquireBridge) AddBot(params interface{}, room serverInterfaces.Room) (serverInterfaces.Client, error) {
+// CreateAI create an instance of an AI of the passed level
+func (b *AcquireBridge) CreateAI(params interface{}) (interface{}, error) {
 	var err error
 	var bot acquireInterfaces.Bot
 	if level, ok := params.(string); ok {
 		if bot, err = bots.Create(level); err == nil {
-			return NewBotClient(bot, room), nil
+			return &AIClient{
+				bot: bot,
+			}, nil
 		}
 		return nil, err
 	}
-	panic("Expecting string in AddBot parameter")
+	panic("Expecting string in CreateAI parameter")
 }
 
 func defaultCorporations() [7]acquireInterfaces.Corporation {

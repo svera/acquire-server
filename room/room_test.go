@@ -18,11 +18,12 @@ func setup() (c interfaces.Client, b *mocks.Bridge, r *Room) {
 	obs.On("messageCreated", func(...interface{}) {})
 	obs.On(GameStarted, func(...interface{}) {})
 	obs.On(ClientOut, func(...interface{}) {})
+	obs.On(GameStatusUpdated, func(...interface{}) {})
 
 	c = &mocks.Client{FakeIncoming: make(chan []byte, 2)}
 	b = &mocks.Bridge{
-		FakeClient: &mocks.Client{FakeIncoming: make(chan []byte, 2)},
-		Calls:      make(map[string]int),
+		FakeAI: &mocks.AI{FakeIsInTurn: false},
+		Calls:  make(map[string]int),
 	}
 
 	r = New("test", b, c, make(chan *interfaces.IncomingMessage), make(chan interfaces.Client), &config.Config{Timeout: 1}, obs)

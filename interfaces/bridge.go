@@ -11,8 +11,10 @@ type Bridge interface {
 	CurrentPlayersNumbers() ([]int, error)
 	Status(playerNumber int) (interface{}, error)
 	RemovePlayer(number int) error
-	AddBot(params interface{}, room Room) (Client, error)
-	StartGame(map[int]Client) error
+	// The returned interface{} value must implement the AI interface,
+	// as defined in interfaces/ai.go
+	CreateAI(params interface{}) (interface{}, error)
+	StartGame(map[int]string) error
 	GameStarted() bool
 	IsGameOver() bool
 }

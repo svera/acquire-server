@@ -10,7 +10,7 @@ import (
 type Bridge struct {
 	FakeCurrentPlayersNumbers []int
 	FakeStatus                []byte
-	FakeClient                interfaces.Client
+	FakeAI                    interfaces.AI
 	FakeGameStarted           bool
 	FakeIsGameOver            bool
 	FakeExecute               func(clientName string, t string, content json.RawMessage) error
@@ -50,13 +50,13 @@ func (b *Bridge) DeactivatePlayer(number int) error {
 	return nil
 }
 
-// AddBot mocks the AddBot method defined in the Bridge interface
-func (b *Bridge) AddBot(params interface{}, room interfaces.Room) (interfaces.Client, error) {
-	return b.FakeClient, nil
+// CreateAI mocks the CreateAI method defined in the Bridge interface
+func (b *Bridge) CreateAI(params interface{}) (interface{}, error) {
+	return b.FakeAI, nil
 }
 
 // StartGame mocks the StartGame method defined in the Bridge interface
-func (b *Bridge) StartGame(players map[int]interfaces.Client) error {
+func (b *Bridge) StartGame(players map[int]string) error {
 	b.Calls["StartGame"]++
 	return nil
 }
