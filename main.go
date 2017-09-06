@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/svera/sackson-server/bridges"
+	"github.com/svera/sackson-server/drivers"
 
 	"fmt"
 	"os"
@@ -40,7 +40,7 @@ func main() {
 		http.Handle("/", r)
 		fmt.Printf("Sackson server listening on port %s\n", cfg.Port)
 		fmt.Printf("Git commit hash: %s\n", gitHash)
-		bridges.Load()
+		drivers.Load()
 		if cfg.Secure {
 			log.Fatal(http.ListenAndServeTLS(cfg.Port, cfg.SecureCertFileName, cfg.SecureKeyFileName, r))
 		} else {

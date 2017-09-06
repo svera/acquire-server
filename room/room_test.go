@@ -13,7 +13,7 @@ import (
 
 var gamePanickedTriggered int
 
-func setup() (c interfaces.Client, b *mocks.Bridge, r *Room) {
+func setup() (c interfaces.Client, b *mocks.Driver, r *Room) {
 	obs := observer.New()
 	obs.On("messageCreated", func(...interface{}) {})
 	obs.On(GameStarted, func(...interface{}) {})
@@ -21,7 +21,7 @@ func setup() (c interfaces.Client, b *mocks.Bridge, r *Room) {
 	obs.On(GameStatusUpdated, func(...interface{}) {})
 
 	c = &mocks.Client{FakeIncoming: make(chan []byte, 2)}
-	b = &mocks.Bridge{
+	b = &mocks.Driver{
 		FakeAI: &mocks.AI{FakeIsInTurn: false},
 		Calls:  make(map[string]int),
 	}

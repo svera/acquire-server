@@ -23,7 +23,7 @@ func (r *Room) startGameAction(m *interfaces.IncomingMessage) error {
 	}
 	r.playerTimeOut = parsed.PlayerTimeout
 
-	if err = r.gameBridge.StartGame(r.mapPlayerNames()); err != nil {
+	if err = r.gameDriver.StartGame(r.mapPlayerNames()); err != nil {
 		return err
 	}
 
@@ -43,7 +43,7 @@ func (r *Room) sendInitialMessage() error {
 
 	r.updateSequenceNumber++
 	for n, cl := range r.clients {
-		if status, err = r.gameBridge.Status(n); err != nil {
+		if status, err = r.gameDriver.Status(n); err != nil {
 			return err
 		}
 		r.setUpTimeOut(cl)

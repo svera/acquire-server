@@ -7,7 +7,7 @@ import (
 
 	"strings"
 
-	"github.com/svera/sackson-server/bridges"
+	"github.com/svera/sackson-server/drivers"
 	"github.com/svera/sackson-server/interfaces"
 	"github.com/svera/sackson-server/room"
 )
@@ -15,23 +15,23 @@ import (
 func (h *Hub) createRoomAction(m *interfaces.IncomingMessage) error {
 	var parsed interfaces.MessageCreateRoomParams
 	var err error
-	var bridge interfaces.Bridge
+	var driver interfaces.Driver
 
 	if err = json.Unmarshal(m.Content.Params, &parsed); err != nil {
 		return err
 	}
-	if bridge, err = bridges.Create(parsed.BridgeName); err != nil {
+	if driver, err = drivers.Create(parsed.DriverName); err != nil {
 		return err
 	}
 
 	if strings.TrimSpace(parsed.ClientName) != "" {
 		m.Author.SetName(parsed.ClientName)
 	}
-	h.createRoom(bridge, m.Author)
+	h.createRoom(driver, m.Author)
 	return nil
 }
 
-func (h *Hub) createRoom(b interfaces.Bridge, owner interfaces.Client) string {
+func (h *Hub) createRoom(b interfaces.Driver, owner interfaces.Client) string {
 	id := h.generateID()
 	h.rooms[id] = room.New(id, b, owner, h.Messages, h.Unregister, h.configuration, h.observer)
 

@@ -30,7 +30,7 @@ func (r *Room) addBot(level string) error {
 	var cast interface{}
 	var c interfaces.Client
 
-	if cast, err = r.gameBridge.CreateAI(level); err == nil {
+	if cast, err = r.gameDriver.CreateAI(level); err == nil {
 		if ai, ok := cast.(interfaces.AI); ok {
 			c = client.NewBot(ai, r)
 			c.SetName(fmt.Sprintf("Bot %d", r.clientCounter))

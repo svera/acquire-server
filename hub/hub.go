@@ -21,7 +21,7 @@ var (
 )
 
 // Hub is a struct that manage the message flow between client (players)
-// and a game. It can work with any game as long as it implements the Bridge
+// and a game. It can work with any game as long as it implements the Driver
 // interface. It also provides support for some common operations as adding/removing
 // players and more.
 type Hub struct {

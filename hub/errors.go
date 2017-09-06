@@ -6,6 +6,6 @@ const (
 	OwnerNotRemovable = "owner_not_removable"
 	Forbidden         = "forbidden"
 	InexistentRoom    = "inexistent_room"
-	InexistentBridge  = "inexistent_bridge"
+	InexistentDriver  = "inexistent_driver"
 	NotInARoom        = "not_in_a_room"
 )
