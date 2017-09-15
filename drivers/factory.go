@@ -9,6 +9,7 @@ import (
 	"plugin"
 
 	"github.com/svera/sackson-server/interfaces"
+	"github.com/svera/sackson-server/mocks"
 )
 
 var drivers map[string]interface{}
@@ -25,8 +26,12 @@ func init() {
 
 // Create returns a new instance of the driver struct specified
 func Create(name string) (interfaces.Driver, error) {
+	var driver interfaces.Driver
+	if name == "test" {
+		driver = &mocks.Driver{}
+		return driver, nil
+	}
 	if plug, ok := drivers[name]; ok {
-		var driver interfaces.Driver
 		castable := plug.(func() interface{})()
 		driver, ok := castable.(interfaces.Driver)
 		if !ok {
@@ -39,7 +44,7 @@ func Create(name string) (interfaces.Driver, error) {
 }
 
 func Load() {
-	dir := "/usr/lib/sackson"
+	dir := "/usr/lib/sackson-server"
 	files, _ := ioutil.ReadDir(dir)
 	if len(files) == 0 {
 		fmt.Printf("No files found in %s\n", dir)

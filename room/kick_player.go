@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/svera/sackson-server/events"
 	"github.com/svera/sackson-server/interfaces"
-	"github.com/svera/sackson-server/messages"
 )
 
 func (r *Room) kickPlayerAction(m *interfaces.IncomingMessage) error {
@@ -30,8 +30,7 @@ func (r *Room) kickClient(number int) error {
 	}
 	cl.SetRoom(nil)
 	r.RemoveClient(r.clients[number])
-	response := messages.New(interfaces.TypeMessageClientOut, interfaces.ReasonPlayerKicked)
-	r.observer.Trigger("messageCreated", []interfaces.Client{cl}, response, interfaces.TypeMessageClientOut)
+	r.observer.Trigger(events.ClientOut, cl, interfaces.ReasonPlayerKicked)
 
 	return nil
 }

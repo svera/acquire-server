@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/svera/sackson-server/drivers"
+	"github.com/svera/sackson-server/events"
 	"github.com/svera/sackson-server/interfaces"
 	"github.com/svera/sackson-server/room"
 )
@@ -43,7 +44,7 @@ func (h *Hub) createRoom(b interfaces.Driver, owner interfaces.Client) string {
 	})
 	h.rooms[id].SetTimer(timer)
 
-	h.observer.Trigger("messageCreated", h.clients, h.createUpdatedRoomListMessage(), interfaces.TypeMessageRoomsList)
+	h.observer.Trigger(events.RoomCreated, h.clients)
 
 	if h.configuration.Debug {
 		log.Printf("Room %s created\n", id)

@@ -7,15 +7,8 @@ import (
 	"time"
 
 	"github.com/svera/sackson-server/config"
+	"github.com/svera/sackson-server/events"
 	"github.com/svera/sackson-server/interfaces"
-	"github.com/svera/sackson-server/messages"
-)
-
-// Events emitted from Room, always in a past tense
-const (
-	GameStarted       = "gameStarted"
-	ClientOut         = "clientOut"
-	GameStatusUpdated = "gameStatusUpdated"
 )
 
 var (
@@ -88,8 +81,7 @@ func (r *Room) Parse(m *interfaces.IncomingMessage) {
 	if r.isControlMessage(m) {
 		r.parseControlMessage(m)
 	} else if r.gameDriver.IsGameOver() {
-		response := messages.New(interfaces.TypeMessageError, GameOver)
-		r.observer.Trigger("messageCreated", []interfaces.Client{m.Author}, response, interfaces.TypeMessageError)
+		r.observer.Trigger(events.Error, m.Author, GameOver)
 	} else {
 		r.passMessageToGame(m)
 	}
@@ -129,8 +121,7 @@ func (r *Room) parseControlMessage(m *interfaces.IncomingMessage) {
 	}
 
 	if err != nil {
-		response := messages.New(interfaces.TypeMessageError, err.Error())
-		r.observer.Trigger("messageCreated", []interfaces.Client{m.Author}, response, interfaces.TypeMessageError)
+		r.observer.Trigger(events.Error, m.Author, err.Error())
 	}
 }
 
@@ -146,14 +137,13 @@ func (r *Room) passMessageToGame(m *interfaces.IncomingMessage) {
 					continue
 				}
 				st, _ = r.gameDriver.Status(n)
-				r.observer.Trigger(GameStatusUpdated, cl, st, r.updateSequenceNumber)
+				r.observer.Trigger(events.GameStatusUpdated, cl, st, r.updateSequenceNumber)
 			}
 			if r.turnMovedToNewPlayers() {
 				r.changeClientsInTurn()
 			}
 		} else {
-			response := messages.New(interfaces.TypeMessageError, err.Error())
-			r.observer.Trigger("messageCreated", []interfaces.Client{m.Author}, response, interfaces.TypeMessageError)
+			r.observer.Trigger(events.Error, m.Author, err.Error())
 		}
 	}
 }
@@ -227,8 +217,7 @@ func (r *Room) AddHuman(cl interfaces.Client) error {
 		if r.configuration.Debug {
 			log.Printf("Client '%s' added to room", cl.Name())
 		}
-		response := messages.New(interfaces.TypeMessageJoinedRoom, clientNumber, r.id, cl == r.owner)
-		r.observer.Trigger("messageCreated", []interfaces.Client{cl}, response, interfaces.TypeMessageJoinedRoom)
+		r.observer.Trigger(events.ClientJoined, cl, clientNumber, r.id, cl == r.owner)
 	}
 	return err
 }
@@ -244,8 +233,7 @@ func (r *Room) addClient(c interfaces.Client) (int, error) {
 		r.owner = c
 	}
 	c.SetRoom(r)
-	response := messages.New(interfaces.TypeMessageCurrentPlayers, r.playersData())
-	r.observer.Trigger("messageCreated", mapToSlice(r.clients), response, interfaces.TypeMessageCurrentPlayers)
+	r.observer.Trigger(events.ClientsUpdated, mapToSlice(r.clients), r.playersData())
 
 	return newClientNumber, nil
 }
@@ -258,7 +246,7 @@ func (r *Room) RemoveClient(c interfaces.Client) {
 
 	for i := range r.clients {
 		if r.clients[i] == c {
-			r.clients[i].SetRoom(nil)
+			//r.clients[i].SetRoom(nil)
 			c.StopTimer()
 
 			delete(r.clients, i)
@@ -266,11 +254,8 @@ func (r *Room) RemoveClient(c interfaces.Client) {
 			if r.gameDriver.GameStarted() && !r.gameDriver.IsGameOver() {
 				r.removePlayer(i)
 			} else {
-				response := messages.New(interfaces.TypeMessageCurrentPlayers, r.playersData())
-				r.observer.Trigger("messageCreated", r.HumanClients(), response, interfaces.TypeMessageCurrentPlayers)
+				r.observer.Trigger(events.ClientsUpdated, r.HumanClients(), r.playersData())
 			}
-
-			r.observer.Trigger(ClientOut, r)
 
 			return
 		}
@@ -292,7 +277,7 @@ func (r *Room) removePlayer(playerNumber int) {
 			continue
 		}
 		st, _ := r.gameDriver.Status(i)
-		r.observer.Trigger(GameStatusUpdated, cl, st)
+		r.observer.Trigger(events.GameStatusUpdated, cl, st)
 	}
 }
 
