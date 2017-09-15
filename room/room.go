@@ -217,7 +217,7 @@ func (r *Room) AddHuman(cl interfaces.Client) error {
 		if r.configuration.Debug {
 			log.Printf("Client '%s' added to room", cl.Name())
 		}
-		r.observer.Trigger(events.ClientJoined, cl, clientNumber, r.id, cl == r.owner)
+		r.observer.Trigger(events.ClientJoined, cl, clientNumber, cl == r.owner)
 	}
 	return err
 }

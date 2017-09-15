@@ -81,10 +81,9 @@ func (h *Hub) registerEvents() {
 	h.observer.On(events.ClientJoined, func(args ...interface{}) {
 		client := args[0].(interfaces.Client)
 		clientNumber := args[1].(int)
-		roomID := args[2].(string)
-		owner := args[3].(bool)
+		owner := args[2].(bool)
 
-		message := messages.New(interfaces.TypeMessageJoinedRoom, clientNumber, roomID, owner)
+		message := messages.New(interfaces.TypeMessageJoinedRoom, clientNumber, client.Room().ID(), owner)
 
 		wg.Add(1)
 		go h.sendMessage(client, message, interfaces.TypeMessageJoinedRoom)
