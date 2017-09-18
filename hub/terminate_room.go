@@ -46,12 +46,11 @@ func (h *Hub) expelClientsFromRoom(r interfaces.Room, reasonCode string) {
 			}
 			cl.Close()
 		} else if cl != nil {
+			r.RemoveClient(cl)
 			h.observer.Trigger(events.ClientOut, cl, reasonCode)
 			if h.configuration.Debug {
-				log.Printf("Client expeled from room %s\n", cl.Room().ID())
+				log.Printf("Client expelled from room %s\n", r.ID())
 			}
-			cl.SetRoom(nil)
-			cl.StopTimer()
 		}
 	}
 }

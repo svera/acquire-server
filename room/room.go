@@ -246,7 +246,7 @@ func (r *Room) RemoveClient(c interfaces.Client) {
 
 	for i := range r.clients {
 		if r.clients[i] == c {
-			//r.clients[i].SetRoom(nil)
+			r.clients[i].SetRoom(nil)
 			c.StopTimer()
 
 			delete(r.clients, i)
@@ -277,7 +277,7 @@ func (r *Room) removePlayer(playerNumber int) {
 			continue
 		}
 		st, _ := r.gameDriver.Status(i)
-		r.observer.Trigger(events.GameStatusUpdated, cl, st)
+		r.observer.Trigger(events.GameStatusUpdated, cl, st, r.updateSequenceNumber)
 	}
 }
 

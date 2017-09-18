@@ -19,14 +19,10 @@ func (h *Hub) registerEvents() {
 	h.observer.On(events.GameStatusUpdated, func(args ...interface{}) {
 		client := args[0].(interfaces.Client)
 		message := args[1]
+		sequenceNumber := args[2].(int)
 
 		wg.Add(1)
-		if len(args) > 2 {
-			sequenceNumber := args[2].(int)
-			go h.sendMessage(client, message, interfaces.TypeMessageUpdateGameStatus, sequenceNumber)
-		} else {
-			go h.sendMessage(client, message, interfaces.TypeMessageUpdateGameStatus)
-		}
+		go h.sendMessage(client, message, interfaces.TypeMessageUpdateGameStatus, sequenceNumber)
 	})
 
 	h.observer.On(events.RoomCreated, func(args ...interface{}) {
