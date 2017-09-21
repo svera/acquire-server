@@ -273,9 +273,6 @@ func (r *Room) removePlayer(playerNumber int) {
 
 	r.updateSequenceNumber++
 	for i, cl := range r.clients {
-		if cl.IsBot() {
-			continue
-		}
 		st, _ := r.gameDriver.Status(i)
 		r.observer.Trigger(events.GameStatusUpdated, cl, st, r.updateSequenceNumber)
 	}
