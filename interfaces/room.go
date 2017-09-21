@@ -1,6 +1,8 @@
 package interfaces
 
-import "time"
+import (
+	"time"
+)
 
 // Room is an interface that defines the minimum set of functions a room
 // implementation must have
@@ -16,4 +18,5 @@ type Room interface {
 	AddHuman(c Client) error
 	SetTimer(t *time.Timer)
 	Timer() *time.Timer
+	GameCurrentPlayersClients() ([]Client, error)
 }

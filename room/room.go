@@ -168,7 +168,7 @@ func (r *Room) messageAuthorIsInTurn(m *interfaces.IncomingMessage) bool {
 }
 
 func (r *Room) turnMovedToNewPlayers() bool {
-	gameCurrentPlayersClients, _ := r.gameCurrentPlayersClients()
+	gameCurrentPlayersClients, _ := r.GameCurrentPlayersClients()
 
 	if len(gameCurrentPlayersClients) != len(r.clientsInTurn) {
 		return true
@@ -186,7 +186,7 @@ func (r *Room) changeClientsInTurn() {
 	for _, cl := range r.clientsInTurn {
 		cl.StopTimer()
 	}
-	r.clientsInTurn, _ = r.gameCurrentPlayersClients()
+	r.clientsInTurn, _ = r.GameCurrentPlayersClients()
 	r.startClientsInTurnTimers()
 }
 
@@ -208,7 +208,7 @@ func (r *Room) playersData() map[string]interfaces.PlayerData {
 	return players
 }
 
-func (r *Room) gameCurrentPlayersClients() ([]interfaces.Client, error) {
+func (r *Room) GameCurrentPlayersClients() ([]interfaces.Client, error) {
 	currentPlayerClients := []interfaces.Client{}
 	numbers, err := r.gameBridge.CurrentPlayersNumbers()
 	for _, n := range numbers {
@@ -251,7 +251,7 @@ func (r *Room) addClient(c interfaces.Client) (int, error) {
 }
 
 // RemoveClient removes a client and its player
-// depending wheter the game has already started or not.
+// depending wether the game has already started or not.
 func (r *Room) RemoveClient(c interfaces.Client) {
 	mutex.Lock()
 	defer mutex.Unlock()

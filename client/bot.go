@@ -3,6 +3,10 @@ package client
 import (
 	"encoding/json"
 	"log"
+<<<<<<< Updated upstream
+=======
+	"sort"
+>>>>>>> Stashed changes
 	"time"
 
 	"github.com/svera/sackson-server/interfaces"
@@ -88,6 +92,29 @@ func (c *BotClient) WritePump() {
 			}
 		}
 	}
+}
+
+func (c *BotClient) feedPendingUpdatesInOrder() {
+	for _, seq := range c.getSortedUpdatesBufferKeys() {
+		c.ai.FeedGameStatus(c.updatesBuffer[seq])
+		delete(c.updatesBuffer, seq)
+		c.expectedSeq = seq + 1
+	}
+	if c.isInTurn() {
+		log.Printf("%s is in turn\n", c.Name())
+		c.botTurn <- struct{}{}
+	}
+}
+
+func (c *BotClient) isInTurn() bool {
+	if currentPlayers, err := c.Room().GameCurrentPlayersClients(); err == nil {
+		for _, clientInTurn := range currentPlayers {
+			if clientInTurn == c {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // Incoming returns bot's incoming channel
