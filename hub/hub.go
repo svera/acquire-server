@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/svera/sackson-server/config"
+	"github.com/svera/sackson-server/events"
 	"github.com/svera/sackson-server/interfaces"
 	"github.com/svera/sackson-server/messages"
 )
@@ -21,7 +22,7 @@ var (
 )
 
 // Hub is a struct that manage the message flow between client (players)
-// and a game. It can work with any game as long as it implements the Bridge
+// and a game. It can work with any game as long as it implements the Driver
 // interface. It also provides support for some common operations as adding/removing
 // players and more.
 type Hub struct {
@@ -77,7 +78,7 @@ func (h *Hub) Run() {
 			h.clients = append(h.clients, cl)
 			mutex.Unlock()
 			cl.SetName(fmt.Sprintf("Player %d", h.NumberClients()))
-			h.observer.Trigger("messageCreated", []interfaces.Client{cl}, h.createUpdatedRoomListMessage(), interfaces.TypeMessageRoomsList)
+			h.observer.Trigger(events.ClientRegistered, cl)
 			if h.configuration.Debug {
 				log.Printf("Client added to hub, number of connected clients: %d\n", len(h.clients))
 			}
@@ -87,6 +88,7 @@ func (h *Hub) Run() {
 				if val == cl {
 					wg.Wait()
 					h.removeClient(cl)
+					h.observer.Trigger(events.ClientUnregistered, cl)
 					break
 				}
 			}
@@ -135,15 +137,13 @@ func (h *Hub) parseControlMessage(m *interfaces.IncomingMessage) {
 	}
 
 	if err != nil {
-		response := messages.New(interfaces.TypeMessageError, err.Error())
-		h.observer.Trigger("messageCreated", []interfaces.Client{m.Author}, response, interfaces.TypeMessageError)
+		h.observer.Trigger(events.Error, m.Author, err.Error())
 	}
 }
 
 func (h *Hub) passMessageToRoom(m *interfaces.IncomingMessage) {
 	if m.Author.Room() == nil {
-		response := messages.New(interfaces.TypeMessageError, NotInARoom)
-		h.observer.Trigger("messageCreated", []interfaces.Client{m.Author}, response, interfaces.TypeMessageError)
+		h.observer.Trigger(events.Error, m.Author, NotInARoom)
 		return
 	}
 
@@ -151,8 +151,7 @@ func (h *Hub) passMessageToRoom(m *interfaces.IncomingMessage) {
 		if rc := recover(); rc != nil {
 			fmt.Printf("Panic in room '%s': %s\n", m.Author.Room().ID(), rc)
 			debug.PrintStack()
-			wg.Add(1)
-			go h.destroyRoomConcurrently(m.Author.Room().ID(), interfaces.ReasonRoomDestroyedGamePanicked)
+			go h.destroyRoom(m.Author.Room().ID(), interfaces.ReasonRoomDestroyedGamePanicked)
 		}
 	}()
 

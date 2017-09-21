@@ -3,8 +3,8 @@ package room
 import (
 	"encoding/json"
 
+	"github.com/svera/sackson-server/events"
 	"github.com/svera/sackson-server/interfaces"
-	"github.com/svera/sackson-server/messages"
 )
 
 func (r *Room) setClientDataAction(m *interfaces.IncomingMessage) error {
@@ -15,8 +15,7 @@ func (r *Room) setClientDataAction(m *interfaces.IncomingMessage) error {
 		return err
 	}
 	m.Author.SetName(parsed.Name)
-	response := messages.New(interfaces.TypeMessageCurrentPlayers, r.playersData())
-	r.observer.Trigger("messageCreated", mapToSlice(r.clients), response, interfaces.TypeMessageCurrentPlayers)
+	r.observer.Trigger(events.ClientsUpdated, mapToSlice(r.clients), r.playersData())
 
 	return nil
 }

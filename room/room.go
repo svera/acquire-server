@@ -7,15 +7,8 @@ import (
 	"time"
 
 	"github.com/svera/sackson-server/config"
+	"github.com/svera/sackson-server/events"
 	"github.com/svera/sackson-server/interfaces"
-	"github.com/svera/sackson-server/messages"
-)
-
-// Events emitted from Room, always in a past tense
-const (
-	GameStarted       = "gameStarted"
-	ClientOut         = "clientOut"
-	GameStatusUpdated = "gameStatusUpdated"
 )
 
 var (
@@ -23,7 +16,7 @@ var (
 )
 
 // Room is a struct that manage the message flow between client (players)
-// and a game. It can work with any game as long as it implements the Bridge
+// and a game. It can work with any game as long as it implements the Driver
 // interface. It also provides support for some common operations as adding/removing
 // players and more.
 type Room struct {
@@ -34,7 +27,7 @@ type Room struct {
 
 	owner interfaces.Client
 
-	gameBridge interfaces.Bridge
+	gameDriver interfaces.Driver
 
 	// Bots inbound messages
 	messages chan *interfaces.IncomingMessage
@@ -60,7 +53,7 @@ type Room struct {
 
 // New returns a new Room instance
 func New(
-	id string, b interfaces.Bridge,
+	id string, b interfaces.Driver,
 	owner interfaces.Client,
 	messages chan *interfaces.IncomingMessage,
 	unregister chan interfaces.Client,
@@ -70,7 +63,7 @@ func New(
 	return &Room{
 		id:                   id,
 		clients:              map[int]interfaces.Client{},
-		gameBridge:           b,
+		gameDriver:           b,
 		owner:                owner,
 		messages:             messages,
 		unregister:           unregister,
@@ -83,13 +76,12 @@ func New(
 }
 
 // Parse gets an incoming message from a client and parses it, executing
-// its desired action in the room or passing it to the room's game bridge
+// its desired action in the room or passing it to the room's game driver
 func (r *Room) Parse(m *interfaces.IncomingMessage) {
 	if r.isControlMessage(m) {
 		r.parseControlMessage(m)
-	} else if r.gameBridge.IsGameOver() {
-		response := messages.New(interfaces.TypeMessageError, GameOver)
-		r.observer.Trigger("messageCreated", []interfaces.Client{m.Author}, response, interfaces.TypeMessageError)
+	} else if r.gameDriver.IsGameOver() {
+		r.observer.Trigger(events.Error, m.Author, GameOver)
 	} else {
 		r.passMessageToGame(m)
 	}
@@ -129,8 +121,7 @@ func (r *Room) parseControlMessage(m *interfaces.IncomingMessage) {
 	}
 
 	if err != nil {
-		response := messages.New(interfaces.TypeMessageError, err.Error())
-		r.observer.Trigger("messageCreated", []interfaces.Client{m.Author}, response, interfaces.TypeMessageError)
+		r.observer.Trigger(events.Error, m.Author, err.Error())
 	}
 }
 
@@ -139,21 +130,20 @@ func (r *Room) passMessageToGame(m *interfaces.IncomingMessage) {
 	var st interface{}
 
 	if r.messageAuthorIsInTurn(m) {
-		if err = r.gameBridge.Execute(m.Author.Name(), m.Content.Type, m.Content.Params); err == nil {
+		if err = r.gameDriver.Execute(m.Author.Name(), m.Content.Type, m.Content.Params); err == nil {
 			r.updateSequenceNumber++
 			for n, cl := range r.clients {
 				if cl.IsBot() && r.IsGameOver() {
 					continue
 				}
-				st, _ = r.gameBridge.Status(n)
-				r.observer.Trigger(GameStatusUpdated, cl, st, r.updateSequenceNumber)
+				st, _ = r.gameDriver.Status(n)
+				r.observer.Trigger(events.GameStatusUpdated, cl, st, r.updateSequenceNumber)
 			}
 			if r.turnMovedToNewPlayers() {
 				r.changeClientsInTurn()
 			}
 		} else {
-			response := messages.New(interfaces.TypeMessageError, err.Error())
-			r.observer.Trigger("messageCreated", []interfaces.Client{m.Author}, response, interfaces.TypeMessageError)
+			r.observer.Trigger(events.Error, m.Author, err.Error())
 		}
 	}
 }
@@ -210,7 +200,7 @@ func (r *Room) playersData() map[string]interfaces.PlayerData {
 
 func (r *Room) gameCurrentPlayersClients() ([]interfaces.Client, error) {
 	currentPlayerClients := []interfaces.Client{}
-	numbers, err := r.gameBridge.CurrentPlayersNumbers()
+	numbers, err := r.gameDriver.CurrentPlayersNumbers()
 	for _, n := range numbers {
 		currentPlayerClients = append(currentPlayerClients, r.clients[n])
 	}
@@ -227,8 +217,7 @@ func (r *Room) AddHuman(cl interfaces.Client) error {
 		if r.configuration.Debug {
 			log.Printf("Client '%s' added to room", cl.Name())
 		}
-		response := messages.New(interfaces.TypeMessageJoinedRoom, clientNumber, r.id, cl == r.owner)
-		r.observer.Trigger("messageCreated", []interfaces.Client{cl}, response, interfaces.TypeMessageJoinedRoom)
+		r.observer.Trigger(events.ClientJoined, cl, clientNumber, cl == r.owner)
 	}
 	return err
 }
@@ -244,8 +233,7 @@ func (r *Room) addClient(c interfaces.Client) (int, error) {
 		r.owner = c
 	}
 	c.SetRoom(r)
-	response := messages.New(interfaces.TypeMessageCurrentPlayers, r.playersData())
-	r.observer.Trigger("messageCreated", mapToSlice(r.clients), response, interfaces.TypeMessageCurrentPlayers)
+	r.observer.Trigger(events.ClientsUpdated, mapToSlice(r.clients), r.playersData())
 
 	return newClientNumber, nil
 }
@@ -263,14 +251,11 @@ func (r *Room) RemoveClient(c interfaces.Client) {
 
 			delete(r.clients, i)
 
-			if r.gameBridge.GameStarted() && !r.gameBridge.IsGameOver() {
+			if r.gameDriver.GameStarted() && !r.gameDriver.IsGameOver() {
 				r.removePlayer(i)
 			} else {
-				response := messages.New(interfaces.TypeMessageCurrentPlayers, r.playersData())
-				r.observer.Trigger("messageCreated", r.HumanClients(), response, interfaces.TypeMessageCurrentPlayers)
+				r.observer.Trigger(events.ClientsUpdated, r.HumanClients(), r.playersData())
 			}
-
-			r.observer.Trigger(ClientOut, r)
 
 			return
 		}
@@ -280,7 +265,7 @@ func (r *Room) RemoveClient(c interfaces.Client) {
 // removePlayer removes a player from a game,
 // and returns an updated game status to all the players as a response
 func (r *Room) removePlayer(playerNumber int) {
-	r.gameBridge.RemovePlayer(playerNumber)
+	r.gameDriver.RemovePlayer(playerNumber)
 
 	if r.turnMovedToNewPlayers() {
 		r.changeClientsInTurn()
@@ -288,22 +273,19 @@ func (r *Room) removePlayer(playerNumber int) {
 
 	r.updateSequenceNumber++
 	for i, cl := range r.clients {
-		if cl.IsBot() {
-			continue
-		}
-		st, _ := r.gameBridge.Status(i)
-		r.observer.Trigger(GameStatusUpdated, cl, st)
+		st, _ := r.gameDriver.Status(i)
+		r.observer.Trigger(events.GameStatusUpdated, cl, st, r.updateSequenceNumber)
 	}
 }
 
 // GameStarted returns true if the room's game has started, false otherwise
 func (r *Room) GameStarted() bool {
-	return r.gameBridge.GameStarted()
+	return r.gameDriver.GameStarted()
 }
 
 // IsGameOver returns true if the room's game has ended, false otherwise
 func (r *Room) IsGameOver() bool {
-	return r.gameBridge.IsGameOver()
+	return r.gameDriver.IsGameOver()
 }
 
 // ID returns the room's ID

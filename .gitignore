@@ -27,3 +27,4 @@ _testmain.go
 
 sackson.yml
 /vendor/*/
+/tmp

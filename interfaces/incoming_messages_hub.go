@@ -53,7 +53,7 @@ const ControlMessageTypeTerminateRoom = "ter"
 // MessageCreateRoomParams defines the needed parameters for a create room
 // message.
 type MessageCreateRoomParams struct {
-	BridgeName string `json:"bri"`
+	DriverName string `json:"bri"`
 	ClientName string `json:"nam"`
 }
 

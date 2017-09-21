@@ -4,8 +4,8 @@ import (
 	"errors"
 	"log"
 
+	"github.com/svera/sackson-server/events"
 	"github.com/svera/sackson-server/interfaces"
-	"github.com/svera/sackson-server/messages"
 )
 
 func (h *Hub) terminateRoomAction(m *interfaces.IncomingMessage) error {
@@ -19,11 +19,6 @@ func (h *Hub) terminateRoomAction(m *interfaces.IncomingMessage) error {
 	return nil
 }
 
-func (h *Hub) destroyRoomConcurrently(roomID string, reasonCode string) {
-	defer wg.Done()
-	h.destroyRoom(roomID, reasonCode)
-}
-
 func (h *Hub) destroyRoom(roomID string, reasonCode string) {
 	mutex.Lock()
 	defer mutex.Unlock()
@@ -35,7 +30,7 @@ func (h *Hub) destroyRoom(roomID string, reasonCode string) {
 		r.Timer().Stop()
 		h.expelClientsFromRoom(r, reasonCode)
 		delete(h.rooms, roomID)
-		h.observer.Trigger("messageCreated", h.clients, h.createUpdatedRoomListMessage(), interfaces.TypeMessageRoomsList)
+		h.observer.Trigger(events.RoomDestroyed, h.clients)
 
 		if h.configuration.Debug {
 			log.Printf("Room %s destroyed\n", roomID)
@@ -44,8 +39,6 @@ func (h *Hub) destroyRoom(roomID string, reasonCode string) {
 }
 
 func (h *Hub) expelClientsFromRoom(r interfaces.Room, reasonCode string) {
-	response := messages.New(interfaces.TypeMessageClientOut, reasonCode)
-
 	for _, cl := range r.Clients() {
 		if cl != nil && cl.IsBot() {
 			if h.configuration.Debug {
@@ -53,12 +46,11 @@ func (h *Hub) expelClientsFromRoom(r interfaces.Room, reasonCode string) {
 			}
 			cl.Close()
 		} else if cl != nil {
-			h.observer.Trigger("messageCreated", []interfaces.Client{cl}, response, interfaces.TypeMessageClientOut)
+			r.RemoveClient(cl)
+			h.observer.Trigger(events.ClientOut, cl, reasonCode)
 			if h.configuration.Debug {
-				log.Printf("Client expeled from room %s\n", cl.Room().ID())
+				log.Printf("Client expelled from room %s\n", r.ID())
 			}
-			cl.SetRoom(nil)
-			cl.StopTimer()
 		}
 	}
 }
