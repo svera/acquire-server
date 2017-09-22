@@ -8,7 +8,7 @@ import "time"
 // Can only be issued by the room's owner
 //
 // When a game starts, an update message is broadcast to all clients with the initial status of the game.
-// This update message format depends on the game, look at the corresponding game bridge documentation for details.
+// This update message format depends on the game, look at the corresponding game driver documentation for details.
 //
 // The following is a StartGame message example:
 //   {

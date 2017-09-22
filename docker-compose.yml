@@ -6,6 +6,7 @@ services:
      - "8001:8001"
     container_name: sackson-server
     volumes:
+     # To allow Pilu to detect code changes
      - .:/go/src/github.com/svera/sackson-server
     command: ash -c "/go/bin/govendor sync && fresh"
     # TODO There is a bug preventing to use the race detector with Alpine linux

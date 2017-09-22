@@ -3,10 +3,7 @@ package client
 import (
 	"encoding/json"
 	"log"
-<<<<<<< Updated upstream
-=======
 	"sort"
->>>>>>> Stashed changes
 	"time"
 
 	"github.com/svera/sackson-server/interfaces"
@@ -17,24 +14,28 @@ import (
 // several functions to send/receive data to/from a client using a websocket
 // connection
 type BotClient struct {
-	name         string
-	incoming     chan []byte // Channel storing incoming messages
-	endReadPump  chan struct{}
-	endWritePump chan struct{}
-	botTurn      chan struct{}
-	ai           interfaces.AI
-	room         interfaces.Room
+	name          string
+	incoming      chan []byte // Channel storing incoming messages
+	endReadPump   chan struct{}
+	endWritePump  chan struct{}
+	botTurn       chan struct{}
+	ai            interfaces.AI
+	room          interfaces.Room
+	expectedSeq   int
+	updatesBuffer map[int]json.RawMessage
 }
 
 // NewBot returns a new Bot instance
 func NewBot(ai interfaces.AI, room interfaces.Room) interfaces.Client {
 	return &BotClient{
-		incoming:     make(chan []byte, maxMessageSize),
-		endReadPump:  make(chan struct{}),
-		endWritePump: make(chan struct{}),
-		botTurn:      make(chan struct{}),
-		ai:           ai,
-		room:         room,
+		incoming:      make(chan []byte, maxMessageSize),
+		endReadPump:   make(chan struct{}),
+		endWritePump:  make(chan struct{}),
+		botTurn:       make(chan struct{}),
+		ai:            ai,
+		room:          room,
+		expectedSeq:   1,
+		updatesBuffer: map[int]json.RawMessage{},
 	}
 }
 
@@ -53,7 +54,6 @@ func (c *BotClient) ReadPump(cnl interface{}, unregister chan interfaces.Client)
 			return
 
 		case <-c.botTurn:
-			log.Printf("BOT TURN REACHED\n")
 			msgType, content := c.ai.Play()
 			msg := &interfaces.IncomingMessage{
 				Author: c,
@@ -68,7 +68,10 @@ func (c *BotClient) ReadPump(cnl interface{}, unregister chan interfaces.Client)
 
 }
 
-// WritePump gets updates from the hub
+// WritePump gets updates from the hub.
+// As updates may come in a wrong order, we check if the coming update
+// is the one we expect, and if not, store it in an updates buffer until the
+// right one comes, then processing all them in the right order.
 func (c *BotClient) WritePump() {
 	var parsed interfaces.OutgoingMessage
 	var err error
@@ -83,11 +86,11 @@ func (c *BotClient) WritePump() {
 				return
 			}
 
+			parsed.Content = json.RawMessage{}
 			if err = json.Unmarshal(message, &parsed); err == nil {
-				if err = c.ai.FeedGameStatus(parsed.Content); err == nil {
-					if c.ai.IsInTurn() {
-						c.botTurn <- struct{}{}
-					}
+				c.updatesBuffer[parsed.SequenceNumber] = parsed.Content
+				if parsed.SequenceNumber == c.expectedSeq {
+					c.feedPendingUpdatesInOrder()
 				}
 			}
 		}
@@ -165,4 +168,13 @@ func (c *BotClient) StopTimer() {
 
 // StartTimer is not needed in BotClient
 func (c *BotClient) StartTimer(d time.Duration) {
+}
+
+func (c *BotClient) getSortedUpdatesBufferKeys() []int {
+	keys := []int{}
+	for k := range c.updatesBuffer {
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+	return keys
 }

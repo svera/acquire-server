@@ -11,10 +11,10 @@ import (
 	"github.com/svera/sackson-server/observer"
 )
 
-var b *mocks.Bridge
+var b *mocks.Driver
 
 func init() {
-	b = &mocks.Bridge{}
+	b = &mocks.Driver{}
 }
 
 func setup() (h *Hub, c interfaces.Client) {
@@ -56,7 +56,7 @@ func TestCreateRoom(t *testing.T) {
 	go c.WritePump()
 	h.Register <- c
 
-	data := []byte(`{"bri": "acquire"}`)
+	data := []byte(`{"bri": "test"}`)
 	m := &interfaces.IncomingMessage{
 		Author: c,
 		Content: interfaces.IncomingMessageContent{
@@ -161,7 +161,7 @@ func TestJoinRoom(t *testing.T) {
 }
 
 /*
-func ExampleRecoveredGameBridgePanic() {
+func ExampleRecoveredGameDriverPanic() {
 	h, c := setup()
 
 	h.createRoom(b, c)
