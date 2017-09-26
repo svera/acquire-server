@@ -63,12 +63,11 @@ func (h *Hub) registerEvents() {
 	h.observer.On(events.ClientOut, func(args ...interface{}) {
 		client := args[0].(interfaces.Client)
 		reasonCode := args[1].(string)
+		room := args[2].(interfaces.Room)
 		message := messages.New(interfaces.TypeMessageClientOut, reasonCode)
 
-		if r := client.Room(); r != nil {
-			if len(r.HumanClients()) == 0 {
-				h.destroyRoom(r.ID(), interfaces.ReasonRoomDestroyedNoClients)
-			}
+		if len(room.HumanClients()) == 0 {
+			h.destroyRoom(room.ID(), interfaces.ReasonRoomDestroyedNoClients)
 		}
 		wg.Add(1)
 		go h.sendMessage(client, message, interfaces.TypeMessageClientOut)

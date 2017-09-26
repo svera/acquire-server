@@ -248,8 +248,11 @@ func (r *Room) RemoveClient(c interfaces.Client) {
 		if r.clients[i] == c {
 			r.clients[i].SetRoom(nil)
 			c.StopTimer()
-
 			delete(r.clients, i)
+
+			if len(r.HumanClients()) == 0 {
+				return
+			}
 
 			if r.gameDriver.GameStarted() && !r.gameDriver.IsGameOver() {
 				r.removePlayer(i)

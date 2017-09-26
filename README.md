@@ -42,14 +42,14 @@ the room game driver. Check the driver documentation for information regarding i
 ## Installation
 
 ### Requirements
-* [Docker & Docker-compose](docker.com).
+* [Docker & Docker-compose](https://www.docker.com).
 
 ### Usage
 
 * `git clone github.com/svera/sackson-server`
 * Create a configuration file called `sackson-server` and place it in the source code folder. Use `sackson.sample.yml` as reference.
 * Build image: `docker-compose build sackson-server`
-* Recreate container: `docker-compose up`. Add `-d` at the end if you want to run the container in detached mode. Sackson-server will be automatically rebuilt and rerun if there are changes in the source code, thanks to [Fresh](github.com/pilu/fresh).
+* Recreate container: `docker-compose up`. Add `-d` at the end if you want to run the container in detached mode. Sackson-server will be automatically rebuilt and rerun if there are changes in the source code, thanks to [Fresh](https://github.com/pilu/fresh).
 
 ### Running tests
 

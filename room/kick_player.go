@@ -30,7 +30,7 @@ func (r *Room) kickClient(number int) error {
 	}
 	cl.SetRoom(nil)
 	r.RemoveClient(r.clients[number])
-	r.observer.Trigger(events.ClientOut, cl, interfaces.ReasonPlayerKicked)
+	r.observer.Trigger(events.ClientOut, cl, interfaces.ReasonPlayerKicked, r)
 
 	return nil
 }
