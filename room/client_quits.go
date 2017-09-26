@@ -7,6 +7,6 @@ import (
 
 func (r *Room) clientQuits(cl interfaces.Client) error {
 	r.RemoveClient(cl)
-	r.observer.Trigger(events.ClientOut, cl, interfaces.ReasonPlayerQuitted)
+	r.observer.Trigger(events.ClientOut, cl, interfaces.ReasonPlayerQuitted, r)
 	return nil
 }

@@ -66,7 +66,7 @@ func (r *Room) setUpTimeOut(cl interfaces.Client) {
 
 func (r *Room) timeoutPlayer(cl interfaces.Client) {
 	r.RemoveClient(cl)
-	r.observer.Trigger(events.ClientOut, cl, interfaces.ReasonPlayerTimedOut)
+	r.observer.Trigger(events.ClientOut, cl, interfaces.ReasonPlayerTimedOut, r)
 }
 
 func (r *Room) mapPlayerNames() map[int]string {
