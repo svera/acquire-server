@@ -22,6 +22,7 @@ func (h *Hub) terminateRoomAction(m *interfaces.IncomingMessage) error {
 func (h *Hub) destroyRoom(roomID string, reasonCode string) {
 	mutex.Lock()
 	defer mutex.Unlock()
+
 	if h.configuration.Debug {
 		log.Printf("Destroying room %s...", roomID)
 	}
@@ -39,14 +40,14 @@ func (h *Hub) destroyRoom(roomID string, reasonCode string) {
 
 func (h *Hub) expelClientsFromRoom(r interfaces.Room, reasonCode string) {
 	for _, cl := range r.Clients() {
-		if cl.IsBot() {
-			cl.Close()
+		if cl != nil && cl.IsBot() {
 			if h.configuration.Debug {
 				log.Printf("Bot %s destroyed", cl.Name())
 			}
-		} else {
+			cl.Close()
+		} else if cl != nil {
 			r.RemoveClient(cl)
-			//h.observer.Trigger(events.ClientOut, cl, reasonCode, r)
+			h.observer.Trigger(events.ClientOut, cl, reasonCode, r)
 			if h.configuration.Debug {
 				log.Printf("Client expelled from room %s\n", r.ID())
 			}

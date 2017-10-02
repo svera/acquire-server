@@ -239,7 +239,7 @@ func (r *Room) addClient(c interfaces.Client) (int, error) {
 }
 
 // RemoveClient removes a client and its player
-// depending wether the game has already started or not.
+// depending wheter the game has already started or not.
 func (r *Room) RemoveClient(c interfaces.Client) {
 	mutex.Lock()
 	defer mutex.Unlock()

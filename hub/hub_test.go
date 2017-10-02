@@ -115,7 +115,6 @@ func TestDestroyRoomAfterXSeconds(t *testing.T) {
 
 func TestDestroyRoomWhenNoHumanClients(t *testing.T) {
 	h, c := setup()
-	c.(*mocks.Client).FakeIsBot = false
 	go h.Run()
 
 	go c.WritePump()
