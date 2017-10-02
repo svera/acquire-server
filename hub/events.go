@@ -51,11 +51,10 @@ func (h *Hub) registerEvents() {
 	})
 
 	h.observer.On(events.ClientUnregistered, func(args ...interface{}) {
-		client := args[0].(interfaces.Client)
-
-		if r := client.Room(); r != nil {
-			if len(r.HumanClients()) == 0 {
-				h.destroyRoom(r.ID(), interfaces.ReasonRoomDestroyedNoClients)
+		if len(args) > 0 {
+			room := args[0].(interfaces.Room)
+			if len(room.HumanClients()) == 0 {
+				h.destroyRoom(room.ID(), interfaces.ReasonRoomDestroyedNoClients)
 			}
 		}
 	})
@@ -66,7 +65,7 @@ func (h *Hub) registerEvents() {
 		room := args[2].(interfaces.Room)
 		message := messages.New(interfaces.TypeMessageClientOut, reasonCode)
 
-		if len(room.HumanClients()) == 0 {
+		if len(room.HumanClients()) == 0 && reasonCode != interfaces.ReasonRoomDestroyedTerminated {
 			h.destroyRoom(room.ID(), interfaces.ReasonRoomDestroyedNoClients)
 		}
 		wg.Add(1)

@@ -88,7 +88,6 @@ func (h *Hub) Run() {
 				if val == cl {
 					wg.Wait()
 					h.removeClient(cl)
-					h.observer.Trigger(events.ClientUnregistered, cl)
 					break
 				}
 			}
@@ -160,15 +159,18 @@ func (h *Hub) passMessageToRoom(m *interfaces.IncomingMessage) {
 
 // Removes a client from the hub and also from a room if it's in one
 func (h *Hub) removeClient(c interfaces.Client) {
-	mutex.Lock()
-	defer mutex.Unlock()
 	for i := range h.clients {
 		if h.clients[i] == c {
+			mutex.Lock()
+			h.clients = append(h.clients[:i], h.clients[i+1:]...)
+			mutex.Unlock()
 			if c.Room() != nil {
 				r := c.Room()
 				r.RemoveClient(c)
+				h.observer.Trigger(events.ClientUnregistered, r)
+			} else {
+				h.observer.Trigger(events.ClientUnregistered)
 			}
-			h.clients = append(h.clients[:i], h.clients[i+1:]...)
 			if h.configuration.Debug {
 				log.Printf("Client removed from hub, number of clients left: %d\n", len(h.clients))
 			}
