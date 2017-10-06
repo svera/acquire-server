@@ -26,6 +26,7 @@ func (h *Hub) destroyRoom(roomID string, reasonCode string) {
 		log.Printf("Destroying room %s...", roomID)
 	}
 	if r, ok := h.rooms[roomID]; ok {
+		r.ToBeDestroyed(true)
 		r.Timer().Stop()
 		h.expelClientsFromRoom(r, reasonCode)
 		delete(h.rooms, roomID)

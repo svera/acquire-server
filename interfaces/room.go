@@ -16,4 +16,6 @@ type Room interface {
 	AddHuman(c Client) error
 	SetTimer(t *time.Timer)
 	Timer() *time.Timer
+	IsToBeDestroyed() bool
+	ToBeDestroyed(bool)
 }

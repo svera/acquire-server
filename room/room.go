@@ -49,6 +49,8 @@ type Room struct {
 	clientCounter int
 
 	updateSequenceNumber int
+
+	toBeDestroyed bool
 }
 
 // New returns a new Room instance
@@ -72,6 +74,7 @@ func New(
 		configuration:        cfg,
 		clientCounter:        0,
 		updateSequenceNumber: 0,
+		toBeDestroyed:        false,
 	}
 }
 
@@ -337,4 +340,14 @@ func mapToSlice(in map[int]interfaces.Client) []interfaces.Client {
 		out = append(out, cl)
 	}
 	return out
+}
+
+// IsToBeDestroyed returns true if the room has been marked to be destroyed, false otherwise
+func (r *Room) IsToBeDestroyed() bool {
+	return r.toBeDestroyed
+}
+
+// ToBeDestroyed sets wether a room has to be destroyed or not
+func (r *Room) ToBeDestroyed(value bool) {
+	r.toBeDestroyed = value
 }
