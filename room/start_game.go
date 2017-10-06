@@ -33,7 +33,7 @@ func (r *Room) startGameAction(m *interfaces.IncomingMessage) error {
 
 	r.changeClientsInTurn()
 
-	r.observer.Trigger(events.GameStarted)
+	r.observer.Trigger(events.GameStarted{})
 	return err
 }
 
@@ -47,7 +47,7 @@ func (r *Room) sendInitialMessage() error {
 			return err
 		}
 		r.setUpTimeOut(cl)
-		r.observer.Trigger(events.GameStatusUpdated, cl, status, r.updateSequenceNumber)
+		r.observer.Trigger(events.GameStatusUpdated{Client: cl, Message: status, SequenceNumber: r.updateSequenceNumber})
 	}
 	return nil
 }
@@ -66,7 +66,7 @@ func (r *Room) setUpTimeOut(cl interfaces.Client) {
 
 func (r *Room) timeoutPlayer(cl interfaces.Client) {
 	r.RemoveClient(cl)
-	r.observer.Trigger(events.ClientOut, cl, interfaces.ReasonPlayerTimedOut, r)
+	r.observer.Trigger(events.ClientOut{Client: cl, Reason: interfaces.ReasonPlayerTimedOut, Room: r})
 }
 
 func (r *Room) mapPlayerNames() map[int]string {
