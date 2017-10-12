@@ -78,7 +78,7 @@ func (h *Hub) Run() {
 			h.clients = append(h.clients, cl)
 			mutex.Unlock()
 			cl.SetName(fmt.Sprintf("Player %d", h.NumberClients()))
-			h.observer.Trigger(events.ClientRegistered, cl)
+			h.observer.Trigger(events.ClientRegistered{Client: cl})
 			if h.configuration.Debug {
 				log.Printf("Client added to hub, number of connected clients: %d\n", len(h.clients))
 			}
@@ -136,13 +136,13 @@ func (h *Hub) parseControlMessage(m *interfaces.IncomingMessage) {
 	}
 
 	if err != nil {
-		h.observer.Trigger(events.Error, m.Author, err.Error())
+		h.observer.Trigger(events.Error{Client: m.Author, ErrorText: err.Error()})
 	}
 }
 
 func (h *Hub) passMessageToRoom(m *interfaces.IncomingMessage) {
 	if m.Author.Room() == nil {
-		h.observer.Trigger(events.Error, m.Author, NotInARoom)
+		h.observer.Trigger(events.Error{Client: m.Author, ErrorText: NotInARoom})
 		return
 	}
 
@@ -158,23 +158,17 @@ func (h *Hub) passMessageToRoom(m *interfaces.IncomingMessage) {
 }
 
 // Removes a client from the hub and also from a room if it's in one
-func (h *Hub) removeClient(c interfaces.Client) {
+func (h *Hub) removeClient(cl interfaces.Client) {
 	for i := range h.clients {
-		if h.clients[i] == c {
+		if h.clients[i] == cl {
 			mutex.Lock()
 			h.clients = append(h.clients[:i], h.clients[i+1:]...)
 			mutex.Unlock()
-			if c.Room() != nil {
-				r := c.Room()
-				r.RemoveClient(c)
-				h.observer.Trigger(events.ClientUnregistered, r)
-			} else {
-				h.observer.Trigger(events.ClientUnregistered)
-			}
+			h.observer.Trigger(events.ClientUnregistered{Client: cl})
 			if h.configuration.Debug {
 				log.Printf("Client removed from hub, number of clients left: %d\n", len(h.clients))
 			}
-			c.Close()
+			cl.Close()
 			return
 		}
 	}

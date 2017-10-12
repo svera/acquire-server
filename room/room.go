@@ -49,6 +49,8 @@ type Room struct {
 	clientCounter int
 
 	updateSequenceNumber int
+
+	toBeDestroyed bool
 }
 
 // New returns a new Room instance
@@ -72,6 +74,7 @@ func New(
 		configuration:        cfg,
 		clientCounter:        0,
 		updateSequenceNumber: 0,
+		toBeDestroyed:        false,
 	}
 }
 
@@ -81,7 +84,7 @@ func (r *Room) Parse(m *interfaces.IncomingMessage) {
 	if r.isControlMessage(m) {
 		r.parseControlMessage(m)
 	} else if r.gameDriver.IsGameOver() {
-		r.observer.Trigger(events.Error, m.Author, GameOver)
+		r.observer.Trigger(events.Error{Client: m.Author, ErrorText: GameOver})
 	} else {
 		r.passMessageToGame(m)
 	}
@@ -121,7 +124,7 @@ func (r *Room) parseControlMessage(m *interfaces.IncomingMessage) {
 	}
 
 	if err != nil {
-		r.observer.Trigger(events.Error, m.Author, err.Error())
+		r.observer.Trigger(events.Error{Client: m.Author, ErrorText: err.Error()})
 	}
 }
 
@@ -137,13 +140,13 @@ func (r *Room) passMessageToGame(m *interfaces.IncomingMessage) {
 					continue
 				}
 				st, _ = r.gameDriver.Status(n)
-				r.observer.Trigger(events.GameStatusUpdated, cl, st, r.updateSequenceNumber)
+				r.observer.Trigger(events.GameStatusUpdated{Client: cl, Message: st, SequenceNumber: r.updateSequenceNumber})
 			}
 			if r.turnMovedToNewPlayers() {
 				r.changeClientsInTurn()
 			}
 		} else {
-			r.observer.Trigger(events.Error, m.Author, err.Error())
+			r.observer.Trigger(events.Error{Client: m.Author, ErrorText: err.Error()})
 		}
 	}
 }
@@ -217,7 +220,7 @@ func (r *Room) AddHuman(cl interfaces.Client) error {
 		if r.configuration.Debug {
 			log.Printf("Client '%s' added to room", cl.Name())
 		}
-		r.observer.Trigger(events.ClientJoined, cl, clientNumber, cl == r.owner)
+		r.observer.Trigger(events.ClientJoined{Client: cl, ClientNumber: clientNumber, Owner: cl == r.owner})
 	}
 	return err
 }
@@ -233,7 +236,7 @@ func (r *Room) addClient(c interfaces.Client) (int, error) {
 		r.owner = c
 	}
 	c.SetRoom(r)
-	r.observer.Trigger(events.ClientsUpdated, mapToSlice(r.clients), r.playersData())
+	r.observer.Trigger(events.ClientsUpdated{Clients: mapToSlice(r.clients), PlayersData: r.playersData()})
 
 	return newClientNumber, nil
 }
@@ -257,7 +260,7 @@ func (r *Room) RemoveClient(c interfaces.Client) {
 			if r.gameDriver.GameStarted() && !r.gameDriver.IsGameOver() {
 				r.removePlayer(i)
 			} else {
-				r.observer.Trigger(events.ClientsUpdated, r.HumanClients(), r.playersData())
+				r.observer.Trigger(events.ClientsUpdated{Clients: r.HumanClients(), PlayersData: r.playersData()})
 			}
 
 			return
@@ -277,7 +280,7 @@ func (r *Room) removePlayer(playerNumber int) {
 	r.updateSequenceNumber++
 	for i, cl := range r.clients {
 		st, _ := r.gameDriver.Status(i)
-		r.observer.Trigger(events.GameStatusUpdated, cl, st, r.updateSequenceNumber)
+		r.observer.Trigger(events.GameStatusUpdated{Client: cl, Message: st, SequenceNumber: r.updateSequenceNumber})
 	}
 }
 
@@ -337,4 +340,14 @@ func mapToSlice(in map[int]interfaces.Client) []interfaces.Client {
 		out = append(out, cl)
 	}
 	return out
+}
+
+// IsToBeDestroyed returns true if the room has been marked to be destroyed, false otherwise
+func (r *Room) IsToBeDestroyed() bool {
+	return r.toBeDestroyed
+}
+
+// ToBeDestroyed sets wether a room has to be destroyed or not
+func (r *Room) ToBeDestroyed(value bool) {
+	r.toBeDestroyed = value
 }

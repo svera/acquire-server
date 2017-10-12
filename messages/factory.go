@@ -1,6 +1,7 @@
 package messages
 
 import "github.com/svera/sackson-server/interfaces"
+import "encoding/json"
 
 // New returns a new message of the passed type encoded in JSON
 func New(typeMessage string, args ...interface{}) interface{} {
@@ -32,6 +33,11 @@ func New(typeMessage string, args ...interface{}) interface{} {
 			ClientNumber: args[0].(int),
 			ID:           args[1].(string),
 			Owner:        args[2].(bool),
+		}
+
+	case interfaces.TypeMessageGameStarted:
+		msg = interfaces.MessageGameStarted{
+			GameParameters: args[0].(json.RawMessage),
 		}
 
 	}

@@ -15,7 +15,7 @@ func (r *Room) setClientDataAction(m *interfaces.IncomingMessage) error {
 		return err
 	}
 	m.Author.SetName(parsed.Name)
-	r.observer.Trigger(events.ClientsUpdated, mapToSlice(r.clients), r.playersData())
+	r.observer.Trigger(events.ClientsUpdated{Clients: mapToSlice(r.clients), PlayersData: r.playersData()})
 
 	return nil
 }
