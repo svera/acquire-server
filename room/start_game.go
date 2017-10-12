@@ -33,7 +33,7 @@ func (r *Room) startGameAction(m *interfaces.IncomingMessage) error {
 
 	r.changeClientsInTurn()
 
-	r.observer.Trigger(events.GameStarted{})
+	r.observer.Trigger(events.GameStarted{Room: r, GameParameters: m.Content.Params})
 	return err
 }
 

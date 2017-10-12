@@ -1,9 +1,12 @@
 package events
 
 import "github.com/svera/sackson-server/interfaces"
+import "encoding/json"
 
 // GameStarted is an event triggered when a game starts
 type GameStarted struct {
+	Room           interfaces.Room
+	GameParameters json.RawMessage
 }
 
 // ClientRegistered is an event triggered when a client connects
@@ -47,7 +50,7 @@ type GameStatusUpdated struct {
 type RoomCreated struct {
 }
 
-// RoomCreated is an event triggered when a room is destroyed
+// RoomDestroyed is an event triggered when a room is destroyed
 type RoomDestroyed struct {
 }
 

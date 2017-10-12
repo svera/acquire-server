@@ -25,6 +25,7 @@ const (
 	TypeMessageError            = "err"
 	TypeMessageJoinedRoom       = "joi"
 	TypeMessageUpdateGameStatus = "upd"
+	TypeMessageGameStarted      = "gst"
 )
 
 // OutgoingMessage is a container struct used by
@@ -115,4 +116,10 @@ type MessageJoinedRoom struct {
 	ID           string `json:"id"`
 	// Owner signals if this client is the owner of the room
 	Owner bool `json:"own"`
+}
+
+// MessageGameStarted is a struct sent to all players
+// when a game starts.
+type MessageGameStarted struct {
+	GameParameters json.RawMessage `json:"par"`
 }

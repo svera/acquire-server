@@ -18,6 +18,18 @@ func (h *Hub) registerEvents() {
 		}
 	})
 
+	h.observer.On(events.GameStarted{}, func(ev interface{}) {
+		if event, ok := ev.(events.GameStarted); ok {
+			message := messages.New(interfaces.TypeMessageGameStarted, event.GameParameters)
+
+			wg.Add(len(event.Room.Clients()))
+			for _, cl := range event.Room.Clients() {
+				go h.sendMessage(cl, message, interfaces.TypeMessageGameStarted)
+			}
+
+		}
+	})
+
 	h.observer.On(events.GameStatusUpdated{}, func(ev interface{}) {
 		if event, ok := ev.(events.GameStatusUpdated); ok {
 			wg.Add(1)
