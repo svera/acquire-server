@@ -16,12 +16,12 @@ var gamePanickedTriggered int
 
 func setup() (c interfaces.Client, b *mocks.Driver, r *Room) {
 	obs := observer.New()
-	obs.On(events.GameStarted, func(...interface{}) {})
-	obs.On(events.ClientOut, func(...interface{}) {})
-	obs.On(events.ClientJoined, func(...interface{}) {})
-	obs.On(events.GameStatusUpdated, func(...interface{}) {})
-	obs.On(events.ClientsUpdated, func(...interface{}) {})
-	obs.On(events.Error, func(...interface{}) {})
+	obs.On(events.GameStarted{}, func(interface{}) {})
+	obs.On(events.ClientOut{}, func(interface{}) {})
+	obs.On(events.ClientJoined{}, func(interface{}) {})
+	obs.On(events.GameStatusUpdated{}, func(interface{}) {})
+	obs.On(events.ClientsUpdated{}, func(interface{}) {})
+	obs.On(events.Error{}, func(interface{}) {})
 
 	c = &mocks.Client{FakeIncoming: make(chan []byte, 2)}
 	b = &mocks.Driver{
