@@ -22,6 +22,7 @@ type BotClient struct {
 	room          interfaces.Room
 	expectedSeq   int
 	updatesBuffer map[int]json.RawMessage
+	game          string
 }
 
 // NewBot returns a new Bot instance
@@ -167,4 +168,14 @@ func (c *BotClient) getSortedUpdatesBufferKeys() []int {
 	}
 	sort.Ints(keys)
 	return keys
+}
+
+// SetGame specifies the name of the game the bot client is going to use
+func (c *BotClient) SetGame(game string) {
+	c.game = game
+}
+
+// Game returns the name of the game the bot client is using
+func (c *BotClient) Game() string {
+	return c.game
 }

@@ -55,7 +55,8 @@ type Room struct {
 
 // New returns a new Room instance
 func New(
-	id string, b interfaces.Driver,
+	id string,
+	g interfaces.Driver,
 	owner interfaces.Client,
 	messages chan *interfaces.IncomingMessage,
 	unregister chan interfaces.Client,
@@ -65,7 +66,7 @@ func New(
 	return &Room{
 		id:                   id,
 		clients:              map[int]interfaces.Client{},
-		gameDriver:           b,
+		gameDriver:           g,
 		owner:                owner,
 		messages:             messages,
 		unregister:           unregister,
@@ -350,4 +351,9 @@ func (r *Room) IsToBeDestroyed() bool {
 // ToBeDestroyed sets wether a room has to be destroyed or not
 func (r *Room) ToBeDestroyed(value bool) {
 	r.toBeDestroyed = value
+}
+
+// GameDriverName returns the name of the game driver being used by the room
+func (r *Room) GameDriverName() string {
+	return r.gameDriver.Name()
 }

@@ -19,7 +19,7 @@ func init() {
 
 func setup() (h *Hub, c interfaces.Client) {
 	h = New(&config.Config{Timeout: 5, Debug: true}, observer.New())
-	c = &mocks.Client{FakeIncoming: make(chan []byte, 2), FakeName: "TestClient"}
+	c = &mocks.Client{FakeIncoming: make(chan []byte, 2), FakeName: "TestClient", FakeGame: "test"}
 	return h, c
 }
 
@@ -44,7 +44,7 @@ func TestUnregister(t *testing.T) {
 	time.Sleep(time.Millisecond * 100)
 	h.Unregister <- c
 	time.Sleep(time.Millisecond * 100)
-	if len(h.clients) != 0 {
+	if len(h.clients["test"]) != 0 {
 		t.Errorf("Hub must have no clients connected after removing it, got %d", len(h.clients))
 	}
 }
@@ -56,7 +56,7 @@ func TestCreateRoom(t *testing.T) {
 	go c.WritePump()
 	h.Register <- c
 
-	data := []byte(`{"bri": "test"}`)
+	data := []byte(`{"drv": "test"}`)
 	m := &interfaces.IncomingMessage{
 		Author: c,
 		Content: interfaces.IncomingMessageContent{

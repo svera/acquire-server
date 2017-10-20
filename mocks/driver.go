@@ -70,3 +70,8 @@ func (b *Driver) GameStarted() bool {
 func (b *Driver) IsGameOver() bool {
 	return b.FakeIsGameOver
 }
+
+// Name mocks the Name method defined in the Driver interface
+func (b *Driver) Name() string {
+	return "mock"
+}

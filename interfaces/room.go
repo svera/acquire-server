@@ -18,4 +18,5 @@ type Room interface {
 	Timer() *time.Timer
 	IsToBeDestroyed() bool
 	ToBeDestroyed(bool)
+	GameDriverName() string
 }

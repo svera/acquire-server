@@ -8,11 +8,12 @@ import (
 
 func (h *Hub) registerEvents() {
 	h.observer.On(events.GameStarted{}, func(ev interface{}) {
-		if _, ok := ev.(events.GameStarted); ok {
+		if event, ok := ev.(events.GameStarted); ok {
 			message := h.createUpdatedRoomListMessage()
 
-			wg.Add(len(h.clients))
-			for _, cl := range h.clients {
+			gameClients := h.clients[event.Room.GameDriverName()]
+			wg.Add(len(gameClients))
+			for _, cl := range gameClients {
 				go h.sendMessage(cl, message, interfaces.TypeMessageRoomsList)
 			}
 		}
@@ -38,18 +39,20 @@ func (h *Hub) registerEvents() {
 	})
 
 	h.observer.On(events.RoomCreated{}, func(ev interface{}) {
-		if _, ok := ev.(events.RoomCreated); ok {
-			wg.Add(len(h.clients))
-			for _, cl := range h.clients {
+		if event, ok := ev.(events.RoomCreated); ok {
+			gameClients := h.clients[event.Room.GameDriverName()]
+			wg.Add(len(gameClients))
+			for _, cl := range gameClients {
 				go h.sendMessage(cl, h.createUpdatedRoomListMessage(), interfaces.TypeMessageRoomsList)
 			}
 		}
 	})
 
 	h.observer.On(events.RoomDestroyed{}, func(ev interface{}) {
-		if _, ok := ev.(events.RoomDestroyed); ok {
-			wg.Add(len(h.clients))
-			for _, cl := range h.clients {
+		if event, ok := ev.(events.RoomDestroyed); ok {
+			gameClients := h.clients[event.GameName]
+			wg.Add(len(gameClients))
+			for _, cl := range gameClients {
 				go h.sendMessage(cl, h.createUpdatedRoomListMessage(), interfaces.TypeMessageRoomsList)
 			}
 		}

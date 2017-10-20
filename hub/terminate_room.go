@@ -29,8 +29,9 @@ func (h *Hub) destroyRoom(roomID string, reasonCode string) {
 		r.ToBeDestroyed(true)
 		r.Timer().Stop()
 		h.expelClientsFromRoom(r, reasonCode)
+		gameName := h.rooms[roomID].GameDriverName()
 		delete(h.rooms, roomID)
-		h.observer.Trigger(events.RoomDestroyed{})
+		h.observer.Trigger(events.RoomDestroyed{GameName: gameName})
 
 		if h.configuration.Debug {
 			log.Printf("Room %s destroyed\n", roomID)

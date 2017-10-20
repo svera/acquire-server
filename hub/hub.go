@@ -27,7 +27,7 @@ var (
 // players and more.
 type Hub struct {
 	// Registered clients
-	clients []interfaces.Client
+	clients map[string][]interfaces.Client
 
 	rooms map[string]interfaces.Room
 
@@ -57,7 +57,7 @@ func New(cfg *config.Config, obs interfaces.Observer) *Hub {
 		Messages:      make(chan *interfaces.IncomingMessage),
 		Register:      make(chan interfaces.Client),
 		Unregister:    make(chan interfaces.Client),
-		clients:       []interfaces.Client{},
+		clients:       map[string][]interfaces.Client{},
 		rooms:         make(map[string]interfaces.Room),
 		configuration: cfg,
 		observer:      obs,
@@ -75,16 +75,17 @@ func (h *Hub) Run() {
 
 		case cl := <-h.Register:
 			mutex.Lock()
-			h.clients = append(h.clients, cl)
+			h.clients[cl.Game()] = append(h.clients[cl.Game()], cl)
 			mutex.Unlock()
-			cl.SetName(fmt.Sprintf("Player %d", h.NumberClients()))
+			cl.SetName(fmt.Sprintf("Player %d", h.NumberClients(cl.Game())))
 			h.observer.Trigger(events.ClientRegistered{Client: cl})
+
 			if h.configuration.Debug {
-				log.Printf("Client added to hub, number of connected clients: %d\n", len(h.clients))
+				log.Printf("Client added to hub using game '%s', number of connected clients: %d\n", cl.Game(), len(h.clients))
 			}
 
 		case cl := <-h.Unregister:
-			for _, val := range h.clients {
+			for _, val := range h.clients[cl.Game()] {
 				if val == cl {
 					wg.Wait()
 					h.removeClient(cl)
@@ -159,14 +160,14 @@ func (h *Hub) passMessageToRoom(m *interfaces.IncomingMessage) {
 
 // Removes a client from the hub and also from a room if it's in one
 func (h *Hub) removeClient(cl interfaces.Client) {
-	for i := range h.clients {
-		if h.clients[i] == cl {
+	for i := range h.clients[cl.Game()] {
+		if h.clients[cl.Game()][i] == cl {
 			mutex.Lock()
-			h.clients = append(h.clients[:i], h.clients[i+1:]...)
+			h.clients[cl.Game()] = append(h.clients[cl.Game()][:i], h.clients[cl.Game()][i+1:]...)
 			mutex.Unlock()
 			h.observer.Trigger(events.ClientUnregistered{Client: cl})
 			if h.configuration.Debug {
-				log.Printf("Client removed from hub, number of clients left: %d\n", len(h.clients))
+				log.Printf("Client removed from hub, number of clients left: %d\n", len(h.clients[cl.Game()]))
 			}
 			cl.Close()
 			return
@@ -175,8 +176,8 @@ func (h *Hub) removeClient(cl interfaces.Client) {
 }
 
 // NumberClients returns the number of connected clients
-func (h *Hub) NumberClients() int {
-	return len(h.clients)
+func (h *Hub) NumberClients(game string) int {
+	return len(h.clients[game])
 }
 
 func (h *Hub) createUpdatedRoomListMessage() interface{} {
