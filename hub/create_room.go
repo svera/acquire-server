@@ -44,7 +44,7 @@ func (h *Hub) createRoom(b interfaces.Driver, owner interfaces.Client) string {
 	})
 	h.rooms[id].SetTimer(timer)
 
-	h.observer.Trigger(events.RoomCreated{})
+	h.observer.Trigger(events.RoomCreated{Room: h.rooms[id]})
 
 	if h.configuration.Debug {
 		log.Printf("Room %s created\n", id)

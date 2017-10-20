@@ -27,6 +27,7 @@ type Human struct {
 	room     interfaces.Room
 	timer    *time.Timer
 	quit     chan struct{}
+	game     string
 }
 
 // NewHuman returns a new Human instance
@@ -184,4 +185,14 @@ func (c *Human) StopTimer() {
 // StartTimer starts the client's timer
 func (c *Human) StartTimer(d time.Duration) {
 	c.timer.Reset(d)
+}
+
+// SetGame specifies the name of the game the human client is going to use
+func (c *Human) SetGame(game string) {
+	c.game = game
+}
+
+// Game specifies the name of the game the bohumant client is using
+func (c *Human) Game() string {
+	return c.game
 }

@@ -11,7 +11,7 @@ package interfaces
 //   {
 //     "typ": "cre",
 //     "par": {
-//       "bri": "acquire"
+//       "drv": "acquire"
 //       "nam": "Sergio" // Name of its creator / owner
 //     }
 //   }
@@ -53,7 +53,7 @@ const ControlMessageTypeTerminateRoom = "ter"
 // MessageCreateRoomParams defines the needed parameters for a create room
 // message.
 type MessageCreateRoomParams struct {
-	DriverName string `json:"bri"`
+	DriverName string `json:"drv"`
 	ClientName string `json:"nam"`
 }
 

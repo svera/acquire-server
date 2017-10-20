@@ -17,4 +17,6 @@ type Client interface {
 	SetTimer(t *time.Timer)
 	StopTimer()
 	StartTimer(d time.Duration)
+	SetGame(game string)
+	Game() string
 }

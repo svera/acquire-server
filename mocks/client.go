@@ -18,6 +18,7 @@ type Client struct {
 	FakeIsBot    bool
 	FakeIncoming chan []byte
 	FakeRoom     interfaces.Room
+	FakeGame     string
 }
 
 // ReadPump mocks the ReadPump method defined in the Client interface
@@ -90,4 +91,13 @@ func (c *Client) StopTimer() {
 // StartTimer mocks the IsBot method defined in the Client interface
 func (c *Client) StartTimer(d time.Duration) {
 
+}
+
+// SetGame mocks the SetGame method defined in the Client interface
+func (c *Client) SetGame(game string) {
+}
+
+// Game mocks the Game method defined in the Client interface
+func (c *Client) Game() string {
+	return c.FakeGame
 }

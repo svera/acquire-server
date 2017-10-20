@@ -48,10 +48,12 @@ type GameStatusUpdated struct {
 
 // RoomCreated is an event triggered when a room is created
 type RoomCreated struct {
+	Room interfaces.Room
 }
 
 // RoomDestroyed is an event triggered when a room is destroyed
 type RoomDestroyed struct {
+	GameName string
 }
 
 // Error is an event triggered when an error happens
