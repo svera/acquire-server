@@ -3,7 +3,6 @@ package hub
 import (
 	"github.com/svera/sackson-server/events"
 	"github.com/svera/sackson-server/interfaces"
-	"github.com/svera/sackson-server/messages"
 )
 
 func (h *Hub) registerEvents() {
@@ -21,7 +20,10 @@ func (h *Hub) registerEvents() {
 
 	h.observer.On(events.GameStarted{}, func(ev interface{}) {
 		if event, ok := ev.(events.GameStarted); ok {
-			message := messages.New(interfaces.TypeMessageGameStarted, event.GameParameters)
+			message := interfaces.MessageGameStarted{
+				PlayerTimeOut:  event.Room.PlayerTimeOut(),
+				GameParameters: event.GameParameters,
+			}
 
 			wg.Add(len(event.Room.Clients()))
 			for _, cl := range event.Room.Clients() {
@@ -81,7 +83,9 @@ func (h *Hub) registerEvents() {
 
 	h.observer.On(events.ClientOut{}, func(ev interface{}) {
 		if event, ok := ev.(events.ClientOut); ok {
-			message := messages.New(interfaces.TypeMessageClientOut, event.Reason)
+			message := interfaces.MessageClientOut{
+				Reason: event.Reason,
+			}
 
 			if len(event.Room.HumanClients()) == 0 && !event.Room.IsToBeDestroyed() {
 				h.destroyRoom(event.Room.ID(), interfaces.ReasonRoomDestroyedNoClients)
@@ -93,7 +97,11 @@ func (h *Hub) registerEvents() {
 
 	h.observer.On(events.ClientJoined{}, func(ev interface{}) {
 		if event, ok := ev.(events.ClientJoined); ok {
-			message := messages.New(interfaces.TypeMessageJoinedRoom, event.ClientNumber, event.Client.Room().ID(), event.Owner)
+			message := interfaces.MessageJoinedRoom{
+				ClientNumber: event.ClientNumber,
+				ID:           event.Client.Room().ID(),
+				Owner:        event.Owner,
+			}
 
 			wg.Add(1)
 			go h.sendMessage(event.Client, message, interfaces.TypeMessageJoinedRoom)
@@ -102,7 +110,9 @@ func (h *Hub) registerEvents() {
 
 	h.observer.On(events.ClientsUpdated{}, func(ev interface{}) {
 		if event, ok := ev.(events.ClientsUpdated); ok {
-			message := messages.New(interfaces.TypeMessageCurrentPlayers, event.PlayersData)
+			message := interfaces.MessageCurrentPlayers{
+				Values: event.PlayersData,
+			}
 
 			wg.Add(len(event.Clients))
 			for _, cl := range event.Clients {
@@ -113,10 +123,12 @@ func (h *Hub) registerEvents() {
 
 	h.observer.On(events.Error{}, func(ev interface{}) {
 		if event, ok := ev.(events.Error); ok {
-			errorMessage := messages.New(interfaces.TypeMessageError, event.ErrorText)
+			message := interfaces.MessageError{
+				Description: event.ErrorText,
+			}
 
 			wg.Add(1)
-			go h.sendMessage(event.Client, errorMessage, interfaces.TypeMessageError)
+			go h.sendMessage(event.Client, message, interfaces.TypeMessageError)
 		}
 	})
 }

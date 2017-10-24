@@ -19,4 +19,5 @@ type Room interface {
 	IsToBeDestroyed() bool
 	ToBeDestroyed(bool)
 	GameDriverName() string
+	PlayerTimeOut() time.Duration
 }

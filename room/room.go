@@ -357,3 +357,8 @@ func (r *Room) ToBeDestroyed(value bool) {
 func (r *Room) GameDriverName() string {
 	return r.gameDriver.Name()
 }
+
+// PlayerTimeOut returns the allowed time per turn for every player
+func (r *Room) PlayerTimeOut() time.Duration {
+	return r.playerTimeOut
+}

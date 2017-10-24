@@ -1,6 +1,9 @@
 package interfaces
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"time"
+)
 
 // Control messages sent to the different players.
 // These messages are common to all games.
@@ -93,11 +96,11 @@ type PlayerData struct {
 //   {
 //     "typ": "err",
 //     "cnt": {
-//       "cnt": "Whatever"
+//       "des": "Whatever"
 //     }
 //   }
 type MessageError struct {
-	Content string `json:"cnt"`
+	Description string `json:"des"`
 }
 
 // MessageJoinedRoom is a struct sent to a specific player
@@ -120,6 +123,17 @@ type MessageJoinedRoom struct {
 
 // MessageGameStarted is a struct sent to all players
 // when a game starts.
+// The following is a MessageJoinedRoom message example:
+//   {
+//     "typ": "gst",
+//     "cnt": {
+//       "pto": 0,
+//       "gpa": {
+//         ···
+//       }
+//     }
+//   }
 type MessageGameStarted struct {
-	GameParameters json.RawMessage `json:"par"`
+	PlayerTimeOut  time.Duration   `json:"pto"`
+	GameParameters json.RawMessage `json:"gpa"`
 }
