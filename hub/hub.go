@@ -12,7 +12,6 @@ import (
 	"github.com/svera/sackson-server/config"
 	"github.com/svera/sackson-server/events"
 	"github.com/svera/sackson-server/interfaces"
-	"github.com/svera/sackson-server/messages"
 )
 
 var (
@@ -181,7 +180,9 @@ func (h *Hub) NumberClients(game string) int {
 }
 
 func (h *Hub) createUpdatedRoomListMessage() interface{} {
-	return messages.New(interfaces.TypeMessageRoomsList, h.getWaitingRoomsIds())
+	return interfaces.MessageRoomsList{
+		Values: h.getWaitingRoomsIds(),
+	}
 }
 
 // Return a list of all rooms IDs which haven't started a game

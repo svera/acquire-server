@@ -1,6 +1,9 @@
 package interfaces
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // ControlMessageTypeStartGame defines the value that start game
 // messages must have in the Type field.
@@ -14,7 +17,10 @@ import "time"
 //   {
 //     "typ": "ini",
 //     "par": {
-//       "pto": 15
+//       "pto": 15,
+//       "gpa": {
+//         ···
+//       }
 //     }
 //   }
 const ControlMessageTypeStartGame = "ini"
@@ -90,7 +96,8 @@ type MessageAddBotParams struct {
 // MessageStartGameParams defines the needed parameters for a start game
 // message.
 type MessageStartGameParams struct {
-	PlayerTimeout time.Duration `json:"pto"`
+	PlayerTimeout  time.Duration   `json:"pto"`
+	GameParameters json.RawMessage `json:"gpa"`
 }
 
 // MessageSetClientDataParams defines the needed parameters for a set client data
