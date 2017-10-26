@@ -8,17 +8,18 @@ import (
 
 	"github.com/svera/sackson-server/events"
 	"github.com/svera/sackson-server/interfaces"
+	"github.com/svera/sackson-server/messages"
 )
 
 func (r *Room) startGameAction(m *interfaces.IncomingMessage) error {
-	var parsed interfaces.MessageStartGameParams
+	var parsed messages.StartGame
 	var err error
 
 	if m.Author != r.owner {
 		return errors.New(Forbidden)
 	}
 
-	if err = json.Unmarshal(m.Content.Params, &parsed); err != nil {
+	if err = json.Unmarshal(m.Content, &parsed); err != nil {
 		return err
 	}
 	r.playerTimeOut = parsed.PlayerTimeout
@@ -33,7 +34,7 @@ func (r *Room) startGameAction(m *interfaces.IncomingMessage) error {
 
 	r.changeClientsInTurn()
 
-	r.observer.Trigger(events.GameStarted{Room: r, GameParameters: m.Content.Params})
+	r.observer.Trigger(events.GameStarted{Room: r, GameParameters: m.Content})
 	return err
 }
 
@@ -66,7 +67,7 @@ func (r *Room) setUpTimeOut(cl interfaces.Client) {
 
 func (r *Room) timeoutPlayer(cl interfaces.Client) {
 	r.RemoveClient(cl)
-	r.observer.Trigger(events.ClientOut{Client: cl, Reason: interfaces.ReasonPlayerTimedOut, Room: r})
+	r.observer.Trigger(events.ClientOut{Client: cl, Reason: messages.ReasonPlayerTimedOut, Room: r})
 }
 
 func (r *Room) mapPlayerNames() map[int]string {

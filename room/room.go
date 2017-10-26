@@ -9,6 +9,7 @@ import (
 	"github.com/svera/sackson-server/config"
 	"github.com/svera/sackson-server/events"
 	"github.com/svera/sackson-server/interfaces"
+	"github.com/svera/sackson-server/messages"
 )
 
 var (
@@ -92,13 +93,13 @@ func (r *Room) Parse(m *interfaces.IncomingMessage) {
 }
 
 func (r *Room) isControlMessage(m *interfaces.IncomingMessage) bool {
-	switch m.Content.Type {
+	switch m.Type {
 	case
-		interfaces.ControlMessageTypeAddBot,
-		interfaces.ControlMessageTypeStartGame,
-		interfaces.ControlMessageTypeKickPlayer,
-		interfaces.ControlMessageTypePlayerQuits,
-		interfaces.ControlMessageTypeSetClientData:
+		messages.TypeAddBot,
+		messages.TypeStartGame,
+		messages.TypeKickPlayer,
+		messages.TypePlayerQuits,
+		messages.TypeSetClientData:
 		return true
 	}
 	return false
@@ -106,21 +107,21 @@ func (r *Room) isControlMessage(m *interfaces.IncomingMessage) bool {
 
 func (r *Room) parseControlMessage(m *interfaces.IncomingMessage) {
 	var err error
-	switch m.Content.Type {
+	switch m.Type {
 
-	case interfaces.ControlMessageTypeStartGame:
+	case messages.TypeStartGame:
 		err = r.startGameAction(m)
 
-	case interfaces.ControlMessageTypeAddBot:
+	case messages.TypeAddBot:
 		err = r.addBotAction(m)
 
-	case interfaces.ControlMessageTypeKickPlayer:
+	case messages.TypeKickPlayer:
 		err = r.kickPlayerAction(m)
 
-	case interfaces.ControlMessageTypePlayerQuits:
+	case messages.TypePlayerQuits:
 		err = r.clientQuits(m.Author)
 
-	case interfaces.ControlMessageTypeSetClientData:
+	case messages.TypeSetClientData:
 		err = r.setClientDataAction(m)
 	}
 
@@ -134,7 +135,7 @@ func (r *Room) passMessageToGame(m *interfaces.IncomingMessage) {
 	var st interface{}
 
 	if r.messageAuthorIsInTurn(m) {
-		if err = r.gameDriver.Execute(m.Author.Name(), m.Content.Type, m.Content.Params); err == nil {
+		if err = r.gameDriver.Execute(m.Author.Name(), m.Type, m.Content); err == nil {
 			r.updateSequenceNumber++
 			for n, cl := range r.clients {
 				if cl.IsBot() && r.IsGameOver() {
@@ -192,10 +193,10 @@ func (r *Room) startClientsInTurnTimers() {
 	}
 }
 
-func (r *Room) playersData() map[string]interfaces.PlayerData {
-	players := make(map[string]interfaces.PlayerData, len(r.clients))
+func (r *Room) playersData() map[string]messages.PlayerData {
+	players := make(map[string]messages.PlayerData, len(r.clients))
 	for n, c := range r.clients {
-		players[strconv.Itoa(n)] = interfaces.PlayerData{
+		players[strconv.Itoa(n)] = messages.PlayerData{
 			Name: c.Name(),
 		}
 	}

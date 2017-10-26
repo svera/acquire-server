@@ -6,15 +6,16 @@ import (
 	"strings"
 
 	"github.com/svera/sackson-server/interfaces"
+	"github.com/svera/sackson-server/messages"
 )
 
 func (h *Hub) joinRoomAction(m *interfaces.IncomingMessage) error {
-	var parsed interfaces.MessageJoinRoomParams
+	var parsed messages.JoinRoom
 	var err error
 	var room interfaces.Room
 	var ok bool
 
-	if err = json.Unmarshal(m.Content.Params, &parsed); err != nil {
+	if err = json.Unmarshal(m.Content, &parsed); err != nil {
 		return err
 	}
 	if room, ok = h.rooms[parsed.Room]; !ok {

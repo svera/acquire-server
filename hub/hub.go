@@ -12,6 +12,7 @@ import (
 	"github.com/svera/sackson-server/config"
 	"github.com/svera/sackson-server/events"
 	"github.com/svera/sackson-server/interfaces"
+	"github.com/svera/sackson-server/messages"
 )
 
 var (
@@ -111,11 +112,11 @@ func (h *Hub) parseMessage(m *interfaces.IncomingMessage) {
 }
 
 func (h *Hub) isControlMessage(m *interfaces.IncomingMessage) bool {
-	switch m.Content.Type {
+	switch m.Type {
 	case
-		interfaces.ControlMessageTypeCreateRoom,
-		interfaces.ControlMessageTypeJoinRoom,
-		interfaces.ControlMessageTypeTerminateRoom:
+		messages.TypeCreateRoom,
+		messages.TypeJoinRoom,
+		messages.TypeTerminateRoom:
 		return true
 	}
 	return false
@@ -123,15 +124,15 @@ func (h *Hub) isControlMessage(m *interfaces.IncomingMessage) bool {
 
 func (h *Hub) parseControlMessage(m *interfaces.IncomingMessage) {
 	var err error
-	switch m.Content.Type {
+	switch m.Type {
 
-	case interfaces.ControlMessageTypeCreateRoom:
+	case messages.TypeCreateRoom:
 		err = h.createRoomAction(m)
 
-	case interfaces.ControlMessageTypeJoinRoom:
+	case messages.TypeJoinRoom:
 		err = h.joinRoomAction(m)
 
-	case interfaces.ControlMessageTypeTerminateRoom:
+	case messages.TypeTerminateRoom:
 		err = h.terminateRoomAction(m)
 	}
 
@@ -150,7 +151,7 @@ func (h *Hub) passMessageToRoom(m *interfaces.IncomingMessage) {
 		if rc := recover(); rc != nil {
 			fmt.Printf("Panic in room '%s': %s\n", m.Author.Room().ID(), rc)
 			debug.PrintStack()
-			go h.destroyRoom(m.Author.Room().ID(), interfaces.ReasonRoomDestroyedGamePanicked)
+			go h.destroyRoom(m.Author.Room().ID(), messages.ReasonRoomDestroyedGamePanicked)
 		}
 	}()
 
@@ -180,7 +181,7 @@ func (h *Hub) NumberClients(game string) int {
 }
 
 func (h *Hub) createUpdatedRoomListMessage() interface{} {
-	return interfaces.MessageRoomsList{
+	return messages.RoomsList{
 		Values: h.getWaitingRoomsIds(),
 	}
 }

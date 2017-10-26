@@ -6,6 +6,7 @@ import (
 
 	"github.com/svera/sackson-server/events"
 	"github.com/svera/sackson-server/interfaces"
+	"github.com/svera/sackson-server/messages"
 )
 
 func (r *Room) kickPlayerAction(m *interfaces.IncomingMessage) error {
@@ -13,8 +14,8 @@ func (r *Room) kickPlayerAction(m *interfaces.IncomingMessage) error {
 	if m.Author != r.owner {
 		return errors.New(Forbidden)
 	}
-	var parsed interfaces.MessageKickPlayerParams
-	if err = json.Unmarshal(m.Content.Params, &parsed); err == nil {
+	var parsed messages.KickPlayer
+	if err = json.Unmarshal(m.Content, &parsed); err == nil {
 		return r.kickClient(parsed.PlayerNumber)
 	}
 	return err
@@ -30,7 +31,7 @@ func (r *Room) kickClient(number int) error {
 	}
 	cl.SetRoom(nil)
 	r.RemoveClient(r.clients[number])
-	r.observer.Trigger(events.ClientOut{Client: cl, Reason: interfaces.ReasonPlayerKicked, Room: r})
+	r.observer.Trigger(events.ClientOut{Client: cl, Reason: messages.ReasonPlayerKicked, Room: r})
 
 	return nil
 }

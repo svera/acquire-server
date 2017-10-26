@@ -7,6 +7,7 @@ import (
 
 	"github.com/svera/sackson-server/config"
 	"github.com/svera/sackson-server/interfaces"
+	"github.com/svera/sackson-server/messages"
 	"github.com/svera/sackson-server/mocks"
 	"github.com/svera/sackson-server/observer"
 )
@@ -58,11 +59,9 @@ func TestCreateRoom(t *testing.T) {
 
 	data := []byte(`{"drv": "test"}`)
 	m := &interfaces.IncomingMessage{
-		Author: c,
-		Content: interfaces.IncomingMessageContent{
-			Type:   interfaces.ControlMessageTypeCreateRoom,
-			Params: (json.RawMessage)(data),
-		},
+		Author:  c,
+		Type:    messages.TypeCreateRoom,
+		Content: (json.RawMessage)(data),
 	}
 	h.Messages <- m
 	// We add a little pause to let the hub process the incoming message, as it does it concurrently
@@ -83,11 +82,9 @@ func TestDestroyRoom(t *testing.T) {
 	h.createRoom(b, c)
 	time.Sleep(time.Millisecond * 100)
 	m := &interfaces.IncomingMessage{
-		Author: c,
-		Content: interfaces.IncomingMessageContent{
-			Type:   interfaces.ControlMessageTypeTerminateRoom,
-			Params: json.RawMessage{},
-		},
+		Author:  c,
+		Type:    messages.TypeTerminateRoom,
+		Content: json.RawMessage{},
 	}
 	h.Messages <- m
 	time.Sleep(time.Millisecond * 100)
@@ -147,11 +144,9 @@ func TestJoinRoom(t *testing.T) {
 
 	data := []byte(`{"rom": "` + id + `"}`)
 	m := &interfaces.IncomingMessage{
-		Author: c2,
-		Content: interfaces.IncomingMessageContent{
-			Type:   interfaces.ControlMessageTypeJoinRoom,
-			Params: (json.RawMessage)(data),
-		},
+		Author:  c2,
+		Type:    messages.TypeJoinRoom,
+		Content: (json.RawMessage)(data),
 	}
 	h.Messages <- m
 	time.Sleep(time.Millisecond * 100)

@@ -1,4 +1,4 @@
-package interfaces
+package messages
 
 import (
 	"encoding/json"
@@ -9,7 +9,7 @@ import (
 // These messages are common to all games.
 
 // Possible reasons why a room can be destroyed or why a player leaves a room.
-// Used in MessageClientOut messages.
+// Used in ClientOut messages.
 const (
 	ReasonRoomDestroyedTimeout      = "tim"
 	ReasonRoomDestroyedTerminated   = "ter"
@@ -22,54 +22,42 @@ const (
 
 // Types for the messages sent to the clients.
 const (
-	TypeMessageClientOut        = "out"
-	TypeMessageRoomsList        = "rms"
-	TypeMessageCurrentPlayers   = "pls"
-	TypeMessageError            = "err"
-	TypeMessageJoinedRoom       = "joi"
-	TypeMessageUpdateGameStatus = "upd"
-	TypeMessageGameStarted      = "gst"
+	TypeClientOut        = "out"
+	TypeRoomsList        = "rms"
+	TypeCurrentPlayers   = "pls"
+	TypeError            = "err"
+	TypeJoinedRoom       = "joi"
+	TypeUpdateGameStatus = "upd"
+	TypeGameStarted      = "gst"
 )
 
-// OutgoingMessage is a container struct used by
-// the hub to encapsulate the messages sent to clients, adding common fields.
-// The actual message coming from the backend is in Content.
-type OutgoingMessage struct {
-	Type string `json:"typ"`
-	// SequenceNumber field that will allow clients to process incoming messages in order,
-	// as they are not guaranteed to arrive at the same order they were sent
-	// (for example, for update messages).
-	SequenceNumber int             `json:"seq,omitempty"`
-	Content        json.RawMessage `json:"cnt"`
-}
-
-// MessageClientOut is sent to a client when he/she is expelled from a room.
-// The following is a MessageClientOut message example:
+// ClientOut is sent to a client when he/she is expelled from a room.
+// The following is a ClientOut message example:
 //   {
 //     "typ": "out",
 //     "cnt": {
 //       "rea": "tim"
 //     }
 //   }
-type MessageClientOut struct {
+type ClientOut struct {
 	Reason string `json:"rea"`
 }
 
-// MessageRoomsList is sent to all clients when a new room is created.
+// RoomsList is sent to all clients when a new room is created.
 // It contains all available rooms (rooms which haven't started a game yet).
-// The following is a MessageRoomsList message example:
+// The following is a RoomsList message example:
 //   {
 //     "typ": "rms",
 //     "cnt": {
 //       "val": ["VWXYZ", "ABCDE"]
 //     }
 //   }
-type MessageRoomsList struct {
+type RoomsList struct {
 	Values []string `json:"val"`
 }
 
-// MessageCurrentPlayers is sent to all clients in a room when a player enters or leaves the room.
-// The following is a MessageCurrentPlayers message example:
+// CurrentPlayers is sent to all clients in a room when a player enters or leaves the room.
+// The following is a CurrentPlayers message example:
 //   {
 //     "typ": "pls",
 //     "cnt": {
@@ -80,7 +68,7 @@ type MessageRoomsList struct {
 //       }
 //     }
 //   }
-type MessageCurrentPlayers struct {
+type CurrentPlayers struct {
 	Values map[string]PlayerData `json:"val"`
 }
 
@@ -90,22 +78,22 @@ type PlayerData struct {
 	Name string `json:"nam"`
 }
 
-// MessageError is a message sent to a specific player
+// Error is a message sent to a specific player
 // when he/she does an action that leads to an error.
-// The following is a MessageError message example:
+// The following is a Error message example:
 //   {
 //     "typ": "err",
 //     "cnt": {
 //       "des": "Whatever"
 //     }
 //   }
-type MessageError struct {
+type Error struct {
 	Description string `json:"des"`
 }
 
-// MessageJoinedRoom is a struct sent to a specific player
+// JoinedRoom is a message sent to a specific player
 // when he/she joins to a room.
-// The following is a MessageJoinedRoom message example:
+// The following is a JoinedRoom message example:
 //   {
 //     "typ": "joi",
 //     "cnt": {
@@ -114,16 +102,16 @@ type MessageError struct {
 //       "own": false
 //     }
 //   }
-type MessageJoinedRoom struct {
+type JoinedRoom struct {
 	ClientNumber int    `json:"num"`
 	ID           string `json:"id"`
 	// Owner signals if this client is the owner of the room
 	Owner bool `json:"own"`
 }
 
-// MessageGameStarted is a struct sent to all players
+// GameStarted is a message sent to all players
 // when a game starts.
-// The following is a MessageJoinedRoom message example:
+// The following is a GameStarted message example:
 //   {
 //     "typ": "gst",
 //     "cnt": {
@@ -133,7 +121,7 @@ type MessageJoinedRoom struct {
 //       }
 //     }
 //   }
-type MessageGameStarted struct {
+type GameStarted struct {
 	PlayerTimeOut  time.Duration   `json:"pto"`
 	GameParameters json.RawMessage `json:"gpa"`
 }
