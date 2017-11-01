@@ -8,6 +8,7 @@ import (
 	"github.com/svera/sackson-server/client"
 	"github.com/svera/sackson-server/events"
 	"github.com/svera/sackson-server/interfaces"
+	"github.com/svera/sackson-server/messages"
 )
 
 func (r *Room) addBotAction(m *interfaces.IncomingMessage) error {
@@ -15,10 +16,10 @@ func (r *Room) addBotAction(m *interfaces.IncomingMessage) error {
 	if m.Author != r.owner {
 		return errors.New(Forbidden)
 	}
-	var parsed interfaces.MessageAddBotParams
-	if err = json.Unmarshal(m.Content.Params, &parsed); err == nil {
+	var parsed messages.AddBot
+	if err = json.Unmarshal(m.Content, &parsed); err == nil {
 		if err = r.addBot(parsed.BotLevel); err != nil {
-			r.observer.Trigger(events.Error, m.Author, err.Error())
+			r.observer.Trigger(events.Error{Client: m.Author, ErrorText: err.Error()})
 		}
 	}
 	return err

@@ -34,13 +34,13 @@ func main() {
 		r := mux.NewRouter()
 		obs := observer.New()
 		hb = hub.New(cfg, obs)
+		drivers.Load()
 		go hb.Run()
 
 		r.HandleFunc("/", newClient)
-		http.Handle("/", r)
 		fmt.Printf("Sackson server listening on port %s\n", cfg.Port)
 		fmt.Printf("Git commit hash: %s\n", gitHash)
-		drivers.Load()
+
 		if cfg.Secure {
 			log.Fatal(http.ListenAndServeTLS(cfg.Port, cfg.SecureCertFileName, cfg.SecureKeyFileName, r))
 		} else {
@@ -50,17 +50,29 @@ func main() {
 }
 
 func newClient(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		http.Error(w, "Method not allowed", 405)
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
+	gameDriverName := r.FormValue("g")
+	if !drivers.Exist(gameDriverName) {
+		if cfg.Debug {
+			log.Printf("Tried connection to non-existent game driver: %s\n", gameDriverName)
+		}
+		http.Error(w, "Game not found", http.StatusNotFound)
+		return
+	}
 	if c, err := client.NewHuman(w, r, cfg); err == nil {
+		c.SetGame(gameDriverName)
 		hb.Register <- c
 		go c.WritePump()
 		c.ReadPump(hb.Messages, hb.Unregister)
 	} else {
-		log.Println(err)
+		if cfg.Debug {
+			log.Println(err.Error())
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }

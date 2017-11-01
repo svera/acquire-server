@@ -10,15 +10,16 @@ import (
 	"github.com/svera/sackson-server/drivers"
 	"github.com/svera/sackson-server/events"
 	"github.com/svera/sackson-server/interfaces"
+	"github.com/svera/sackson-server/messages"
 	"github.com/svera/sackson-server/room"
 )
 
 func (h *Hub) createRoomAction(m *interfaces.IncomingMessage) error {
-	var parsed interfaces.MessageCreateRoomParams
+	var parsed messages.CreateRoom
 	var err error
 	var driver interfaces.Driver
 
-	if err = json.Unmarshal(m.Content.Params, &parsed); err != nil {
+	if err = json.Unmarshal(m.Content, &parsed); err != nil {
 		return err
 	}
 	if driver, err = drivers.Create(parsed.DriverName); err != nil {
@@ -40,11 +41,11 @@ func (h *Hub) createRoom(b interfaces.Driver, owner interfaces.Client) string {
 		if h.configuration.Debug {
 			log.Printf("Destroying room %s due to timeout\n", id)
 		}
-		h.destroyRoom(id, interfaces.ReasonRoomDestroyedTimeout)
+		h.destroyRoom(id, messages.ReasonRoomDestroyedTimeout)
 	})
 	h.rooms[id].SetTimer(timer)
 
-	h.observer.Trigger(events.RoomCreated, h.clients)
+	h.observer.Trigger(events.RoomCreated{Room: h.rooms[id]})
 
 	if h.configuration.Debug {
 		log.Printf("Room %s created\n", id)

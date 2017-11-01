@@ -19,4 +19,8 @@ type Room interface {
 	SetTimer(t *time.Timer)
 	Timer() *time.Timer
 	GameCurrentPlayersClients() ([]Client, error)
+	IsToBeDestroyed() bool
+	ToBeDestroyed(bool)
+	GameDriverName() string
+	PlayerTimeOut() time.Duration
 }

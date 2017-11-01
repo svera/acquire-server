@@ -7,6 +7,7 @@ import (
 
 	"github.com/svera/sackson-server/config"
 	"github.com/svera/sackson-server/interfaces"
+	"github.com/svera/sackson-server/messages"
 	"github.com/svera/sackson-server/mocks"
 	"github.com/svera/sackson-server/observer"
 )
@@ -19,7 +20,7 @@ func init() {
 
 func setup() (h *Hub, c interfaces.Client) {
 	h = New(&config.Config{Timeout: 5, Debug: true}, observer.New())
-	c = &mocks.Client{FakeIncoming: make(chan []byte, 2), FakeName: "TestClient"}
+	c = &mocks.Client{FakeIncoming: make(chan []byte, 2), FakeName: "TestClient", FakeGame: "test"}
 	return h, c
 }
 
@@ -44,7 +45,7 @@ func TestUnregister(t *testing.T) {
 	time.Sleep(time.Millisecond * 100)
 	h.Unregister <- c
 	time.Sleep(time.Millisecond * 100)
-	if len(h.clients) != 0 {
+	if len(h.clients["test"]) != 0 {
 		t.Errorf("Hub must have no clients connected after removing it, got %d", len(h.clients))
 	}
 }
@@ -56,13 +57,11 @@ func TestCreateRoom(t *testing.T) {
 	go c.WritePump()
 	h.Register <- c
 
-	data := []byte(`{"bri": "test"}`)
+	data := []byte(`{"drv": "test"}`)
 	m := &interfaces.IncomingMessage{
-		Author: c,
-		Content: interfaces.IncomingMessageContent{
-			Type:   interfaces.ControlMessageTypeCreateRoom,
-			Params: (json.RawMessage)(data),
-		},
+		Author:  c,
+		Type:    messages.TypeCreateRoom,
+		Content: (json.RawMessage)(data),
 	}
 	h.Messages <- m
 	// We add a little pause to let the hub process the incoming message, as it does it concurrently
@@ -83,11 +82,9 @@ func TestDestroyRoom(t *testing.T) {
 	h.createRoom(b, c)
 	time.Sleep(time.Millisecond * 100)
 	m := &interfaces.IncomingMessage{
-		Author: c,
-		Content: interfaces.IncomingMessageContent{
-			Type:   interfaces.ControlMessageTypeTerminateRoom,
-			Params: json.RawMessage{},
-		},
+		Author:  c,
+		Type:    messages.TypeTerminateRoom,
+		Content: json.RawMessage{},
 	}
 	h.Messages <- m
 	time.Sleep(time.Millisecond * 100)
@@ -115,6 +112,7 @@ func TestDestroyRoomAfterXSeconds(t *testing.T) {
 
 func TestDestroyRoomWhenNoHumanClients(t *testing.T) {
 	h, c := setup()
+	c.(*mocks.Client).FakeIsBot = false
 	go h.Run()
 
 	go c.WritePump()
@@ -146,11 +144,9 @@ func TestJoinRoom(t *testing.T) {
 
 	data := []byte(`{"rom": "` + id + `"}`)
 	m := &interfaces.IncomingMessage{
-		Author: c2,
-		Content: interfaces.IncomingMessageContent{
-			Type:   interfaces.ControlMessageTypeJoinRoom,
-			Params: (json.RawMessage)(data),
-		},
+		Author:  c2,
+		Type:    messages.TypeJoinRoom,
+		Content: (json.RawMessage)(data),
 	}
 	h.Messages <- m
 	time.Sleep(time.Millisecond * 100)

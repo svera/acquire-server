@@ -27,6 +27,7 @@ type Human struct {
 	room     interfaces.Room
 	timer    *time.Timer
 	quit     chan struct{}
+	game     string
 }
 
 // NewHuman returns a new Human instance
@@ -75,16 +76,13 @@ func (c *Human) ReadPump(cnl interface{}, unregister chan interfaces.Client) {
 			break
 		}
 
-		cnt := interfaces.IncomingMessageContent{}
-		if err := json.Unmarshal(message, &cnt); err == nil {
-			msg := &interfaces.IncomingMessage{
-				Author:  c,
-				Content: cnt,
-			}
+		msg := interfaces.IncomingMessage{}
+		if err := json.Unmarshal(message, &msg); err == nil {
+			msg.Author = c
 
-			channel <- msg
+			channel <- &msg
 		} else {
-			log.Println("error decoding message content")
+			log.Println("Error decoding message content")
 		}
 	}
 }
@@ -184,4 +182,14 @@ func (c *Human) StopTimer() {
 // StartTimer starts the client's timer
 func (c *Human) StartTimer(d time.Duration) {
 	c.timer.Reset(d)
+}
+
+// SetGame specifies the name of the game the human client is going to use
+func (c *Human) SetGame(game string) {
+	c.game = game
+}
+
+// Game specifies the name of the game the bohumant client is using
+func (c *Human) Game() string {
+	return c.game
 }

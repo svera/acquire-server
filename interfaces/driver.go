@@ -17,4 +17,5 @@ type Driver interface {
 	StartGame(map[int]string) error
 	GameStarted() bool
 	IsGameOver() bool
+	Name() string
 }

@@ -7,101 +7,129 @@ import (
 )
 
 func (h *Hub) registerEvents() {
-	h.observer.On(events.GameStarted, func(args ...interface{}) {
-		message := h.createUpdatedRoomListMessage()
+	h.observer.On(events.GameStarted{}, func(ev interface{}) {
+		if event, ok := ev.(events.GameStarted); ok {
+			message := h.createUpdatedRoomListMessage()
 
-		wg.Add(len(h.clients))
-		for _, cl := range h.clients {
-			go h.sendMessage(cl, message, interfaces.TypeMessageRoomsList)
-		}
-	})
-
-	h.observer.On(events.GameStatusUpdated, func(args ...interface{}) {
-		client := args[0].(interfaces.Client)
-		message := args[1]
-		sequenceNumber := args[2].(int)
-
-		wg.Add(1)
-		go h.sendMessage(client, message, interfaces.TypeMessageUpdateGameStatus, sequenceNumber)
-	})
-
-	h.observer.On(events.RoomCreated, func(args ...interface{}) {
-		clients := args[0].([]interfaces.Client)
-
-		wg.Add(len(clients))
-		for _, cl := range clients {
-			go h.sendMessage(cl, h.createUpdatedRoomListMessage(), interfaces.TypeMessageRoomsList)
-		}
-	})
-
-	h.observer.On(events.RoomDestroyed, func(args ...interface{}) {
-		clients := args[0].([]interfaces.Client)
-
-		wg.Add(len(clients))
-		for _, cl := range clients {
-			go h.sendMessage(cl, h.createUpdatedRoomListMessage(), interfaces.TypeMessageRoomsList)
-		}
-	})
-
-	h.observer.On(events.ClientRegistered, func(args ...interface{}) {
-		client := args[0].(interfaces.Client)
-
-		wg.Add(1)
-		go h.sendMessage(client, h.createUpdatedRoomListMessage(), interfaces.TypeMessageRoomsList)
-	})
-
-	h.observer.On(events.ClientUnregistered, func(args ...interface{}) {
-		client := args[0].(interfaces.Client)
-
-		if r := client.Room(); r != nil {
-			if len(r.HumanClients()) == 0 {
-				h.destroyRoom(r.ID(), interfaces.ReasonRoomDestroyedNoClients)
+			gameClients := h.clients[event.Room.GameDriverName()]
+			wg.Add(len(gameClients))
+			for _, cl := range gameClients {
+				go h.sendMessage(cl, message, messages.TypeRoomsList)
 			}
 		}
 	})
 
-	h.observer.On(events.ClientOut, func(args ...interface{}) {
-		client := args[0].(interfaces.Client)
-		reasonCode := args[1].(string)
-		room := args[2].(interfaces.Room)
-		message := messages.New(interfaces.TypeMessageClientOut, reasonCode)
+	h.observer.On(events.GameStarted{}, func(ev interface{}) {
+		if event, ok := ev.(events.GameStarted); ok {
+			message := messages.GameStarted{
+				PlayerTimeOut:  event.Room.PlayerTimeOut(),
+				GameParameters: event.GameParameters,
+			}
 
-		if len(room.HumanClients()) == 0 {
-			h.destroyRoom(room.ID(), interfaces.ReasonRoomDestroyedNoClients)
-		}
-		wg.Add(1)
-		go h.sendMessage(client, message, interfaces.TypeMessageClientOut)
-	})
+			wg.Add(len(event.Room.Clients()))
+			for _, cl := range event.Room.Clients() {
+				go h.sendMessage(cl, message, messages.TypeGameStarted)
+			}
 
-	h.observer.On(events.ClientJoined, func(args ...interface{}) {
-		client := args[0].(interfaces.Client)
-		clientNumber := args[1].(int)
-		owner := args[2].(bool)
-
-		message := messages.New(interfaces.TypeMessageJoinedRoom, clientNumber, client.Room().ID(), owner)
-
-		wg.Add(1)
-		go h.sendMessage(client, message, interfaces.TypeMessageJoinedRoom)
-	})
-
-	h.observer.On(events.ClientsUpdated, func(args ...interface{}) {
-		clients := args[0].([]interfaces.Client)
-		playersData := args[1].(map[string]interfaces.PlayerData)
-
-		message := messages.New(interfaces.TypeMessageCurrentPlayers, playersData)
-
-		wg.Add(len(clients))
-		for _, cl := range clients {
-			go h.sendMessage(cl, message, interfaces.TypeMessageCurrentPlayers)
 		}
 	})
 
-	h.observer.On(events.Error, func(args ...interface{}) {
-		client := args[0].(interfaces.Client)
-		errorText := args[1]
-		errorMessage := messages.New(interfaces.TypeMessageError, errorText)
+	h.observer.On(events.GameStatusUpdated{}, func(ev interface{}) {
+		if event, ok := ev.(events.GameStatusUpdated); ok {
+			wg.Add(1)
+			go h.sendMessage(event.Client, event.Message, messages.TypeUpdateGameStatus, event.SequenceNumber)
+		}
+	})
 
-		wg.Add(1)
-		go h.sendMessage(client, errorMessage, interfaces.TypeMessageError)
+	h.observer.On(events.RoomCreated{}, func(ev interface{}) {
+		if event, ok := ev.(events.RoomCreated); ok {
+			gameClients := h.clients[event.Room.GameDriverName()]
+			wg.Add(len(gameClients))
+			for _, cl := range gameClients {
+				go h.sendMessage(cl, h.createUpdatedRoomListMessage(), messages.TypeRoomsList)
+			}
+		}
+	})
+
+	h.observer.On(events.RoomDestroyed{}, func(ev interface{}) {
+		if event, ok := ev.(events.RoomDestroyed); ok {
+			gameClients := h.clients[event.GameName]
+			wg.Add(len(gameClients))
+			for _, cl := range gameClients {
+				go h.sendMessage(cl, h.createUpdatedRoomListMessage(), messages.TypeRoomsList)
+			}
+		}
+	})
+
+	h.observer.On(events.ClientRegistered{}, func(ev interface{}) {
+		if event, ok := ev.(events.ClientRegistered); ok {
+			wg.Add(1)
+			go h.sendMessage(event.Client, h.createUpdatedRoomListMessage(), messages.TypeRoomsList)
+		}
+	})
+
+	h.observer.On(events.ClientUnregistered{}, func(ev interface{}) {
+		if event, ok := ev.(events.ClientUnregistered); ok {
+			var room interfaces.Room
+			if room = event.Client.Room(); room == nil {
+				return
+			}
+
+			room.RemoveClient(event.Client)
+			if len(room.HumanClients()) == 0 && !room.IsToBeDestroyed() {
+				h.destroyRoom(room.ID(), messages.ReasonRoomDestroyedNoClients)
+			}
+		}
+	})
+
+	h.observer.On(events.ClientOut{}, func(ev interface{}) {
+		if event, ok := ev.(events.ClientOut); ok {
+			message := messages.ClientOut{
+				Reason: event.Reason,
+			}
+
+			if len(event.Room.HumanClients()) == 0 && !event.Room.IsToBeDestroyed() {
+				h.destroyRoom(event.Room.ID(), messages.ReasonRoomDestroyedNoClients)
+			}
+			wg.Add(1)
+			go h.sendMessage(event.Client, message, messages.TypeClientOut)
+		}
+	})
+
+	h.observer.On(events.ClientJoined{}, func(ev interface{}) {
+		if event, ok := ev.(events.ClientJoined); ok {
+			message := messages.JoinedRoom{
+				ClientNumber: event.ClientNumber,
+				ID:           event.Client.Room().ID(),
+				Owner:        event.Owner,
+			}
+
+			wg.Add(1)
+			go h.sendMessage(event.Client, message, messages.TypeJoinedRoom)
+		}
+	})
+
+	h.observer.On(events.ClientsUpdated{}, func(ev interface{}) {
+		if event, ok := ev.(events.ClientsUpdated); ok {
+			message := messages.CurrentPlayers{
+				Values: event.PlayersData,
+			}
+
+			wg.Add(len(event.Clients))
+			for _, cl := range event.Clients {
+				go h.sendMessage(cl, message, messages.TypeCurrentPlayers)
+			}
+		}
+	})
+
+	h.observer.On(events.Error{}, func(ev interface{}) {
+		if event, ok := ev.(events.Error); ok {
+			message := messages.Error{
+				Description: event.ErrorText,
+			}
+
+			wg.Add(1)
+			go h.sendMessage(event.Client, message, messages.TypeError)
+		}
 	})
 }

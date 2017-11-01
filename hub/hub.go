@@ -27,7 +27,7 @@ var (
 // players and more.
 type Hub struct {
 	// Registered clients
-	clients []interfaces.Client
+	clients map[string][]interfaces.Client
 
 	rooms map[string]interfaces.Room
 
@@ -57,7 +57,7 @@ func New(cfg *config.Config, obs interfaces.Observer) *Hub {
 		Messages:      make(chan *interfaces.IncomingMessage),
 		Register:      make(chan interfaces.Client),
 		Unregister:    make(chan interfaces.Client),
-		clients:       []interfaces.Client{},
+		clients:       map[string][]interfaces.Client{},
 		rooms:         make(map[string]interfaces.Room),
 		configuration: cfg,
 		observer:      obs,
@@ -75,20 +75,20 @@ func (h *Hub) Run() {
 
 		case cl := <-h.Register:
 			mutex.Lock()
-			h.clients = append(h.clients, cl)
+			h.clients[cl.Game()] = append(h.clients[cl.Game()], cl)
 			mutex.Unlock()
-			cl.SetName(fmt.Sprintf("Player %d", h.NumberClients()))
-			h.observer.Trigger(events.ClientRegistered, cl)
+			cl.SetName(fmt.Sprintf("Player %d", h.NumberClients(cl.Game())))
+			h.observer.Trigger(events.ClientRegistered{Client: cl})
+
 			if h.configuration.Debug {
-				log.Printf("Client added to hub, number of connected clients: %d\n", len(h.clients))
+				log.Printf("Client added to hub using game '%s', number of connected clients: %d\n", cl.Game(), len(h.clients))
 			}
 
 		case cl := <-h.Unregister:
-			for _, val := range h.clients {
+			for _, val := range h.clients[cl.Game()] {
 				if val == cl {
 					wg.Wait()
 					h.removeClient(cl)
-					h.observer.Trigger(events.ClientUnregistered, cl)
 					break
 				}
 			}
@@ -112,11 +112,11 @@ func (h *Hub) parseMessage(m *interfaces.IncomingMessage) {
 }
 
 func (h *Hub) isControlMessage(m *interfaces.IncomingMessage) bool {
-	switch m.Content.Type {
+	switch m.Type {
 	case
-		interfaces.ControlMessageTypeCreateRoom,
-		interfaces.ControlMessageTypeJoinRoom,
-		interfaces.ControlMessageTypeTerminateRoom:
+		messages.TypeCreateRoom,
+		messages.TypeJoinRoom,
+		messages.TypeTerminateRoom:
 		return true
 	}
 	return false
@@ -124,26 +124,26 @@ func (h *Hub) isControlMessage(m *interfaces.IncomingMessage) bool {
 
 func (h *Hub) parseControlMessage(m *interfaces.IncomingMessage) {
 	var err error
-	switch m.Content.Type {
+	switch m.Type {
 
-	case interfaces.ControlMessageTypeCreateRoom:
+	case messages.TypeCreateRoom:
 		err = h.createRoomAction(m)
 
-	case interfaces.ControlMessageTypeJoinRoom:
+	case messages.TypeJoinRoom:
 		err = h.joinRoomAction(m)
 
-	case interfaces.ControlMessageTypeTerminateRoom:
+	case messages.TypeTerminateRoom:
 		err = h.terminateRoomAction(m)
 	}
 
 	if err != nil {
-		h.observer.Trigger(events.Error, m.Author, err.Error())
+		h.observer.Trigger(events.Error{Client: m.Author, ErrorText: err.Error()})
 	}
 }
 
 func (h *Hub) passMessageToRoom(m *interfaces.IncomingMessage) {
 	if m.Author.Room() == nil {
-		h.observer.Trigger(events.Error, m.Author, NotInARoom)
+		h.observer.Trigger(events.Error{Client: m.Author, ErrorText: NotInARoom})
 		return
 	}
 
@@ -151,7 +151,7 @@ func (h *Hub) passMessageToRoom(m *interfaces.IncomingMessage) {
 		if rc := recover(); rc != nil {
 			fmt.Printf("Panic in room '%s': %s\n", m.Author.Room().ID(), rc)
 			debug.PrintStack()
-			go h.destroyRoom(m.Author.Room().ID(), interfaces.ReasonRoomDestroyedGamePanicked)
+			go h.destroyRoom(m.Author.Room().ID(), messages.ReasonRoomDestroyedGamePanicked)
 		}
 	}()
 
@@ -159,32 +159,31 @@ func (h *Hub) passMessageToRoom(m *interfaces.IncomingMessage) {
 }
 
 // Removes a client from the hub and also from a room if it's in one
-func (h *Hub) removeClient(c interfaces.Client) {
-	mutex.Lock()
-	defer mutex.Unlock()
-	for i := range h.clients {
-		if h.clients[i] == c {
-			if c.Room() != nil {
-				r := c.Room()
-				r.RemoveClient(c)
-			}
-			h.clients = append(h.clients[:i], h.clients[i+1:]...)
+func (h *Hub) removeClient(cl interfaces.Client) {
+	for i := range h.clients[cl.Game()] {
+		if h.clients[cl.Game()][i] == cl {
+			mutex.Lock()
+			h.clients[cl.Game()] = append(h.clients[cl.Game()][:i], h.clients[cl.Game()][i+1:]...)
+			mutex.Unlock()
+			h.observer.Trigger(events.ClientUnregistered{Client: cl})
 			if h.configuration.Debug {
-				log.Printf("Client removed from hub, number of clients left: %d\n", len(h.clients))
+				log.Printf("Client removed from hub, number of clients left: %d\n", len(h.clients[cl.Game()]))
 			}
-			c.Close()
+			cl.Close()
 			return
 		}
 	}
 }
 
 // NumberClients returns the number of connected clients
-func (h *Hub) NumberClients() int {
-	return len(h.clients)
+func (h *Hub) NumberClients(game string) int {
+	return len(h.clients[game])
 }
 
 func (h *Hub) createUpdatedRoomListMessage() interface{} {
-	return messages.New(interfaces.TypeMessageRoomsList, h.getWaitingRoomsIds())
+	return messages.RoomsList{
+		Values: h.getWaitingRoomsIds(),
+	}
 }
 
 // Return a list of all rooms IDs which haven't started a game

@@ -9,6 +9,7 @@ import (
 	"github.com/svera/sackson-server/config"
 	"github.com/svera/sackson-server/events"
 	"github.com/svera/sackson-server/interfaces"
+	"github.com/svera/sackson-server/messages"
 )
 
 var (
@@ -49,11 +50,14 @@ type Room struct {
 	clientCounter int
 
 	updateSequenceNumber int
+
+	toBeDestroyed bool
 }
 
 // New returns a new Room instance
 func New(
-	id string, b interfaces.Driver,
+	id string,
+	g interfaces.Driver,
 	owner interfaces.Client,
 	messages chan *interfaces.IncomingMessage,
 	unregister chan interfaces.Client,
@@ -63,7 +67,7 @@ func New(
 	return &Room{
 		id:                   id,
 		clients:              map[int]interfaces.Client{},
-		gameDriver:           b,
+		gameDriver:           g,
 		owner:                owner,
 		messages:             messages,
 		unregister:           unregister,
@@ -72,6 +76,7 @@ func New(
 		configuration:        cfg,
 		clientCounter:        0,
 		updateSequenceNumber: 0,
+		toBeDestroyed:        false,
 	}
 }
 
@@ -81,20 +86,20 @@ func (r *Room) Parse(m *interfaces.IncomingMessage) {
 	if r.isControlMessage(m) {
 		r.parseControlMessage(m)
 	} else if r.gameDriver.IsGameOver() {
-		r.observer.Trigger(events.Error, m.Author, GameOver)
+		r.observer.Trigger(events.Error{Client: m.Author, ErrorText: GameOver})
 	} else {
 		r.passMessageToGame(m)
 	}
 }
 
 func (r *Room) isControlMessage(m *interfaces.IncomingMessage) bool {
-	switch m.Content.Type {
+	switch m.Type {
 	case
-		interfaces.ControlMessageTypeAddBot,
-		interfaces.ControlMessageTypeStartGame,
-		interfaces.ControlMessageTypeKickPlayer,
-		interfaces.ControlMessageTypePlayerQuits,
-		interfaces.ControlMessageTypeSetClientData:
+		messages.TypeAddBot,
+		messages.TypeStartGame,
+		messages.TypeKickPlayer,
+		messages.TypePlayerQuits,
+		messages.TypeSetClientData:
 		return true
 	}
 	return false
@@ -102,26 +107,26 @@ func (r *Room) isControlMessage(m *interfaces.IncomingMessage) bool {
 
 func (r *Room) parseControlMessage(m *interfaces.IncomingMessage) {
 	var err error
-	switch m.Content.Type {
+	switch m.Type {
 
-	case interfaces.ControlMessageTypeStartGame:
+	case messages.TypeStartGame:
 		err = r.startGameAction(m)
 
-	case interfaces.ControlMessageTypeAddBot:
+	case messages.TypeAddBot:
 		err = r.addBotAction(m)
 
-	case interfaces.ControlMessageTypeKickPlayer:
+	case messages.TypeKickPlayer:
 		err = r.kickPlayerAction(m)
 
-	case interfaces.ControlMessageTypePlayerQuits:
+	case messages.TypePlayerQuits:
 		err = r.clientQuits(m.Author)
 
-	case interfaces.ControlMessageTypeSetClientData:
+	case messages.TypeSetClientData:
 		err = r.setClientDataAction(m)
 	}
 
 	if err != nil {
-		r.observer.Trigger(events.Error, m.Author, err.Error())
+		r.observer.Trigger(events.Error{Client: m.Author, ErrorText: err.Error()})
 	}
 }
 
@@ -130,20 +135,20 @@ func (r *Room) passMessageToGame(m *interfaces.IncomingMessage) {
 	var st interface{}
 
 	if r.messageAuthorIsInTurn(m) {
-		if err = r.gameDriver.Execute(m.Author.Name(), m.Content.Type, m.Content.Params); err == nil {
+		if err = r.gameDriver.Execute(m.Author.Name(), m.Type, m.Content); err == nil {
 			r.updateSequenceNumber++
 			for n, cl := range r.clients {
 				if cl.IsBot() && r.IsGameOver() {
 					continue
 				}
 				st, _ = r.gameDriver.Status(n)
-				r.observer.Trigger(events.GameStatusUpdated, cl, st, r.updateSequenceNumber)
+				r.observer.Trigger(events.GameStatusUpdated{Client: cl, Message: st, SequenceNumber: r.updateSequenceNumber})
 			}
 			if r.turnMovedToNewPlayers() {
 				r.changeClientsInTurn()
 			}
 		} else {
-			r.observer.Trigger(events.Error, m.Author, err.Error())
+			r.observer.Trigger(events.Error{Client: m.Author, ErrorText: err.Error()})
 		}
 	}
 }
@@ -188,10 +193,10 @@ func (r *Room) startClientsInTurnTimers() {
 	}
 }
 
-func (r *Room) playersData() map[string]interfaces.PlayerData {
-	players := make(map[string]interfaces.PlayerData, len(r.clients))
+func (r *Room) playersData() map[string]messages.PlayerData {
+	players := make(map[string]messages.PlayerData, len(r.clients))
 	for n, c := range r.clients {
-		players[strconv.Itoa(n)] = interfaces.PlayerData{
+		players[strconv.Itoa(n)] = messages.PlayerData{
 			Name: c.Name(),
 		}
 	}
@@ -217,7 +222,7 @@ func (r *Room) AddHuman(cl interfaces.Client) error {
 		if r.configuration.Debug {
 			log.Printf("Client '%s' added to room", cl.Name())
 		}
-		r.observer.Trigger(events.ClientJoined, cl, clientNumber, cl == r.owner)
+		r.observer.Trigger(events.ClientJoined{Client: cl, ClientNumber: clientNumber, Owner: cl == r.owner})
 	}
 	return err
 }
@@ -233,7 +238,7 @@ func (r *Room) addClient(c interfaces.Client) (int, error) {
 		r.owner = c
 	}
 	c.SetRoom(r)
-	r.observer.Trigger(events.ClientsUpdated, mapToSlice(r.clients), r.playersData())
+	r.observer.Trigger(events.ClientsUpdated{Clients: mapToSlice(r.clients), PlayersData: r.playersData()})
 
 	return newClientNumber, nil
 }
@@ -257,7 +262,7 @@ func (r *Room) RemoveClient(c interfaces.Client) {
 			if r.gameDriver.GameStarted() && !r.gameDriver.IsGameOver() {
 				r.removePlayer(i)
 			} else {
-				r.observer.Trigger(events.ClientsUpdated, r.HumanClients(), r.playersData())
+				r.observer.Trigger(events.ClientsUpdated{Clients: r.HumanClients(), PlayersData: r.playersData()})
 			}
 
 			return
@@ -277,7 +282,7 @@ func (r *Room) removePlayer(playerNumber int) {
 	r.updateSequenceNumber++
 	for i, cl := range r.clients {
 		st, _ := r.gameDriver.Status(i)
-		r.observer.Trigger(events.GameStatusUpdated, cl, st, r.updateSequenceNumber)
+		r.observer.Trigger(events.GameStatusUpdated{Client: cl, Message: st, SequenceNumber: r.updateSequenceNumber})
 	}
 }
 
@@ -337,4 +342,24 @@ func mapToSlice(in map[int]interfaces.Client) []interfaces.Client {
 		out = append(out, cl)
 	}
 	return out
+}
+
+// IsToBeDestroyed returns true if the room has been marked to be destroyed, false otherwise
+func (r *Room) IsToBeDestroyed() bool {
+	return r.toBeDestroyed
+}
+
+// ToBeDestroyed sets wether a room has to be destroyed or not
+func (r *Room) ToBeDestroyed(value bool) {
+	r.toBeDestroyed = value
+}
+
+// GameDriverName returns the name of the game driver being used by the room
+func (r *Room) GameDriverName() string {
+	return r.gameDriver.Name()
+}
+
+// PlayerTimeOut returns the allowed time per turn for every player
+func (r *Room) PlayerTimeOut() time.Duration {
+	return r.playerTimeOut
 }
