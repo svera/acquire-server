@@ -8,6 +8,7 @@ import (
 	"github.com/svera/sackson-server/config"
 	"github.com/svera/sackson-server/events"
 	"github.com/svera/sackson-server/interfaces"
+	"github.com/svera/sackson-server/messages"
 	"github.com/svera/sackson-server/mocks"
 	"github.com/svera/sackson-server/observer"
 )
@@ -38,11 +39,9 @@ func TestStartGame(t *testing.T) {
 
 	data := []byte(`{"pto": 0}`)
 	m := &interfaces.IncomingMessage{
-		Author: c,
-		Content: interfaces.IncomingMessageContent{
-			Type:   interfaces.ControlMessageTypeStartGame,
-			Params: (json.RawMessage)(data),
-		},
+		Author:  c,
+		Type:    messages.TypeStartGame,
+		Content: (json.RawMessage)(data),
 	}
 	r.clients[0] = c
 	r.Parse(m)
@@ -57,11 +56,9 @@ func TestAddBot(t *testing.T) {
 
 	data := []byte(`{"lvl": "chaotic"}`)
 	m := &interfaces.IncomingMessage{
-		Author: c,
-		Content: interfaces.IncomingMessageContent{
-			Type:   interfaces.ControlMessageTypeAddBot,
-			Params: (json.RawMessage)(data),
-		},
+		Author:  c,
+		Type:    messages.TypeAddBot,
+		Content: (json.RawMessage)(data),
 	}
 	r.Parse(m)
 
@@ -77,11 +74,9 @@ func TestKickPlayer(t *testing.T) {
 	toBeKicked := &mocks.Client{FakeIncoming: make(chan []byte, 2)}
 
 	m := &interfaces.IncomingMessage{
-		Author: c,
-		Content: interfaces.IncomingMessageContent{
-			Type:   interfaces.ControlMessageTypeKickPlayer,
-			Params: (json.RawMessage)(data),
-		},
+		Author:  c,
+		Type:    messages.TypeKickPlayer,
+		Content: (json.RawMessage)(data),
 	}
 
 	r.clients[0] = toBeKicked
@@ -98,11 +93,9 @@ func TestKickOwnerNotAllowed(t *testing.T) {
 	data := []byte(`{"ply": 0}`)
 
 	m := &interfaces.IncomingMessage{
-		Author: c,
-		Content: interfaces.IncomingMessageContent{
-			Type:   interfaces.ControlMessageTypeKickPlayer,
-			Params: (json.RawMessage)(data),
-		},
+		Author:  c,
+		Type:    messages.TypeKickPlayer,
+		Content: (json.RawMessage)(data),
 	}
 
 	r.clients[0] = c
@@ -119,9 +112,7 @@ func TestPlayerQuits(t *testing.T) {
 
 	m := &interfaces.IncomingMessage{
 		Author: c,
-		Content: interfaces.IncomingMessageContent{
-			Type: interfaces.ControlMessageTypePlayerQuits,
-		},
+		Type:   messages.TypePlayerQuits,
 	}
 
 	r.clients[0] = c

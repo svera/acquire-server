@@ -1,6 +1,6 @@
-package interfaces
+package messages
 
-// ControlMessageTypeCreateRoom defines the value that create room
+// TypeCreateRoom defines the value that create room
 // messages must have in the Type field.
 //
 // A MessageJoinedRoom message is sent to the client when the room is create.
@@ -10,14 +10,21 @@ package interfaces
 // The following is a CreateRoom message example:
 //   {
 //     "typ": "cre",
-//     "par": {
+//     "cnt": {
 //       "drv": "acquire"
 //       "nam": "Sergio" // Name of its creator / owner
 //     }
 //   }
-const ControlMessageTypeCreateRoom = "cre"
+const TypeCreateRoom = "cre"
 
-// ControlMessageTypeJoinRoom defines the value that join room
+// CreateRoom defines the needed parameters for a create room
+// message.
+type CreateRoom struct {
+	DriverName string `json:"drv"`
+	ClientName string `json:"nam"`
+}
+
+// TypeJoinRoom defines the value that join room
 // messages must have in the Type field.
 //
 // A MessageJoinedRoom message is sent to the client if he/she joins.
@@ -27,14 +34,20 @@ const ControlMessageTypeCreateRoom = "cre"
 // The following is a JoinRoom message example:
 //   {
 //     "typ": "joi",
-//     "par": {
+//     "cnt": {
 //       "rom": "VWXYZ"
 //       "nam": "Miguel"
 //     }
 //   }
-const ControlMessageTypeJoinRoom = "joi"
+const TypeJoinRoom = "joi"
 
-// ControlMessageTypeTerminateRoom defines the value that terminate room
+// JoinRoom defines the needed parameters for a join room message.
+type JoinRoom struct {
+	Room       string `json:"rom"`
+	ClientName string `json:"nam"`
+}
+
+// TypeTerminateRoom defines the value that terminate room
 // messages must have in the Type field.
 //
 // Can only be issued by the room's owner
@@ -46,19 +59,6 @@ const ControlMessageTypeJoinRoom = "joi"
 // The following is a TerminateRoom message example:
 //   {
 //     "typ": "ter",
-//     "par": {} // No params needed
+//     "cnt": {} // No content needed
 //   }
-const ControlMessageTypeTerminateRoom = "ter"
-
-// MessageCreateRoomParams defines the needed parameters for a create room
-// message.
-type MessageCreateRoomParams struct {
-	DriverName string `json:"drv"`
-	ClientName string `json:"nam"`
-}
-
-// MessageJoinRoomParams defines the needed parameters for a join room message.
-type MessageJoinRoomParams struct {
-	Room       string `json:"rom"`
-	ClientName string `json:"nam"`
-}
+const TypeTerminateRoom = "ter"

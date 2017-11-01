@@ -6,6 +6,7 @@ import (
 
 	"github.com/svera/sackson-server/events"
 	"github.com/svera/sackson-server/interfaces"
+	"github.com/svera/sackson-server/messages"
 )
 
 func (h *Hub) terminateRoomAction(m *interfaces.IncomingMessage) error {
@@ -15,7 +16,7 @@ func (h *Hub) terminateRoomAction(m *interfaces.IncomingMessage) error {
 	if m.Author != m.Author.Room().Owner() {
 		return errors.New(Forbidden)
 	}
-	h.destroyRoom(m.Author.Room().ID(), interfaces.ReasonRoomDestroyedTerminated)
+	h.destroyRoom(m.Author.Room().ID(), messages.ReasonRoomDestroyedTerminated)
 	return nil
 }
 

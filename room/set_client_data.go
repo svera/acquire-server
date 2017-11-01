@@ -5,13 +5,14 @@ import (
 
 	"github.com/svera/sackson-server/events"
 	"github.com/svera/sackson-server/interfaces"
+	"github.com/svera/sackson-server/messages"
 )
 
 func (r *Room) setClientDataAction(m *interfaces.IncomingMessage) error {
-	var parsed interfaces.MessageSetClientDataParams
+	var parsed messages.SetClientDataParams
 	var err error
 
-	if err = json.Unmarshal(m.Content.Params, &parsed); err != nil {
+	if err = json.Unmarshal(m.Content, &parsed); err != nil {
 		return err
 	}
 	m.Author.SetName(parsed.Name)

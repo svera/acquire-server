@@ -24,7 +24,7 @@ On the other hand, outgoing messages are sent to one or multiple clients to comm
 
 These messages describe server-wide operations, basically game room creation/destroying.
 
-You can check them out at [interfaces/incoming_messages_hub.go](interfaces/incoming_messages_hub.go).
+You can check them out at [interfaces/incoming_messages_hub.go](messages/incoming_hub.go).
 
 #### Room level messages
 
@@ -32,7 +32,7 @@ The following are the actions that can be executed in a room, and therefore the 
 Note that room level messages do not need to specify a room ID because a player
 can only be in one room at a time, and the system tracks it.
 
-You can check them out at [interfaces/incoming_messages_room.go](interfaces/incoming_messages_room.go).
+You can check them out at [interfaces/incoming_messages_room.go](messages/incoming_room.go).
 
 #### Game level messages
 

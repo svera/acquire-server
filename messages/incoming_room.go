@@ -1,11 +1,11 @@
-package interfaces
+package messages
 
 import (
 	"encoding/json"
 	"time"
 )
 
-// ControlMessageTypeStartGame defines the value that start game
+// TypeStartGame defines the value that start game
 // messages must have in the Type field.
 //
 // Can only be issued by the room's owner
@@ -16,16 +16,23 @@ import (
 // The following is a StartGame message example:
 //   {
 //     "typ": "ini",
-//     "par": {
+//     "cnt": {
 //       "pto": 15,
 //       "gpa": {
 //         ···
 //       }
 //     }
 //   }
-const ControlMessageTypeStartGame = "ini"
+const TypeStartGame = "ini"
 
-// ControlMessageTypeAddBot defines the value that add bot
+// StartGame defines the needed parameters for a start game
+// message.
+type StartGame struct {
+	PlayerTimeout  time.Duration   `json:"pto"`
+	GameParameters json.RawMessage `json:"gpa"`
+}
+
+// TypeAddBot defines the value that add bot
 // messages must have in the Type field.
 //
 // Can only be issued by the room's owner
@@ -35,13 +42,19 @@ const ControlMessageTypeStartGame = "ini"
 // The following is an AddBot message example:
 //   {
 //     "typ": "bot",
-//     "par": {
+//     "cnt": {
 //       "lvl": "chaotic"
 //     }
 //   }
-const ControlMessageTypeAddBot = "bot"
+const TypeAddBot = "bot"
 
-// ControlMessageTypeKickPlayer defines the value that kick player
+// AddBot defines the needed parameters for a add bot
+// message.
+type AddBot struct {
+	BotLevel string `json:"lvl"`
+}
+
+// TypeKickPlayer defines the value that kick player
 // messages must have in the Type field.
 //
 // Can only be issued by the room's owner
@@ -51,13 +64,19 @@ const ControlMessageTypeAddBot = "bot"
 // The following is a KickPlayer message example:
 //   {
 //     "typ": "kck",
-//     "par": {
+//     "cnt": {
 //       "ply": 2
 //     }
 //   }
-const ControlMessageTypeKickPlayer = "kck"
+const TypeKickPlayer = "kck"
 
-// ControlMessageTypePlayerQuits defines the value that quit room
+// KickPlayer defines the needed parameters for a kick player
+// message.
+type KickPlayer struct {
+	PlayerNumber int `json:"ply"`
+}
+
+// TypePlayerQuits defines the value that quit room
 // messages must have in the Type field.
 //
 // A MessageClientOut is sent to the client when he/she quits.
@@ -65,43 +84,24 @@ const ControlMessageTypeKickPlayer = "kck"
 // The following is a PlayerQuits message example:
 //   {
 //     "typ": "qui",
-//     "par": {} // No params needed
+//     "cnt": {} // No params needed
 //   }
-const ControlMessageTypePlayerQuits = "qui"
+const TypePlayerQuits = "qui"
 
-// ControlMessageTypeSetClientData defines the value that set client data
+// TypeSetClientData defines the value that set client data
 // messages must have in the Type field.
 //
 // The following is a SetClientData message example:
 //   {
 //     "typ": "scd",
-//     "par": {
+//     "cnt": {
 //       "nam": "Sergio"
 //     }
 //   }
-const ControlMessageTypeSetClientData = "scd"
+const TypeSetClientData = "scd"
 
-// MessageKickPlayerParams defines the needed parameters for a kick player
+// SetClientDataParams defines the needed parameters for a set client data
 // message.
-type MessageKickPlayerParams struct {
-	PlayerNumber int `json:"ply"`
-}
-
-// MessageAddBotParams defines the needed parameters for a add bot
-// message.
-type MessageAddBotParams struct {
-	BotLevel string `json:"lvl"`
-}
-
-// MessageStartGameParams defines the needed parameters for a start game
-// message.
-type MessageStartGameParams struct {
-	PlayerTimeout  time.Duration   `json:"pto"`
-	GameParameters json.RawMessage `json:"gpa"`
-}
-
-// MessageSetClientDataParams defines the needed parameters for a set client data
-// message.
-type MessageSetClientDataParams struct {
+type SetClientDataParams struct {
 	Name string `json:"nam"`
 }

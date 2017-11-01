@@ -56,11 +56,9 @@ func (c *BotClient) ReadPump(cnl interface{}, unregister chan interfaces.Client)
 		case <-c.botTurn:
 			msgType, content := c.ai.Play()
 			msg := &interfaces.IncomingMessage{
-				Author: c,
-				Content: interfaces.IncomingMessageContent{
-					Type:   msgType,
-					Params: content,
-				},
+				Author:  c,
+				Type:    msgType,
+				Content: content,
 			}
 			channel <- msg
 		}

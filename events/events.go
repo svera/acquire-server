@@ -1,7 +1,11 @@
 package events
 
-import "github.com/svera/sackson-server/interfaces"
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/svera/sackson-server/interfaces"
+	"github.com/svera/sackson-server/messages"
+)
 
 // GameStarted is an event triggered when a game starts
 type GameStarted struct {
@@ -36,7 +40,7 @@ type ClientJoined struct {
 // ClientsUpdated is an event triggered when a client joins/lefts a room
 type ClientsUpdated struct {
 	Clients     []interfaces.Client
-	PlayersData map[string]interfaces.PlayerData
+	PlayersData map[string]messages.PlayerData
 }
 
 // GameStatusUpdated is an event triggered when a game driver sends updates its state
