@@ -315,8 +315,6 @@ func (r *Room) Clients() map[int]interfaces.Client {
 
 // HumanClients returns room's connected human clients
 func (r *Room) HumanClients() []interfaces.Client {
-	//mutex.Lock()
-	//defer mutex.Unlock()
 	human := []interfaces.Client{}
 	for _, c := range r.clients {
 		if !c.IsBot() {

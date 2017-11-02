@@ -156,21 +156,22 @@ func TestJoinRoom(t *testing.T) {
 	}
 }
 
-/*
-func ExampleRecoveredGameDriverPanic() {
+func ExampleHubRecoversFromRoomPanic() {
 	h, c := setup()
+	const roomID = "test"
 
-	h.createRoom(b, c)
-	b.FakeExecute = func(clientName string, t string, content json.RawMessage) error {
-		panic("A panic")
-	}
+	room := getRoomMock(roomID)
+	h.rooms[roomID] = room
+	c.SetRoom(room)
 
 	m := &interfaces.IncomingMessage{
-		Author: c,
-		Content: interfaces.IncomingMessageContent{
-			Type: interfaces.ControlMessageTypeAddBot,
-		},
+		Author:  c,
+		Type:    "whatever",
+		Content: json.RawMessage{},
 	}
+
+	go h.Run()
+	h.Register <- c
 
 	h.Messages <- m
 
@@ -178,26 +179,16 @@ func ExampleRecoveredGameDriverPanic() {
 	// Panic in room 'test': A panic
 }
 
-func TestUnregisterWhenDestroyingRoom(t *testing.T) {
-	h, c := setup()
-	go h.Run()
-
-	go c.WritePump()
-	h.Register <- c
-	time.Sleep(time.Millisecond * 100)
-	h.createRoom(b, c)
-	time.Sleep(time.Millisecond * 100)
-	m := &interfaces.IncomingMessage{
-		Author: c,
-		Content: interfaces.IncomingMessageContent{
-			Type:   interfaces.ControlMessageTypeTerminateRoom,
-			Params: json.RawMessage{},
+func getRoomMock(roomID string) interfaces.Room {
+	return &mocks.Room{
+		FakeGameStarted: func() bool {
+			return false
+		},
+		FakeID: func() string {
+			return roomID
+		},
+		FakeParse: func(m *interfaces.IncomingMessage) {
+			panic("A panic")
 		},
 	}
-	go func() {
-		h.Messages <- m
-	}()
-	h.Unregister <- c
-	time.Sleep(time.Millisecond * 100)
 }
-*/

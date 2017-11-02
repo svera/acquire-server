@@ -154,7 +154,6 @@ func (h *Hub) passMessageToRoom(m *interfaces.IncomingMessage) {
 			go h.destroyRoom(m.Author.Room().ID(), messages.ReasonRoomDestroyedGamePanicked)
 		}
 	}()
-
 	m.Author.Room().Parse(m)
 }
 
