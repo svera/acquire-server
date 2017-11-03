@@ -163,7 +163,7 @@ func (r *Room) messageAuthorIsInTurn(m *interfaces.IncomingMessage) bool {
 }
 
 func (r *Room) turnMovedToNewPlayers() bool {
-	gameCurrentPlayersClients, _ := r.gameCurrentPlayersClients()
+	gameCurrentPlayersClients, _ := r.GameCurrentPlayersClients()
 
 	if len(gameCurrentPlayersClients) != len(r.clientsInTurn) {
 		return true
@@ -181,7 +181,7 @@ func (r *Room) changeClientsInTurn() {
 	for _, cl := range r.clientsInTurn {
 		cl.StopTimer()
 	}
-	r.clientsInTurn, _ = r.gameCurrentPlayersClients()
+	r.clientsInTurn, _ = r.GameCurrentPlayersClients()
 	r.startClientsInTurnTimers()
 }
 
@@ -203,7 +203,7 @@ func (r *Room) playersData() map[string]messages.PlayerData {
 	return players
 }
 
-func (r *Room) gameCurrentPlayersClients() ([]interfaces.Client, error) {
+func (r *Room) GameCurrentPlayersClients() ([]interfaces.Client, error) {
 	currentPlayerClients := []interfaces.Client{}
 	numbers, err := r.gameDriver.CurrentPlayersNumbers()
 	for _, n := range numbers {
@@ -315,8 +315,6 @@ func (r *Room) Clients() map[int]interfaces.Client {
 
 // HumanClients returns room's connected human clients
 func (r *Room) HumanClients() []interfaces.Client {
-	//mutex.Lock()
-	//defer mutex.Unlock()
 	human := []interfaces.Client{}
 	for _, c := range r.clients {
 		if !c.IsBot() {

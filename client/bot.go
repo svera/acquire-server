@@ -2,6 +2,7 @@ package client
 
 import (
 	"encoding/json"
+	"log"
 	"sort"
 	"time"
 
@@ -96,17 +97,26 @@ func (c *BotClient) WritePump() {
 }
 
 func (c *BotClient) feedPendingUpdatesInOrder() {
-	var err error
-
 	for _, seq := range c.getSortedUpdatesBufferKeys() {
-		if err = c.ai.FeedGameStatus(c.updatesBuffer[seq]); err == nil {
-			if c.ai.IsInTurn() {
-				c.botTurn <- struct{}{}
-			}
-		}
+		c.ai.FeedGameStatus(c.updatesBuffer[seq])
 		delete(c.updatesBuffer, seq)
 		c.expectedSeq = seq + 1
 	}
+	if c.isInTurn() {
+		log.Printf("%s is in turn\n", c.Name())
+		c.botTurn <- struct{}{}
+	}
+}
+
+func (c *BotClient) isInTurn() bool {
+	if currentPlayers, err := c.Room().GameCurrentPlayersClients(); err == nil {
+		for _, clientInTurn := range currentPlayers {
+			if clientInTurn == c {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // Incoming returns bot's incoming channel

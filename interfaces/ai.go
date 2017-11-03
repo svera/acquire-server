@@ -6,6 +6,5 @@ import "encoding/json"
 // to implement an Artificial Intelligence
 type AI interface {
 	FeedGameStatus(json.RawMessage) error
-	IsInTurn() bool
 	Play() (string, json.RawMessage)
 }
