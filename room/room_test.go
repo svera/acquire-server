@@ -5,17 +5,18 @@ import (
 
 	"encoding/json"
 
+	"github.com/svera/sackson-server/client"
 	"github.com/svera/sackson-server/config"
+	"github.com/svera/sackson-server/drivers"
 	"github.com/svera/sackson-server/events"
 	"github.com/svera/sackson-server/interfaces"
 	"github.com/svera/sackson-server/messages"
-	"github.com/svera/sackson-server/mocks"
 	"github.com/svera/sackson-server/observer"
 )
 
 var gamePanickedTriggered int
 
-func setup() (c interfaces.Client, b *mocks.Driver, r *Room) {
+func setup() (c interfaces.Client, b *drivers.Mock, r *Room) {
 	obs := observer.New()
 	obs.On(events.GameStarted{}, func(interface{}) {})
 	obs.On(events.ClientOut{}, func(interface{}) {})
@@ -24,11 +25,8 @@ func setup() (c interfaces.Client, b *mocks.Driver, r *Room) {
 	obs.On(events.ClientsUpdated{}, func(interface{}) {})
 	obs.On(events.Error{}, func(interface{}) {})
 
-	c = &mocks.Client{FakeIncoming: make(chan []byte, 2)}
-	b = &mocks.Driver{
-		FakeAI: &mocks.AI{FakeIsInTurn: false},
-		Calls:  make(map[string]int),
-	}
+	c = client.NewMock()
+	b = drivers.NewMock()
 
 	r = New("test", b, c, make(chan *interfaces.IncomingMessage), make(chan interfaces.Client), &config.Config{Timeout: 1}, obs)
 	return c, b, r
@@ -71,7 +69,7 @@ func TestKickPlayer(t *testing.T) {
 	c, _, r := setup()
 
 	data := []byte(`{"ply": 0}`)
-	toBeKicked := &mocks.Client{FakeIncoming: make(chan []byte, 2)}
+	toBeKicked := client.NewMock()
 
 	m := &interfaces.IncomingMessage{
 		Author:  c,

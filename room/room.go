@@ -220,7 +220,7 @@ func (r *Room) AddHuman(cl interfaces.Client) error {
 
 	if clientNumber, err = r.addClient(cl); err == nil {
 		if r.configuration.Debug {
-			log.Printf("Client '%s' added to room", cl.Name())
+			log.Printf("Client '%s' added to room %s", cl.Name(), r.ID())
 		}
 		r.observer.Trigger(events.ClientJoined{Client: cl, ClientNumber: clientNumber, Owner: cl == r.owner})
 	}

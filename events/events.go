@@ -60,6 +60,10 @@ type RoomDestroyed struct {
 	GameName string
 }
 
+type BotPanicked struct {
+	Client interfaces.Client
+}
+
 // Error is an event triggered when an error happens
 type Error struct {
 	Client    interfaces.Client

@@ -28,7 +28,9 @@ func (h *Hub) destroyRoom(roomID string, reasonCode string) {
 	}
 	if r, ok := h.rooms[roomID]; ok {
 		r.ToBeDestroyed(true)
-		r.Timer().Stop()
+		if r.Timer() != nil {
+			r.Timer().Stop()
+		}
 		h.expelClientsFromRoom(r, reasonCode)
 		gameName := h.rooms[roomID].GameDriverName()
 		delete(h.rooms, roomID)
@@ -37,6 +39,8 @@ func (h *Hub) destroyRoom(roomID string, reasonCode string) {
 		if h.configuration.Debug {
 			log.Printf("Room %s destroyed\n", roomID)
 		}
+	} else {
+		log.Printf("No existe %s", roomID)
 	}
 }
 

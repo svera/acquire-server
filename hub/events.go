@@ -122,6 +122,12 @@ func (h *Hub) registerEvents() {
 		}
 	})
 
+	h.observer.On(events.BotPanicked{}, func(ev interface{}) {
+		if event, ok := ev.(events.BotPanicked); ok {
+			event.Client.Room().RemoveClient(event.Client)
+		}
+	})
+
 	h.observer.On(events.Error{}, func(ev interface{}) {
 		if event, ok := ev.(events.Error); ok {
 			message := messages.Error{
