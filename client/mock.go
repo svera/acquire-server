@@ -72,11 +72,6 @@ func (c *Mock) ReadPump(channel interface{}, unregister chan interfaces.Client) 
 // WritePump mocks the WritePump method defined in the Client interface
 func (c *Mock) WritePump() {
 	c.FakeWritePump()
-	/*
-		for range c.FakeIncoming {
-			// Do nothing
-		}
-	*/
 }
 
 // Incoming mocks the Incoming method defined in the Client interface
@@ -107,9 +102,6 @@ func (c *Mock) SetName(v string) interfaces.Client {
 // Close mocks the Close method defined in the Client interface
 func (c *Mock) Close() {
 	c.FakeClose()
-	/*
-		close(c.FakeIncoming)
-	*/
 }
 
 // Room mocks the Room method defined in the Client interface
