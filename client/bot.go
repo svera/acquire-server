@@ -2,9 +2,12 @@ package client
 
 import (
 	"encoding/json"
-	"log"
+	"fmt"
+	"runtime/debug"
 	"sort"
 	"time"
+
+	"github.com/svera/sackson-server/events"
 
 	"github.com/svera/sackson-server/interfaces"
 )
@@ -24,10 +27,11 @@ type BotClient struct {
 	expectedSeq   int
 	updatesBuffer map[int]json.RawMessage
 	game          string
+	observer      interfaces.Observer
 }
 
 // NewBot returns a new Bot instance
-func NewBot(ai interfaces.AI, room interfaces.Room) interfaces.Client {
+func NewBot(ai interfaces.AI, room interfaces.Room, ob interfaces.Observer) interfaces.Client {
 	return &BotClient{
 		incoming:      make(chan []byte, maxMessageSize),
 		endReadPump:   make(chan struct{}),
@@ -37,6 +41,7 @@ func NewBot(ai interfaces.AI, room interfaces.Room) interfaces.Client {
 		room:          room,
 		expectedSeq:   1,
 		updatesBuffer: map[int]json.RawMessage{},
+		observer:      ob,
 	}
 }
 
@@ -46,7 +51,13 @@ func NewBot(ai interfaces.AI, room interfaces.Room) interfaces.Client {
 func (c *BotClient) ReadPump(cnl interface{}, unregister chan interfaces.Client) {
 	channel := cnl.(chan *interfaces.IncomingMessage)
 	defer func() {
-		unregister <- c
+		if rc := recover(); rc != nil {
+			fmt.Printf("Panic in bot '%s': %s\n", c.Name(), rc)
+			debug.PrintStack()
+			c.observer.Trigger(events.BotPanicked{Client: c})
+		} else {
+			unregister <- c
+		}
 	}()
 
 	for {
@@ -75,6 +86,14 @@ func (c *BotClient) WritePump() {
 	var parsed interfaces.OutgoingMessage
 	var err error
 
+	defer func() {
+		if rc := recover(); rc != nil {
+			fmt.Printf("Panic in bot '%s': %s\n", c.Name(), rc)
+			debug.PrintStack()
+			c.observer.Trigger(events.BotPanicked{Client: c})
+		}
+	}()
+
 	for {
 		select {
 		case <-c.endWritePump:
@@ -87,7 +106,9 @@ func (c *BotClient) WritePump() {
 
 			parsed.Content = json.RawMessage{}
 			if err = json.Unmarshal(message, &parsed); err == nil {
-				c.updatesBuffer[parsed.SequenceNumber] = parsed.Content
+				if parsed.SequenceNumber > 0 {
+					c.updatesBuffer[parsed.SequenceNumber] = parsed.Content
+				}
 				if parsed.SequenceNumber == c.expectedSeq {
 					c.feedPendingUpdatesInOrder()
 				}
@@ -98,12 +119,13 @@ func (c *BotClient) WritePump() {
 
 func (c *BotClient) feedPendingUpdatesInOrder() {
 	for _, seq := range c.getSortedUpdatesBufferKeys() {
-		c.ai.FeedGameStatus(c.updatesBuffer[seq])
+		if err := c.ai.FeedGameStatus(c.updatesBuffer[seq]); err != nil {
+			panic(fmt.Sprintf("Error feeding status to bot: %s", err.Error()))
+		}
 		delete(c.updatesBuffer, seq)
 		c.expectedSeq = seq + 1
 	}
 	if c.isInTurn() {
-		log.Printf("%s is in turn\n", c.Name())
 		c.botTurn <- struct{}{}
 	}
 }

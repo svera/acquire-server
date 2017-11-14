@@ -9,7 +9,6 @@ import (
 	"plugin"
 
 	"github.com/svera/sackson-server/interfaces"
-	"github.com/svera/sackson-server/mocks"
 )
 
 var drivers map[string]interface{}
@@ -28,7 +27,7 @@ func init() {
 func Create(name string) (interfaces.Driver, error) {
 	var driver interfaces.Driver
 	if name == "test" {
-		driver = &mocks.Driver{}
+		driver = NewMock()
 		return driver, nil
 	}
 	if plug, ok := drivers[name]; ok {

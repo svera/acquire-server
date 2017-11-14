@@ -5,22 +5,24 @@ import (
 	"testing"
 	"time"
 
+	"github.com/svera/sackson-server/client"
 	"github.com/svera/sackson-server/config"
+	"github.com/svera/sackson-server/drivers"
 	"github.com/svera/sackson-server/interfaces"
 	"github.com/svera/sackson-server/messages"
-	"github.com/svera/sackson-server/mocks"
 	"github.com/svera/sackson-server/observer"
+	"github.com/svera/sackson-server/room"
 )
 
-var b *mocks.Driver
+var b *drivers.Mock
 
 func init() {
-	b = &mocks.Driver{}
+	b = drivers.NewMock()
 }
 
-func setup() (h *Hub, c interfaces.Client) {
+func setup() (h *Hub, c *client.Mock) {
 	h = New(&config.Config{Timeout: 5, Debug: true}, observer.New())
-	c = &mocks.Client{FakeIncoming: make(chan []byte, 2), FakeName: "TestClient", FakeGame: "test"}
+	c = client.NewMock()
 	return h, c
 }
 
@@ -52,6 +54,9 @@ func TestUnregister(t *testing.T) {
 
 func TestCreateRoom(t *testing.T) {
 	h, c := setup()
+	NewRoom = func(ID string, b interfaces.Driver, owner interfaces.Client, messages chan *interfaces.IncomingMessage, unregister chan interfaces.Client, cfg *config.Config, ob interfaces.Observer) interfaces.Room {
+		return room.NewMock()
+	}
 	go h.Run()
 
 	go c.WritePump()
@@ -74,6 +79,24 @@ func TestCreateRoom(t *testing.T) {
 
 func TestDestroyRoom(t *testing.T) {
 	h, c := setup()
+	testRoom := room.NewMock()
+
+	GenerateID = func() string {
+		return "testRoom"
+	}
+
+	NewRoom = func(ID string, b interfaces.Driver, owner interfaces.Client, messages chan *interfaces.IncomingMessage, unregister chan interfaces.Client, cfg *config.Config, ob interfaces.Observer) interfaces.Room {
+		return testRoom
+	}
+
+	testRoom.FakeOwner = func() interfaces.Client {
+		return c
+	}
+
+	c.FakeRoom = func() interfaces.Room {
+		return testRoom
+	}
+
 	go h.Run()
 
 	go c.WritePump()
@@ -96,6 +119,16 @@ func TestDestroyRoom(t *testing.T) {
 
 func TestDestroyRoomAfterXSeconds(t *testing.T) {
 	h, c := setup()
+	testRoom := room.NewMock()
+
+	GenerateID = func() string {
+		return "testRoom"
+	}
+
+	NewRoom = func(ID string, b interfaces.Driver, owner interfaces.Client, messages chan *interfaces.IncomingMessage, unregister chan interfaces.Client, cfg *config.Config, ob interfaces.Observer) interfaces.Room {
+		return testRoom
+	}
+
 	h.configuration.Timeout = 1
 	go h.Run()
 
@@ -112,7 +145,22 @@ func TestDestroyRoomAfterXSeconds(t *testing.T) {
 
 func TestDestroyRoomWhenNoHumanClients(t *testing.T) {
 	h, c := setup()
-	c.(*mocks.Client).FakeIsBot = false
+	testRoom := room.NewMock()
+
+	GenerateID = func() string {
+		return "testRoom"
+	}
+
+	NewRoom = func(ID string, b interfaces.Driver, owner interfaces.Client, messages chan *interfaces.IncomingMessage, unregister chan interfaces.Client, cfg *config.Config, ob interfaces.Observer) interfaces.Room {
+		return testRoom
+	}
+
+	c.FakeIsBot = func() bool {
+		return false
+	}
+	c.FakeRoom = func() interfaces.Room {
+		return testRoom
+	}
 	go h.Run()
 
 	go c.WritePump()
@@ -130,7 +178,13 @@ func TestDestroyRoomWhenNoHumanClients(t *testing.T) {
 
 func TestJoinRoom(t *testing.T) {
 	h, c := setup()
-	c2 := &mocks.Client{FakeIncoming: make(chan []byte), FakeName: "TestClient2"}
+	testRoom := room.NewMock()
+
+	NewRoom = func(ID string, b interfaces.Driver, owner interfaces.Client, messages chan *interfaces.IncomingMessage, unregister chan interfaces.Client, cfg *config.Config, ob interfaces.Observer) interfaces.Room {
+		return testRoom
+	}
+
+	c2 := client.NewMock()
 
 	go h.Run()
 
@@ -151,7 +205,7 @@ func TestJoinRoom(t *testing.T) {
 	h.Messages <- m
 	time.Sleep(time.Millisecond * 100)
 
-	if len(h.rooms[id].Clients()) != 2 {
+	if h.rooms[id].(*room.Mock).Calls["AddHuman"] != 2 {
 		t.Errorf("Room must have 2 clients, got %d", len(h.rooms[id].Clients()))
 	}
 }
@@ -160,9 +214,20 @@ func ExampleHubRecoversFromRoomPanic() {
 	h, c := setup()
 	const roomID = "test"
 
-	room := getRoomMock(roomID)
+	room := room.NewMock()
+	room.FakeGameStarted = func() bool {
+		return false
+	}
+	room.FakeID = func() string {
+		return roomID
+	}
+	room.FakeParse = func(m *interfaces.IncomingMessage) {
+		panic("A panic")
+	}
 	h.rooms[roomID] = room
-	c.SetRoom(room)
+	c.FakeRoom = func() interfaces.Room {
+		return room
+	}
 
 	m := &interfaces.IncomingMessage{
 		Author:  c,
@@ -174,21 +239,8 @@ func ExampleHubRecoversFromRoomPanic() {
 	h.Register <- c
 
 	h.Messages <- m
+	time.Sleep(time.Millisecond * 100)
 
 	// Output:
 	// Panic in room 'test': A panic
-}
-
-func getRoomMock(roomID string) interfaces.Room {
-	return &mocks.Room{
-		FakeGameStarted: func() bool {
-			return false
-		},
-		FakeID: func() string {
-			return roomID
-		},
-		FakeParse: func(m *interfaces.IncomingMessage) {
-			panic("A panic")
-		},
-	}
 }

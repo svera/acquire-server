@@ -32,7 +32,7 @@ func (r *Room) addBot(level string) error {
 
 	if cast, err = r.gameDriver.CreateAI(level); err == nil {
 		if ai, ok := cast.(interfaces.AI); ok {
-			c = client.NewBot(ai, r)
+			c = client.NewBot(ai, r, r.observer)
 			c.SetName(fmt.Sprintf("Bot %d", r.clientCounter))
 			if _, err = r.addClient(c); err == nil {
 				go c.WritePump()
