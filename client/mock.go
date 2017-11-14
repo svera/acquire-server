@@ -6,7 +6,7 @@ import (
 	"github.com/svera/sackson-server/interfaces"
 )
 
-// Client is a structure that implements the Client interface for testing
+// Mock is a structure that implements the Client interface for testing
 type Mock struct {
 	FakeReadPump   func(channel interface{}, unregister chan interfaces.Client)
 	FakeWritePump  func()
@@ -26,6 +26,7 @@ type Mock struct {
 	FakeGame       func() string
 }
 
+// NewMock returns a new mock instance ready to use
 func NewMock() *Mock {
 	c := &Mock{
 		FakeIncoming: func() chan []byte {

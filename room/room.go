@@ -203,6 +203,7 @@ func (r *Room) playersData() map[string]messages.PlayerData {
 	return players
 }
 
+// GameCurrentPlayersClients returns a slice with all clients registered in the room
 func (r *Room) GameCurrentPlayersClients() ([]interfaces.Client, error) {
 	currentPlayerClients := []interfaces.Client{}
 	numbers, err := r.gameDriver.CurrentPlayersNumbers()

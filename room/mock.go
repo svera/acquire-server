@@ -6,7 +6,7 @@ import (
 	"github.com/svera/sackson-server/interfaces"
 )
 
-// Room is a structure that implements the Room interface for testing
+// Mock is a structure that implements the Room interface for testing
 type Mock struct {
 	FakeGameStarted               func() bool
 	FakeParse                     func(m *interfaces.IncomingMessage)
@@ -27,6 +27,7 @@ type Mock struct {
 	Calls                         map[string]int
 }
 
+// NewMock returns a new Mock instance ready to use
 func NewMock() *Mock {
 	return &Mock{
 		FakeID: func() string {

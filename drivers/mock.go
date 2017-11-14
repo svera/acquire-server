@@ -17,6 +17,7 @@ type Mock struct {
 	Calls                     map[string]int
 }
 
+// NewMock returns a new Mock instance ready to use
 func NewMock() *Mock {
 	return &Mock{
 		FakeAI: &AI{},

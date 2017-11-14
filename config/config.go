@@ -37,10 +37,10 @@ func Load(src io.Reader) (*Config, error) {
 
 func (c *Config) validate() error {
 	if c.Port == "" {
-		return errors.New("Sackson-server configuration: Invalid port.")
+		return errors.New("Sackson-server configuration: Invalid port")
 	}
 	if c.AllowedOrigin == "" {
-		return errors.New("Sackson-server configuration: Invalid origin.")
+		return errors.New("Sackson-server configuration: Invalid origin")
 	}
 	return nil
 }

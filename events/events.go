@@ -60,6 +60,7 @@ type RoomDestroyed struct {
 	GameName string
 }
 
+// BotPanicked is an event triggered when a bot panics
 type BotPanicked struct {
 	Client interfaces.Client
 }
