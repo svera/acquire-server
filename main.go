@@ -4,15 +4,15 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/svera/sackson-server/drivers"
+	"github.com/svera/sackson-server/internal/drivers"
 
 	"fmt"
 	"os"
 
 	"github.com/gorilla/mux"
-	"github.com/svera/sackson-server/client"
-	"github.com/svera/sackson-server/config"
-	"github.com/svera/sackson-server/hub"
+	"github.com/svera/sackson-server/internal/client"
+	"github.com/svera/sackson-server/internal/config"
+	"github.com/svera/sackson-server/internal/hub"
 	"github.com/svera/sackson-server/observer"
 )
 

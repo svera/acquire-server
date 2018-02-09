@@ -1,4 +1,4 @@
-package interfaces
+package api
 
 import (
 	"encoding/json"
@@ -11,9 +11,7 @@ type Driver interface {
 	CurrentPlayersNumbers() ([]int, error)
 	Status(playerNumber int) (interface{}, error)
 	RemovePlayer(number int) error
-	// The returned interface{} value must implement the AI interface,
-	// as defined in interfaces/ai.go
-	CreateAI(params interface{}) (interface{}, error)
+	CreateAI(params interface{}) (AI, error)
 	StartGame(map[int]string) error
 	GameStarted() bool
 	IsGameOver() bool

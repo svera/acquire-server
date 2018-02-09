@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 	"plugin"
 
-	"github.com/svera/sackson-server/interfaces"
+	"github.com/svera/sackson-server/api"
 )
 
-var drivers map[string]interface{}
+var drivers map[string]plugin.Symbol
 
 // Error messages returned from driver factory
 const (
@@ -20,22 +20,20 @@ const (
 )
 
 func init() {
-	drivers = make(map[string]interface{})
+	drivers = make(map[string]plugin.Symbol)
 }
 
 // Create returns a new instance of the driver struct specified
-func Create(name string) (interfaces.Driver, error) {
-	var driver interfaces.Driver
+func Create(name string) (api.Driver, error) {
+	var driver api.Driver
 	if name == "test" {
 		driver = NewMock()
 		return driver, nil
 	}
 	if plug, ok := drivers[name]; ok {
-		castable := plug.(func() interface{})()
-		if driver, ok := castable.(interfaces.Driver); ok {
-			return driver, nil
+		if driverConstructor, ok := plug.(func() api.Driver); ok {
+			return driverConstructor(), nil
 		}
-		log.Printf("Module \"%s\" does not implement Driver interface\n", name)
 		return nil, errors.New(DriverNotValid)
 	}
 	return nil, errors.New(DriverNotFound)

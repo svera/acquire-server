@@ -6,10 +6,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/svera/sackson-server/config"
-	"github.com/svera/sackson-server/events"
-	"github.com/svera/sackson-server/interfaces"
-	"github.com/svera/sackson-server/messages"
+	"github.com/svera/sackson-server/api"
+	"github.com/svera/sackson-server/internal/config"
+	"github.com/svera/sackson-server/internal/events"
+	"github.com/svera/sackson-server/internal/interfaces"
+	"github.com/svera/sackson-server/internal/messages"
 )
 
 var (
@@ -28,7 +29,7 @@ type Room struct {
 
 	owner interfaces.Client
 
-	gameDriver interfaces.Driver
+	gameDriver api.Driver
 
 	// Bots inbound messages
 	messages chan *interfaces.IncomingMessage
@@ -57,7 +58,7 @@ type Room struct {
 // New returns a new Room instance
 func New(
 	id string,
-	g interfaces.Driver,
+	g api.Driver,
 	owner interfaces.Client,
 	messages chan *interfaces.IncomingMessage,
 	unregister chan interfaces.Client,

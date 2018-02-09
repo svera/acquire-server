@@ -3,14 +3,14 @@ package drivers
 import (
 	"encoding/json"
 
-	"github.com/svera/sackson-server/interfaces"
+	"github.com/svera/sackson-server/api"
 )
 
 // Mock is a structure that implements the Driver interface for testing
 type Mock struct {
 	FakeCurrentPlayersNumbers []int
 	FakeStatus                []byte
-	FakeAI                    interfaces.AI
+	FakeAI                    api.AI
 	FakeGameStarted           bool
 	FakeIsGameOver            bool
 	FakeExecute               func(clientName string, t string, content json.RawMessage) error
@@ -18,7 +18,7 @@ type Mock struct {
 }
 
 // NewMock returns a new Mock instance ready to use
-func NewMock() *Mock {
+func NewMock() api.Driver {
 	return &Mock{
 		FakeAI: &AI{},
 		Calls:  make(map[string]int),
@@ -59,7 +59,7 @@ func (b *Mock) DeactivatePlayer(number int) error {
 }
 
 // CreateAI mocks the CreateAI method defined in the Driver interface
-func (b *Mock) CreateAI(params interface{}) (interface{}, error) {
+func (b *Mock) CreateAI(params interface{}) (api.AI, error) {
 	return b.FakeAI, nil
 }
 

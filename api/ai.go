@@ -1,4 +1,4 @@
-package interfaces
+package api
 
 import "encoding/json"
 

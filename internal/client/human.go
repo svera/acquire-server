@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/svera/sackson-server/config"
-	"github.com/svera/sackson-server/interfaces"
+	"github.com/svera/sackson-server/internal/config"
+	"github.com/svera/sackson-server/internal/interfaces"
 )
 
 var (

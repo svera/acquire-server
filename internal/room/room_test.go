@@ -5,12 +5,12 @@ import (
 
 	"encoding/json"
 
-	"github.com/svera/sackson-server/client"
-	"github.com/svera/sackson-server/config"
-	"github.com/svera/sackson-server/drivers"
-	"github.com/svera/sackson-server/events"
-	"github.com/svera/sackson-server/interfaces"
-	"github.com/svera/sackson-server/messages"
+	"github.com/svera/sackson-server/internal/client"
+	"github.com/svera/sackson-server/internal/config"
+	"github.com/svera/sackson-server/internal/drivers"
+	"github.com/svera/sackson-server/internal/events"
+	"github.com/svera/sackson-server/internal/interfaces"
+	"github.com/svera/sackson-server/internal/messages"
 	"github.com/svera/sackson-server/observer"
 )
 
@@ -26,7 +26,7 @@ func setup() (c interfaces.Client, b *drivers.Mock, r *Room) {
 	obs.On(events.Error{}, func(interface{}) {})
 
 	c = client.NewMock()
-	b = drivers.NewMock()
+	b = drivers.NewMock().(*drivers.Mock)
 
 	r = New("test", b, c, make(chan *interfaces.IncomingMessage), make(chan interfaces.Client), &config.Config{Timeout: 1}, obs)
 	return c, b, r
