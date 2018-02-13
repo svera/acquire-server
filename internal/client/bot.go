@@ -49,8 +49,7 @@ func NewBot(ai api.AI, room interfaces.Room, ob interfaces.Observer) interfaces.
 // ReadPump listens to the botTurn channel (see the WritePump function) and, when
 // an update message comes this way, updates the bot game status information
 // and gets its next play, sending it back to the hub
-func (c *BotClient) ReadPump(cnl interface{}, unregister chan interfaces.Client) {
-	channel := cnl.(chan *interfaces.IncomingMessage)
+func (c *BotClient) ReadPump(channel chan *interfaces.IncomingMessage, unregister chan interfaces.Client) {
 	defer func() {
 		if rc := recover(); rc != nil {
 			fmt.Printf("Panic in bot '%s': %s\n", c.Name(), rc)

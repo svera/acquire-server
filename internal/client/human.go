@@ -56,8 +56,7 @@ func NewHuman(w http.ResponseWriter, r *http.Request, cfg *config.Config) (inter
 }
 
 // ReadPump reads input from the user and writes it to the passed channel
-func (c *Human) ReadPump(cnl interface{}, unregister chan interfaces.Client) {
-	channel := cnl.(chan *interfaces.IncomingMessage)
+func (c *Human) ReadPump(channel chan *interfaces.IncomingMessage, unregister chan interfaces.Client) {
 	defer func() {
 		unregister <- c
 		c.ws.Close()
