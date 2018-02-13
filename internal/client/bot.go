@@ -7,9 +7,10 @@ import (
 	"sort"
 	"time"
 
-	"github.com/svera/sackson-server/events"
+	"github.com/svera/sackson-server/api"
+	"github.com/svera/sackson-server/internal/events"
 
-	"github.com/svera/sackson-server/interfaces"
+	"github.com/svera/sackson-server/internal/interfaces"
 )
 
 // BotClient is a struct that implements the client interface,
@@ -22,7 +23,7 @@ type BotClient struct {
 	endReadPump   chan struct{}
 	endWritePump  chan struct{}
 	botTurn       chan struct{}
-	ai            interfaces.AI
+	ai            api.AI
 	room          interfaces.Room
 	expectedSeq   int
 	updatesBuffer map[int]json.RawMessage
@@ -31,7 +32,7 @@ type BotClient struct {
 }
 
 // NewBot returns a new Bot instance
-func NewBot(ai interfaces.AI, room interfaces.Room, ob interfaces.Observer) interfaces.Client {
+func NewBot(ai api.AI, room interfaces.Room, ob interfaces.Observer) interfaces.Client {
 	return &BotClient{
 		incoming:      make(chan []byte, maxMessageSize),
 		endReadPump:   make(chan struct{}),
@@ -48,8 +49,7 @@ func NewBot(ai interfaces.AI, room interfaces.Room, ob interfaces.Observer) inte
 // ReadPump listens to the botTurn channel (see the WritePump function) and, when
 // an update message comes this way, updates the bot game status information
 // and gets its next play, sending it back to the hub
-func (c *BotClient) ReadPump(cnl interface{}, unregister chan interfaces.Client) {
-	channel := cnl.(chan *interfaces.IncomingMessage)
+func (c *BotClient) ReadPump(channel chan *interfaces.IncomingMessage, unregister chan interfaces.Client) {
 	defer func() {
 		if rc := recover(); rc != nil {
 			fmt.Printf("Panic in bot '%s': %s\n", c.Name(), rc)

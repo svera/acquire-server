@@ -5,8 +5,8 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/svera/sackson-server/interfaces"
-	"github.com/svera/sackson-server/messages"
+	"github.com/svera/sackson-server/internal/interfaces"
+	"github.com/svera/sackson-server/internal/messages"
 )
 
 func (h *Hub) joinRoomAction(m *interfaces.IncomingMessage) error {

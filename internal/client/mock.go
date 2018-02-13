@@ -3,7 +3,7 @@ package client
 import (
 	"time"
 
-	"github.com/svera/sackson-server/interfaces"
+	"github.com/svera/sackson-server/internal/interfaces"
 )
 
 // Mock is a structure that implements the Client interface for testing
@@ -65,7 +65,7 @@ func NewMock() *Mock {
 }
 
 // ReadPump mocks the ReadPump method defined in the Client interface
-func (c *Mock) ReadPump(channel interface{}, unregister chan interfaces.Client) {
+func (c *Mock) ReadPump(channel chan *interfaces.IncomingMessage, unregister chan interfaces.Client) {
 	c.FakeReadPump(channel, unregister)
 }
 

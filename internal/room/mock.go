@@ -3,7 +3,7 @@ package room
 import (
 	"time"
 
-	"github.com/svera/sackson-server/interfaces"
+	"github.com/svera/sackson-server/internal/interfaces"
 )
 
 // Mock is a structure that implements the Room interface for testing

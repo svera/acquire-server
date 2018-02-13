@@ -1,9 +1,9 @@
 package hub
 
 import (
-	"github.com/svera/sackson-server/events"
-	"github.com/svera/sackson-server/interfaces"
-	"github.com/svera/sackson-server/messages"
+	"github.com/svera/sackson-server/internal/events"
+	"github.com/svera/sackson-server/internal/interfaces"
+	"github.com/svera/sackson-server/internal/messages"
 )
 
 func (h *Hub) registerEvents() {

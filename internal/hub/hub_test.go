@@ -5,16 +5,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/svera/sackson-server/client"
-	"github.com/svera/sackson-server/config"
-	"github.com/svera/sackson-server/drivers"
-	"github.com/svera/sackson-server/interfaces"
-	"github.com/svera/sackson-server/messages"
+	"github.com/svera/sackson-server/api"
+	"github.com/svera/sackson-server/internal/client"
+	"github.com/svera/sackson-server/internal/config"
+	"github.com/svera/sackson-server/internal/drivers"
+	"github.com/svera/sackson-server/internal/interfaces"
+	"github.com/svera/sackson-server/internal/messages"
+	"github.com/svera/sackson-server/internal/room"
 	"github.com/svera/sackson-server/observer"
-	"github.com/svera/sackson-server/room"
 )
 
-var b *drivers.Mock
+var b api.Driver
 
 func init() {
 	b = drivers.NewMock()
@@ -54,7 +55,7 @@ func TestUnregister(t *testing.T) {
 
 func TestCreateRoom(t *testing.T) {
 	h, c := setup()
-	NewRoom = func(ID string, b interfaces.Driver, owner interfaces.Client, messages chan *interfaces.IncomingMessage, unregister chan interfaces.Client, cfg *config.Config, ob interfaces.Observer) interfaces.Room {
+	NewRoom = func(ID string, b api.Driver, owner interfaces.Client, messages chan *interfaces.IncomingMessage, unregister chan interfaces.Client, cfg *config.Config, ob interfaces.Observer) interfaces.Room {
 		return room.NewMock()
 	}
 	go h.Run()
@@ -85,7 +86,7 @@ func TestDestroyRoom(t *testing.T) {
 		return "testRoom"
 	}
 
-	NewRoom = func(ID string, b interfaces.Driver, owner interfaces.Client, messages chan *interfaces.IncomingMessage, unregister chan interfaces.Client, cfg *config.Config, ob interfaces.Observer) interfaces.Room {
+	NewRoom = func(ID string, b api.Driver, owner interfaces.Client, messages chan *interfaces.IncomingMessage, unregister chan interfaces.Client, cfg *config.Config, ob interfaces.Observer) interfaces.Room {
 		return testRoom
 	}
 
@@ -125,7 +126,7 @@ func TestDestroyRoomAfterXSeconds(t *testing.T) {
 		return "testRoom"
 	}
 
-	NewRoom = func(ID string, b interfaces.Driver, owner interfaces.Client, messages chan *interfaces.IncomingMessage, unregister chan interfaces.Client, cfg *config.Config, ob interfaces.Observer) interfaces.Room {
+	NewRoom = func(ID string, b api.Driver, owner interfaces.Client, messages chan *interfaces.IncomingMessage, unregister chan interfaces.Client, cfg *config.Config, ob interfaces.Observer) interfaces.Room {
 		return testRoom
 	}
 
@@ -151,7 +152,7 @@ func TestDestroyRoomWhenNoHumanClients(t *testing.T) {
 		return "testRoom"
 	}
 
-	NewRoom = func(ID string, b interfaces.Driver, owner interfaces.Client, messages chan *interfaces.IncomingMessage, unregister chan interfaces.Client, cfg *config.Config, ob interfaces.Observer) interfaces.Room {
+	NewRoom = func(ID string, b api.Driver, owner interfaces.Client, messages chan *interfaces.IncomingMessage, unregister chan interfaces.Client, cfg *config.Config, ob interfaces.Observer) interfaces.Room {
 		return testRoom
 	}
 
@@ -180,7 +181,7 @@ func TestJoinRoom(t *testing.T) {
 	h, c := setup()
 	testRoom := room.NewMock()
 
-	NewRoom = func(ID string, b interfaces.Driver, owner interfaces.Client, messages chan *interfaces.IncomingMessage, unregister chan interfaces.Client, cfg *config.Config, ob interfaces.Observer) interfaces.Room {
+	NewRoom = func(ID string, b api.Driver, owner interfaces.Client, messages chan *interfaces.IncomingMessage, unregister chan interfaces.Client, cfg *config.Config, ob interfaces.Observer) interfaces.Room {
 		return testRoom
 	}
 

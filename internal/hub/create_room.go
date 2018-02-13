@@ -7,16 +7,17 @@ import (
 
 	"strings"
 
-	"github.com/svera/sackson-server/config"
-	"github.com/svera/sackson-server/drivers"
-	"github.com/svera/sackson-server/events"
-	"github.com/svera/sackson-server/interfaces"
-	"github.com/svera/sackson-server/messages"
-	"github.com/svera/sackson-server/room"
+	"github.com/svera/sackson-server/api"
+	"github.com/svera/sackson-server/internal/config"
+	"github.com/svera/sackson-server/internal/drivers"
+	"github.com/svera/sackson-server/internal/events"
+	"github.com/svera/sackson-server/internal/interfaces"
+	"github.com/svera/sackson-server/internal/messages"
+	"github.com/svera/sackson-server/internal/room"
 )
 
 // NewRoom holds a factory function that can be replaced in tests, so it returns a mocked Room instead
-var NewRoom = func(ID string, b interfaces.Driver, owner interfaces.Client, messages chan *interfaces.IncomingMessage, unregister chan interfaces.Client, cfg *config.Config, ob interfaces.Observer) interfaces.Room {
+var NewRoom = func(ID string, b api.Driver, owner interfaces.Client, messages chan *interfaces.IncomingMessage, unregister chan interfaces.Client, cfg *config.Config, ob interfaces.Observer) interfaces.Room {
 	return room.New(ID, b, owner, messages, unregister, cfg, ob)
 }
 
@@ -36,7 +37,7 @@ var GenerateID = func() string {
 func (h *Hub) createRoomAction(m *interfaces.IncomingMessage) error {
 	var parsed messages.CreateRoom
 	var err error
-	var driver interfaces.Driver
+	var driver api.Driver
 
 	if err = json.Unmarshal(m.Content, &parsed); err != nil {
 		return err
@@ -52,7 +53,7 @@ func (h *Hub) createRoomAction(m *interfaces.IncomingMessage) error {
 	return nil
 }
 
-func (h *Hub) createRoom(b interfaces.Driver, owner interfaces.Client) string {
+func (h *Hub) createRoom(b api.Driver, owner interfaces.Client) string {
 	exists := true
 	var ID string
 	for exists {

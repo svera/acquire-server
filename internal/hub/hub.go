@@ -9,10 +9,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/svera/sackson-server/config"
-	"github.com/svera/sackson-server/events"
-	"github.com/svera/sackson-server/interfaces"
-	"github.com/svera/sackson-server/messages"
+	"github.com/svera/sackson-server/internal/config"
+	"github.com/svera/sackson-server/internal/events"
+	"github.com/svera/sackson-server/internal/interfaces"
+	"github.com/svera/sackson-server/internal/messages"
 )
 
 var (
