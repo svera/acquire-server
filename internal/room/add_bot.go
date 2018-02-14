@@ -28,19 +28,15 @@ func (r *Room) addBotAction(m *interfaces.IncomingMessage) error {
 
 func (r *Room) addBot(level string) error {
 	var err error
-	var cast interface{}
+	var ai api.AI
 	var c interfaces.Client
 
-	if cast, err = r.gameDriver.CreateAI(level); err == nil {
-		if ai, ok := cast.(api.AI); ok {
-			c = client.NewBot(ai, r, r.observer)
-			c.SetName(fmt.Sprintf("Bot %d", r.clientCounter))
-			if _, err = r.addClient(c); err == nil {
-				go c.WritePump()
-				go c.ReadPump(r.messages, r.unregister)
-			}
-		} else {
-			err = fmt.Errorf(DoesNotImplementAI)
+	if ai, err = r.gameDriver.CreateAI(level); err == nil {
+		c = client.NewBot(ai, r, r.observer)
+		c.SetName(fmt.Sprintf("Bot %d", r.clientCounter))
+		if _, err = r.addClient(c); err == nil {
+			go c.WritePump()
+			go c.ReadPump(r.messages, r.unregister)
 		}
 	}
 	return err
