@@ -13,7 +13,7 @@ type Mock struct {
 	FakeAI                    api.AI
 	FakeGameStarted           bool
 	FakeIsGameOver            bool
-	FakeExecute               func(clientName string, t string, content json.RawMessage) error
+	FakeExecute               func(clientName string, action api.Action) error
 	Calls                     map[string]int
 }
 
@@ -26,9 +26,9 @@ func NewMock() api.Driver {
 }
 
 // Execute mocks the Execute method defined in the Driver interface
-func (b *Mock) Execute(clientName string, t string, content json.RawMessage) error {
+func (b *Mock) Execute(clientName string, action api.Action) error {
 	if b.FakeExecute != nil {
-		return b.FakeExecute(clientName, t, content)
+		return b.FakeExecute(clientName, action)
 	}
 	return nil
 }

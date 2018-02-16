@@ -66,11 +66,11 @@ func (c *BotClient) ReadPump(channel chan *interfaces.IncomingMessage, unregiste
 			return
 
 		case <-c.botTurn:
-			msgType, content := c.ai.Play()
+			p := c.ai.Play()
 			msg := &interfaces.IncomingMessage{
 				Author:  c,
-				Type:    msgType,
-				Content: content,
+				Type:    p.Type,
+				Content: p.Params,
 			}
 			channel <- msg
 		}

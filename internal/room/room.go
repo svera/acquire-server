@@ -136,7 +136,8 @@ func (r *Room) passMessageToGame(m *interfaces.IncomingMessage) {
 	var st interface{}
 
 	if r.messageAuthorIsInTurn(m) {
-		if err = r.gameDriver.Execute(m.Author.Name(), m.Type, m.Content); err == nil {
+		p := api.Action{PlayerName: m.Author.Name(), Type: m.Type, Params: m.Content}
+		if err = r.gameDriver.Execute(p); err == nil {
 			r.updateSequenceNumber++
 			for n, cl := range r.clients {
 				if cl.IsBot() && r.IsGameOver() {
