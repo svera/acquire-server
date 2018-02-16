@@ -2,13 +2,14 @@ package drivers
 
 import (
 	"encoding/json"
+
+	"github.com/svera/sackson-server/api"
 )
 
 // AI is a structure that implements the AI interface for testing
 type AI struct {
-	FakeMessageType string
-	FakeMessage     json.RawMessage
-	Calls           map[string]int
+	FakePlay api.Action
+	Calls    map[string]int
 }
 
 // FeedGameStatus mocks the FeedGameStatus method defined in the AI interface
@@ -19,6 +20,6 @@ func (a *AI) FeedGameStatus(json.RawMessage) error {
 }
 
 // Play mocks the Play method defined in the AI interface
-func (a *AI) Play() (string, json.RawMessage) {
-	return a.FakeMessageType, a.FakeMessage
+func (a *AI) Play() api.Action {
+	return a.FakePlay
 }
